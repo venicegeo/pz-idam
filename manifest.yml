@@ -1,0 +1,7 @@
+applications:
+- name: pz-security
+  host: pz-security
+  memory: 512M
+  instances: 1
+  timeout: 80
+  path: pz-security.jar

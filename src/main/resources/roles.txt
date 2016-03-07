@@ -1,0 +1,2 @@
+rorf:abort,access,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,repeat,search-service,update-service
+pdooty:abort,access,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,repeat,search-service,update-service
