@@ -1,3 +1,2 @@
-rorf:abort,access,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,repeat,search-service,update-service
-pdoody:abort,access,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,repeat,search-service,update-service
-mgerlek:abort,access,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,repeat,search-service,update-service
+russellorf:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
+johnsmith:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
