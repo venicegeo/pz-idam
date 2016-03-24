@@ -40,17 +40,17 @@ public class SecurityController {
 
 	@Autowired
 	private FileAccessor fa;
-	
-    private static final String SUCCESSES = "Successes";
-    private static final String FAILURES = "Failures";
-    private static final String STATUS = "Status";
+
+	private static final String SUCCESSES = "Successes";
+	private static final String FAILURES = "Failures";
+	private static final String STATUS = "Status";
 
 	/**
 	 * Retrieves all of the users defined in the system.
 	 * 
 	 * @return Set<String> object
-	 */    
-	@RequestMapping(value = "/users", method = RequestMethod.GET, produces="application/json")
+	 */
+	@RequestMapping(value = "/users", method = RequestMethod.GET, produces = "application/json")
 	@ResponseBody
 	public Set<String> getUsers() {
 		try {
@@ -60,16 +60,16 @@ public class SecurityController {
 			return null;
 		}
 	}
-    
+
 	/**
 	 * Retrieves all of the roles for a given user.
 	 * 
 	 * @param userid
 	 *            The username of the user to retrieve the defined roles for.
-	 *            
-	 * @return List<String> object in the form "username":"role1,role2,role3"           
-	 */	
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.GET, produces="application/json")
+	 * 
+	 * @return List<String> object in the form "username":"role1,role2,role3"
+	 */
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.GET, produces = "application/json")
 	@ResponseBody
 	public List<String> getRoles(@PathVariable(value = "userid") String userid) {
 		try {
@@ -79,206 +79,214 @@ public class SecurityController {
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Retrieves all of the roles for every user.
 	 * 
-	 * @return Map<String,String> object in the form "username":"role1,role2,role3"
-	 */	
-	@RequestMapping(value = "/users/roles", method = RequestMethod.GET, produces="application/json")
+	 * @return Map<String,String> object in the form
+	 *         "username":"role1,role2,role3"
+	 */
+	@RequestMapping(value = "/users/roles", method = RequestMethod.GET, produces = "application/json")
 	@ResponseBody
-	public Map<String,String> getUsersAndRoles() {
+	public Map<String, String> getUsersAndRoles() {
 		try {
 			return fa.getUsersAndRoles();
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
-	}		
+	}
 
 	/**
 	 * Deletes a user based on the provided username
 	 * 
 	 * @param userid
 	 *            The username of the user to delete
-	 *            
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users/{userid}", method = RequestMethod.DELETE, produces="application/json")
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users/{userid}", method = RequestMethod.DELETE, produces = "application/json")
 	@ResponseBody
-	public Map<String,String> deleteUser(@PathVariable(value = "userid") String userid) {
-		Map<String,String> response = new HashMap<String,String>();
+	public Map<String, String> deleteUser(@PathVariable(value = "userid") String userid) {
+		Map<String, String> response = new HashMap<String, String>();
 		try {
-			if( !fa.userExists( userid ) ) {
-				response.put(STATUS, "User " + userid + " does not exist!");
-			}
-			else {
+			userid = userid.toLowerCase();
+			if (!fa.userExists(userid)) {
+				response.put(STATUS, "User '" + userid + "' does not exist!");
+			} else {
 				fa.removeUser(userid);
-				response.put(STATUS, "User " + userid + " deleted.");
+				response.put(STATUS, "User '" + userid + "' deleted.");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
-		return response;		
-	}	
-	
+		return response;
+	}
+
 	/**
 	 * Deletes a single role from the provided username
 	 * 
 	 * @param userid
 	 *            The username of the user to delete the role from.
-	 *            
+	 * 
 	 * @param role
-	 * 			  The role to be deleted from the user.
-	 *            
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users/{userid}/roles/{role}", method = RequestMethod.DELETE, produces="application/json")
+	 *            The role to be deleted from the user.
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users/{userid}/roles/{role}", method = RequestMethod.DELETE, produces = "application/json")
 	@ResponseBody
-	public Map<String,String> deleteRoleFromUser(@PathVariable(value = "userid") String userid, @PathVariable(value = "role") String role) {
-		Map<String,String> response = new HashMap<String,String>();
-		try {			
-			if( !fa.userExists( userid ) ) {
-				response.put(STATUS, "User " + userid + " does not exist!");
-			}
-			else if( !fa.roleExists( userid, role) ) {
-				response.put(STATUS, "Role " + role + " does not exist for user " + userid);
-			}
-			else {
+	public Map<String, String> deleteRoleFromUser(@PathVariable(value = "userid") String userid,
+			@PathVariable(value = "role") String role) {
+		Map<String, String> response = new HashMap<String, String>();
+		try {
+			userid = userid.toLowerCase();
+			role = role.toLowerCase();
+			if (!fa.userExists(userid)) {
+				response.put(STATUS, "User '" + userid + "' does not exist!");
+			} else if (!fa.roleExists(userid, role)) {
+				response.put(STATUS, "Role '" + role + "' does not exist for user '" + userid + "'");
+			} else {
 				fa.removeRole(userid, role);
-				response.put(STATUS, "Role " + role + " deleted for user " + userid);
+				response.put(STATUS, "Role '" + role + "' deleted for user '" + userid + "'");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
-		return response;		
+		return response;
 	}
-	
+
 	/**
 	 * Deletes all roles from the provided username
 	 * 
 	 * @param userid
 	 *            The username of the user to delete the roles from.
-	 *            
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.DELETE, produces="application/json")
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.DELETE, produces = "application/json")
 	@ResponseBody
-	public Map<String,String> deleteAllRolesFromUser(@PathVariable(value = "userid") String userid) {
-		Map<String,String> response = new HashMap<String,String>();
-		try {			
-			if( !fa.userExists( userid ) ) {
-				response.put(STATUS, "User " + userid + " does not exist!");
-			}
-			else {
+	public Map<String, String> deleteAllRolesFromUser(@PathVariable(value = "userid") String userid) {
+		Map<String, String> response = new HashMap<String, String>();
+		try {
+			userid = userid.toLowerCase();
+			if (!fa.userExists(userid)) {
+				response.put(STATUS, "User '" + userid + "' does not exist!");
+			} else {
 				fa.removeAllRoles(userid);
-				response.put(STATUS, "All roles for user " + userid + " deleted.");
+				response.put(STATUS, "All roles for user '" + userid + "' deleted.");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
-		return response;		
-	}	
-	
+		return response;
+	}
+
 	/**
-	 * Adds users and their respective roles to the system based on the provided usernames
+	 * Adds users and their respective roles to the system based on the provided
+	 * usernames
 	 * 
 	 * @param body
 	 *            A list of users and their respective roles to add
-	 *            
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users/roles", method = RequestMethod.POST, produces="application/json")
-	@ResponseBody	
-	public Map<String,List<String>> addUsersAndRoles(@RequestBody Map<String,String> body) {
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users/roles", method = RequestMethod.POST, produces = "application/json")
+	@ResponseBody
+	public Map<String, List<String>> addUsersAndRoles(@RequestBody Map<String, String> body) {
 		try {
 			List<String> lines = new ArrayList<String>();
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
 
-			for( Map.Entry<String,String> entry : body.entrySet() ) {
-				if( !fa.userExists( entry.getKey() ) ) {
-					lines.add(entry.getKey() + ":" + entry.getValue());
-					successes.add("User " + entry.getKey() + " inserted with roles: " + entry.getValue());
-				}
-				else {
-					failures.add("User " + entry.getKey() + " already exists!");
+			for (Map.Entry<String, String> entry : body.entrySet()) {
+				String userid = entry.getKey().toLowerCase();
+				if (!fa.userExists(userid)) {
+					lines.add(userid + ":" + entry.getValue());
+					successes.add("User '" + userid + "' inserted with roles: " + entry.getValue().toLowerCase());
+				} else {
+					failures.add("User '" + userid + "' already exists!");
 				}
 			}
-			fa.addUsers( lines );
-			
-			Map<String,List<String>> response = new HashMap<String,List<String>>();
-			response.put(SUCCESSES,  successes);
+			fa.addUsers(lines);
+
+			Map<String, List<String>> response = new HashMap<String, List<String>>();
+			response.put(SUCCESSES, successes);
 			response.put(FAILURES, failures);
 			return response;
 		} catch (Exception e) {
 			e.printStackTrace();
-			return null;			
-		}	
+			return null;
+		}
 	}
-	
+
 	/**
 	 * Adds users to the system based on the provided usernames
 	 * 
 	 * @param users
 	 *            A list of users to add
-	 *            
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users", method = RequestMethod.POST, produces="application/json")
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users", method = RequestMethod.POST, produces = "application/json")
 	@ResponseBody
-	public Map<String,List<String>> addUsers(@RequestBody List<String> users) {
+	public Map<String, List<String>> addUsers(@RequestBody List<String> users) {
 		try {
 			List<String> lines = new ArrayList<String>();
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
 
-			for( String user : users ) {
-				if( !fa.userExists( user ) ) {
-					lines.add(user + ":");
-					successes.add("User " + user + " inserted with no roles.");
-				}
-				else {
-					failures.add("User " + user + " already exists!");
+			for (String userid : users) {
+				userid = userid.toLowerCase();
+
+				if (!fa.userExists(userid)) {
+					lines.add(userid + ":");
+					successes.add("User '" + userid + "' inserted with no roles.");
+				} else {
+					failures.add("User '" + userid + "' already exists!");
 				}
 			}
-			fa.addUsers( lines );
-			
-			Map<String,List<String>> response = new HashMap<String,List<String>>();
-			response.put(SUCCESSES,  successes);
+			fa.addUsers(lines);
+
+			Map<String, List<String>> response = new HashMap<String, List<String>>();
+			response.put(SUCCESSES, successes);
 			response.put(FAILURES, failures);
 			return response;
 		} catch (Exception e) {
 			e.printStackTrace();
-			return null;			
-		}	
+			return null;
+		}
 	}
-	
+
 	/**
-	 * Replaces a users list of roles based with the roles provided, erasing any previously defined roles.
+	 * Replaces a users list of roles based with the roles provided, erasing any
+	 * previously defined roles.
 	 * 
 	 * @param userid
 	 *            The username of the user to update the roles for.
-	 *        
-	 * @param roles
-	 * 			  The list of roles to assign to the user. This erases the previously defined roles.
 	 * 
-	 * @return Map<String,String> object in the form "status":"The status"       
-	 */	
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.PUT, produces="application/json")
+	 * @param roles
+	 *            The list of roles to assign to the user. This erases the
+	 *            previously defined roles.
+	 * 
+	 * @return Map<String,String> object in the form "status":"The status"
+	 */
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.PUT, produces = "application/json")
 	@ResponseBody
-	public Map<String, String> updateRolesForUser(@PathVariable(value = "userid") String userid, @RequestBody List<String> roles) {
-		Map<String,String> response = new HashMap<String,String>();
+	public Map<String, String> updateRolesForUser(@PathVariable(value = "userid") String userid,
+			@RequestBody List<String> roles) {
+
+		Map<String, String> response = new HashMap<String, String>();
 		try {
-			if( fa.userExists( userid ) ) {
-				fa.updateUserRoles( userid, roles );
-				response.put(STATUS, "User " + userid + " updated with roles: " + fa.getRolesForUser(userid));
-			}
-			else {
-				response.put(STATUS, "User " + userid + " does not exist!");
+			userid = userid.toLowerCase();
+			if (fa.userExists(userid)) {
+				fa.updateUserRoles(userid, roles);
+				response.put(STATUS, "User '" + userid + "' updated with roles: " + fa.getRolesForUser(userid));
+			} else {
+				response.put(STATUS, "User '" + userid + "' does not exist!");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
