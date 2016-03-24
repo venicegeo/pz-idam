@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
@@ -43,7 +44,9 @@ public class FileAccessor {
 	@Autowired
 	private ResourceLoader resourceLoader;
 
-	private static final String FILE = "roles.txt";
+	@Value("${pz.security.fileurl}")
+	private String FILE;
+	
 	private static Path PATH;
 
 	public Map<String, String> getUsersAndRoles() throws IOException {
@@ -77,19 +80,14 @@ public class FileAccessor {
 		return false;
 	}
 
-	public void addUsers(List<String> lines) throws IOException {
-		for (String line : lines) {
-			BufferedWriter bw = Files.newBufferedWriter(getRoleFilePath(), StandardOpenOption.APPEND);
-			bw.newLine();
-			bw.close();
-			Files.write(getRoleFilePath(), line.toLowerCase().getBytes(), StandardOpenOption.APPEND);
-		}
+	public void addUsers(Map<String, String> usersToAdd) throws IOException {
+		writeToFile(usersToAdd, false);
 	}
 
 	public void updateUserRoles(String userid, List<String> roles) throws IOException {
 		Map<String, String> mapFromFile = getUsersAndRoles();
 		mapFromFile.put(userid.toLowerCase(), formatRoles(roles));
-		writeToFile(mapFromFile);
+		writeToFile(mapFromFile, true);
 	}
 
 	public void removeRole(String userid, String role) throws IOException {
@@ -98,26 +96,26 @@ public class FileAccessor {
 
 		Map<String, String> mapFromFile = getUsersAndRoles();
 		mapFromFile.put(userid.toLowerCase(), formatRoles(roles));
-		writeToFile(mapFromFile);
+		writeToFile(mapFromFile, true);
 	}
 
 	public void removeAllRoles(String userid) throws IOException {
 		Map<String, String> mapFromFile = getUsersAndRoles();
 		mapFromFile.put(userid.toLowerCase(), "");
-		writeToFile(mapFromFile);
+		writeToFile(mapFromFile, true);
 	}
 
 	public void removeUser(String userid) throws IOException {
 		Map<String, String> mapFromFile = getUsersAndRoles();
 		mapFromFile.remove(userid);
-		writeToFile(mapFromFile);
+		writeToFile(mapFromFile, true);
 	}
 
-	private void writeToFile(Map<String, String> lines) throws IOException {
+	private synchronized void writeToFile(Map<String, String> lines, boolean wholesaleReplace) throws IOException {
 		boolean first = true;
 		for (Map.Entry<String, String> entry : lines.entrySet()) {
 			byte[] line = (entry.getKey() + ":" + entry.getValue()).getBytes();
-			if (first) {
+			if (first && wholesaleReplace) {
 				Files.write(getRoleFilePath(), line, StandardOpenOption.TRUNCATE_EXISTING);
 				first = false;
 			} else {
@@ -146,6 +144,6 @@ public class FileAccessor {
 	}
 
 	private Path getRoleFilePath() throws IOException {
-		return (PATH != null ? PATH : Paths.get(resourceLoader.getResource("classpath:" + FILE).getFile().getPath()));
+		return (PATH != null ? PATH : Paths.get(resourceLoader.getResource(FILE).getFile().getPath()));
 	}
 }

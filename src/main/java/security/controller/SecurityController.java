@@ -198,20 +198,20 @@ public class SecurityController {
 	@ResponseBody
 	public Map<String, List<String>> addUsersAndRoles(@RequestBody Map<String, String> body) {
 		try {
-			List<String> lines = new ArrayList<String>();
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
+			Map<String, String> usersToAdd = new HashMap<String,String>();
 
 			for (Map.Entry<String, String> entry : body.entrySet()) {
 				String userid = entry.getKey().toLowerCase();
 				if (!fa.userExists(userid)) {
-					lines.add(userid + ":" + entry.getValue());
+					usersToAdd.put(userid, entry.getValue() );
 					successes.add("User '" + userid + "' inserted with roles: " + entry.getValue().toLowerCase());
 				} else {
 					failures.add("User '" + userid + "' already exists!");
 				}
 			}
-			fa.addUsers(lines);
+			fa.addUsers(usersToAdd);
 
 			Map<String, List<String>> response = new HashMap<String, List<String>>();
 			response.put(SUCCESSES, successes);
@@ -235,21 +235,20 @@ public class SecurityController {
 	@ResponseBody
 	public Map<String, List<String>> addUsers(@RequestBody List<String> users) {
 		try {
-			List<String> lines = new ArrayList<String>();
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
-
+			Map<String, String> usersToAdd = new HashMap<String,String>();
+			
 			for (String userid : users) {
 				userid = userid.toLowerCase();
-
 				if (!fa.userExists(userid)) {
-					lines.add(userid + ":");
+					usersToAdd.put(userid, "");
 					successes.add("User '" + userid + "' inserted with no roles.");
 				} else {
 					failures.add("User '" + userid + "' already exists!");
 				}
 			}
-			fa.addUsers(lines);
+			fa.addUsers(usersToAdd);
 
 			Map<String, List<String>> response = new HashMap<String, List<String>>();
 			response.put(SUCCESSES, successes);
