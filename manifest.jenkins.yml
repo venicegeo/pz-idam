@@ -1,0 +1,12 @@
+applications:
+- name: pz-security
+  host: pz-security
+  path: pz-security.jar
+  buildpack: java_buildpack_offline
+  domain: stage.geointservices.io
+  memory: 512M
+  instances: 1
+  timeout: 80
+  services:
+  env:
+    SPRING_PROFILES_ACTIVE: cloud,fade-stage
