@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package security.data;
+package org.venice.piazza.security.data;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class FileAccessor {
 
 	@Value("${pz.security.fileurl}")
 	private String FILE;
-	
+
 	private static Path PATH;
 
 	public Map<String, String> getUsersAndRoles() throws IOException {
@@ -111,6 +112,10 @@ public class FileAccessor {
 		writeToFile(mapFromFile, true);
 	}
 
+	public Stats getStats() throws IOException {
+		return new Stats(getUsers().size(), getNumRoles(), getNumUsersWithNoRoles(), getNumUsersWithAllRoles());
+	}
+
 	private synchronized void writeToFile(Map<String, String> lines, boolean wholesaleReplace) throws IOException {
 		boolean first = true;
 		for (Map.Entry<String, String> entry : lines.entrySet()) {
@@ -141,6 +146,38 @@ public class FileAccessor {
 			}
 		}
 		return sb.toString();
+	}
+
+	private int getNumRoles() throws IOException {
+		Set<String> roles = new HashSet<String>();
+		for (String user : getUsers()) {
+			roles.addAll(getRolesForUser(user));
+		}
+		return roles.size();
+	}
+
+	private int getNumUsersWithNoRoles() throws IOException {
+		Set<String> usersNoRoles = new HashSet<String>();
+		for (String user : getUsers()) {
+			if (getRolesForUser(user).size() == 0) {
+				usersNoRoles.add(user);
+			}
+		}
+		return usersNoRoles.size();
+	}
+
+	private int getNumUsersWithAllRoles() throws IOException {
+		Set<String> allRoles = new HashSet<String>();
+		for (String user : getUsers()) {
+			allRoles.addAll(getRolesForUser(user));
+		}
+		Set<String> usersWithAllRoles = new HashSet<String>();
+		for (String user : getUsers()) {
+			if (getRolesForUser(user).containsAll(allRoles)) {
+				usersWithAllRoles.add(user);
+			}
+		}
+		return usersWithAllRoles.size();
 	}
 
 	private Path getRoleFilePath() throws IOException {

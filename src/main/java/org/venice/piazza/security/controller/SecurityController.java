@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package security.controller;
+package org.venice.piazza.security.controller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import security.data.FileAccessor;
+import org.venice.piazza.security.data.FileAccessor;
+import org.venice.piazza.security.data.Stats;
 
 /**
  * Controller that handles the User and Role requests for security information.
@@ -45,6 +45,17 @@ public class SecurityController {
 	private static final String FAILURES = "Failures";
 	private static final String STATUS = "Status";
 
+	/**
+	 * Healthcheck required for all Piazza Core Services
+	 * 
+	 * @return String
+	 */
+	@RequestMapping(value = "/", method = RequestMethod.GET)
+	@ResponseBody
+	public String getHealthCheck() {
+		return "Hello, Health Check here.";
+	}
+	
 	/**
 	 * Retrieves all of the users defined in the system.
 	 * 
@@ -292,5 +303,21 @@ public class SecurityController {
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;
+	}
+	
+	/**
+	 * Retrieves a Stats object with statistics for the Piazza users and roles
+	 * 
+	 * 
+	 * @return Stats object containing the relevant user and role statistics
+	 */	
+	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = "application/json") 
+	public Stats getStats() {
+		try {
+			return fa.getStats();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}		
 	}
 }
