@@ -51,14 +51,32 @@ public class FileAccessor {
 	private static Path PATH;
 
 	public Map<String, String> getUsersAndRoles() throws IOException {
-		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
-				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 1 ? v.split(":")[1] : "")));
+		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[2] : "")));
 	}
+	
+	public Map<String, String> getUsersAndCredentials() throws IOException {
+		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[1] : "")));
+	}	
 
+	public Map<String, String> getUsersAndCredentialsAndRoles() throws IOException {
+		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[1] + ":" + v.split(":")[2] : v.split(":")[1] + ":")));
+	}
+	
 	public Set<String> getUsers() throws IOException {
 		return getUsersAndRoles().keySet();
 	}
 
+	public String getCredentialForUser(String userid) throws IOException {
+		if (userExists(userid)) {
+			return getUsersAndCredentials().get(userid.toLowerCase());
+		}
+
+		return new String();
+	}
+	
 	public List<String> getRolesForUser(String userid) throws IOException {
 		if (userExists(userid)) {
 			return new ArrayList<String>(Arrays.asList(getUsersAndRoles().get(userid.toLowerCase()).split(",")));
@@ -66,9 +84,9 @@ public class FileAccessor {
 
 		return new ArrayList<String>();
 	}
-
+	
 	public boolean userExists(String userid) throws IOException {
-		return getUsersAndRoles().containsKey(userid.toLowerCase());
+		return getUsers().contains(userid.toLowerCase());
 	}
 
 	public boolean roleExists(String userid, String role) throws IOException {
@@ -86,8 +104,8 @@ public class FileAccessor {
 	}
 
 	public void updateUserRoles(String userid, List<String> roles) throws IOException {
-		Map<String, String> mapFromFile = getUsersAndRoles();
-		mapFromFile.put(userid.toLowerCase(), formatRoles(roles));
+		Map<String, String> mapFromFile = getUsersAndCredentialsAndRoles();
+		mapFromFile.put(userid.toLowerCase(), getCredentialForUser(userid) + ":" + formatRoles(roles));
 		writeToFile(mapFromFile, true);
 	}
 
@@ -95,19 +113,19 @@ public class FileAccessor {
 		List<String> roles = getRolesForUser(userid);
 		roles.remove(role);
 
-		Map<String, String> mapFromFile = getUsersAndRoles();
-		mapFromFile.put(userid.toLowerCase(), formatRoles(roles));
+		Map<String, String> mapFromFile = getUsersAndCredentialsAndRoles();
+		mapFromFile.put(userid.toLowerCase(), getCredentialForUser(userid) + ":" + formatRoles(roles));
 		writeToFile(mapFromFile, true);
 	}
 
 	public void removeAllRoles(String userid) throws IOException {
-		Map<String, String> mapFromFile = getUsersAndRoles();
-		mapFromFile.put(userid.toLowerCase(), "");
+		Map<String, String> mapFromFile = getUsersAndCredentialsAndRoles();
+		mapFromFile.put(userid.toLowerCase(), getCredentialForUser(userid) + ":");
 		writeToFile(mapFromFile, true);
 	}
 
 	public void removeUser(String userid) throws IOException {
-		Map<String, String> mapFromFile = getUsersAndRoles();
+		Map<String, String> mapFromFile = getUsersAndCredentialsAndRoles();
 		mapFromFile.remove(userid);
 		writeToFile(mapFromFile, true);
 	}
@@ -159,7 +177,7 @@ public class FileAccessor {
 	private int getNumUsersWithNoRoles() throws IOException {
 		Set<String> usersNoRoles = new HashSet<String>();
 		for (String user : getUsers()) {
-			if (getRolesForUser(user).size() == 0) {
+			if (getRolesForUser(user).size() == 1 && getRolesForUser(user).get(0).length() == 0) {
 				usersNoRoles.add(user);
 			}
 		}

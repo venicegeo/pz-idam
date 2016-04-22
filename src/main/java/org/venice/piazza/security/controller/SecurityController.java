@@ -51,7 +51,6 @@ public class SecurityController {
 	 * @return String
 	 */
 	@RequestMapping(value = "/", method = RequestMethod.GET)
-	@ResponseBody
 	public String getHealthCheck() {
 		return "Hello, Health Check here.";
 	}
@@ -62,7 +61,6 @@ public class SecurityController {
 	 * @return Set<String> object
 	 */
 	@RequestMapping(value = "/users", method = RequestMethod.GET, produces = "application/json")
-	@ResponseBody
 	public Set<String> getUsers() {
 		try {
 			return fa.getUsers();
@@ -81,7 +79,6 @@ public class SecurityController {
 	 * @return List<String> object in the form "username":"role1,role2,role3"
 	 */
 	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.GET, produces = "application/json")
-	@ResponseBody
 	public List<String> getRoles(@PathVariable(value = "userid") String userid) {
 		try {
 			return fa.getRolesForUser(userid);
@@ -98,7 +95,6 @@ public class SecurityController {
 	 *         "username":"role1,role2,role3"
 	 */
 	@RequestMapping(value = "/users/roles", method = RequestMethod.GET, produces = "application/json")
-	@ResponseBody
 	public Map<String, String> getUsersAndRoles() {
 		try {
 			return fa.getUsersAndRoles();
@@ -117,7 +113,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users/{userid}", method = RequestMethod.DELETE, produces = "application/json")
-	@ResponseBody
 	public Map<String, String> deleteUser(@PathVariable(value = "userid") String userid) {
 		Map<String, String> response = new HashMap<String, String>();
 		try {
@@ -147,7 +142,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users/{userid}/roles/{role}", method = RequestMethod.DELETE, produces = "application/json")
-	@ResponseBody
 	public Map<String, String> deleteRoleFromUser(@PathVariable(value = "userid") String userid,
 			@PathVariable(value = "role") String role) {
 		Map<String, String> response = new HashMap<String, String>();
@@ -178,7 +172,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.DELETE, produces = "application/json")
-	@ResponseBody
 	public Map<String, String> deleteAllRolesFromUser(@PathVariable(value = "userid") String userid) {
 		Map<String, String> response = new HashMap<String, String>();
 		try {
@@ -206,7 +199,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users/roles", method = RequestMethod.POST, produces = "application/json")
-	@ResponseBody
 	public Map<String, List<String>> addUsersAndRoles(@RequestBody Map<String, String> body) {
 		try {
 			List<String> successes = new ArrayList<String>();
@@ -216,7 +208,7 @@ public class SecurityController {
 			for (Map.Entry<String, String> entry : body.entrySet()) {
 				String userid = entry.getKey().toLowerCase();
 				if (!fa.userExists(userid)) {
-					usersToAdd.put(userid, entry.getValue() );
+					usersToAdd.put(userid, userid + ":" + entry.getValue() );
 					successes.add("User '" + userid + "' inserted with roles: " + entry.getValue().toLowerCase());
 				} else {
 					failures.add("User '" + userid + "' already exists!");
@@ -243,7 +235,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users", method = RequestMethod.POST, produces = "application/json")
-	@ResponseBody
 	public Map<String, List<String>> addUsers(@RequestBody List<String> users) {
 		try {
 			List<String> successes = new ArrayList<String>();
@@ -253,7 +244,7 @@ public class SecurityController {
 			for (String userid : users) {
 				userid = userid.toLowerCase();
 				if (!fa.userExists(userid)) {
-					usersToAdd.put(userid, "");
+					usersToAdd.put(userid, userid + ":");
 					successes.add("User '" + userid + "' inserted with no roles.");
 				} else {
 					failures.add("User '" + userid + "' already exists!");
@@ -285,7 +276,6 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
 	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.PUT, produces = "application/json")
-	@ResponseBody
 	public Map<String, String> updateRolesForUser(@PathVariable(value = "userid") String userid,
 			@RequestBody List<String> roles) {
 
@@ -308,7 +298,6 @@ public class SecurityController {
 	/**
 	 * Retrieves a Stats object with statistics for the Piazza users and roles
 	 * 
-	 * 
 	 * @return Stats object containing the relevant user and role statistics
 	 */	
 	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = "application/json") 
@@ -320,4 +309,24 @@ public class SecurityController {
 			return null;
 		}		
 	}
+	
+	/**
+	 * Retrieves an authentication decision based on the provided username and credential
+	 * 
+	 * @param body
+	 *            A JSON object containing the 'username' and 'credential' fields.
+	 *            
+	 * @return boolean flag indicating true if verified, false if not.
+	 */		
+	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = "application/json")	
+	public boolean authenticateUser(@RequestBody Map<String, String> body) {
+		try {
+			if( fa.getCredentialForUser(body.get("username")).equals(body.get("credential")) ) {
+				return true;				
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;		
+	}	
 }
