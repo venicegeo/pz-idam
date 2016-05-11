@@ -15,3 +15,4 @@ smithcs:smithcs:abort,access,admin-stats,delete-service,execute-service,get,get-
 yutzlejp:yutzlejp:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
 clarksp:clarksp:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
 mauckaw:mauckaw:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
+citester:citester:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
