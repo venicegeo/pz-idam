@@ -17,3 +17,4 @@ clarksp:clarksp:abort,access,admin-stats,delete-service,execute-service,get,get-
 mauckaw:mauckaw:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
 citester:citester:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
 bardenbm:bardenbm:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
+baziled:baziled:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
