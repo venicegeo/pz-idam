@@ -321,7 +321,7 @@ public class SecurityController {
 	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = "application/json")	
 	public boolean authenticateUser(@RequestBody Map<String, String> body) {
 		try {
-			if( fa.getCredentialForUser(body.get("username")).equals(body.get("credential")) ) {
+			if( fa.userExists(body.get("username")) && fa.getCredentialForUser(body.get("username")).equals(body.get("credential")) ) {
 				return true;				
 			}
 		} catch (Exception e) {
