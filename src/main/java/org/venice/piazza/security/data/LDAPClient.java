@@ -15,9 +15,9 @@ import java.util.Properties;
 @Component
 public class LDAPClient {
 
-	@Value("${vcap.services.ldap.userdn}")
+	@Value("${vcap.services.ldap.credentials.userdn}")
 	private String LDAP_USER_DN;
-	@Value("${vcap.services.ldap.url}")
+	@Value("${vcap.services.ldap.credentials.url}")
 	private String LDAP_URL;
 	@Value("${security.gs_ldap.ctxfactory}")
 	private String LDAP_CTX_FACTORY;
