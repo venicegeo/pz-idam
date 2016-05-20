@@ -4,4 +4,6 @@ applications:
   memory: 512M
   instances: 1
   timeout: 80
+  services:
+    - ldap
   path: pz-security.jar

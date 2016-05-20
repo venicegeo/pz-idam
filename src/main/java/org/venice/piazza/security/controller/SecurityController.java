@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.security.data.FileAccessor;
+import org.venice.piazza.security.data.LDAPClient;
 import org.venice.piazza.security.data.Stats;
 
 /**
@@ -40,6 +41,8 @@ public class SecurityController {
 
 	@Autowired
 	private FileAccessor fa;
+	@Autowired
+	private LDAPClient ldapClient;
 
 	private static final String SUCCESSES = "Successes";
 	private static final String FAILURES = "Failures";
@@ -54,7 +57,7 @@ public class SecurityController {
 	public String getHealthCheck() {
 		return "Hello, Health Check here.";
 	}
-	
+
 	/**
 	 * Retrieves all of the users defined in the system.
 	 * 
@@ -203,12 +206,12 @@ public class SecurityController {
 		try {
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
-			Map<String, String> usersToAdd = new HashMap<String,String>();
+			Map<String, String> usersToAdd = new HashMap<String, String>();
 
 			for (Map.Entry<String, String> entry : body.entrySet()) {
 				String userid = entry.getKey().toLowerCase();
 				if (!fa.userExists(userid)) {
-					usersToAdd.put(userid, userid + ":" + entry.getValue() );
+					usersToAdd.put(userid, userid + ":" + entry.getValue());
 					successes.add("User '" + userid + "' inserted with roles: " + entry.getValue().toLowerCase());
 				} else {
 					failures.add("User '" + userid + "' already exists!");
@@ -239,8 +242,8 @@ public class SecurityController {
 		try {
 			List<String> successes = new ArrayList<String>();
 			List<String> failures = new ArrayList<String>();
-			Map<String, String> usersToAdd = new HashMap<String,String>();
-			
+			Map<String, String> usersToAdd = new HashMap<String, String>();
+
 			for (String userid : users) {
 				userid = userid.toLowerCase();
 				if (!fa.userExists(userid)) {
@@ -294,39 +297,39 @@ public class SecurityController {
 		}
 		return response;
 	}
-	
+
 	/**
 	 * Retrieves a Stats object with statistics for the Piazza users and roles
 	 * 
 	 * @return Stats object containing the relevant user and role statistics
-	 */	
-	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = "application/json") 
+	 */
+	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = "application/json")
 	public Stats getStats() {
 		try {
 			return fa.getStats();
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
-		}		
+		}
 	}
-	
+
 	/**
-	 * Retrieves an authentication decision based on the provided username and credential
+	 * Retrieves an authentication decision based on the provided username and
+	 * credential
 	 * 
 	 * @param body
-	 *            A JSON object containing the 'username' and 'credential' fields.
-	 *            
+	 *            A JSON object containing the 'username' and 'credential'
+	 *            fields.
+	 * 
 	 * @return boolean flag indicating true if verified, false if not.
-	 */		
-	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = "application/json")	
+	 */
+	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = "application/json")
 	public boolean authenticateUser(@RequestBody Map<String, String> body) {
 		try {
-			if( fa.userExists(body.get("username")) && fa.getCredentialForUser(body.get("username")).equals(body.get("credential")) ) {
-				return true;				
-			}
+			return ldapClient.getAuthenticationDecision(body.get("username"), body.get("credential"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return false;		
-	}	
+		return false;
+	}
 }
