@@ -33,7 +33,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>io.piazzageo</groupId>
+			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
 			<version>LATEST</version>
 		</dependency>
