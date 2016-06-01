@@ -15,6 +15,8 @@ import java.util.Properties;
 @Component
 public class LDAPClient {
 
+	@Value("${SPACE}")
+	private String SPACE;
 	@Value("${vcap.services.ldap.credentials.userdn}")
 	private String LDAP_USER_DN;
 	@Value("${vcap.services.ldap.credentials.url}")
@@ -28,7 +30,7 @@ public class LDAPClient {
 		if( username == null || credential == null ) {
 			return false;
 		}
-		else if( username != null && username.equals("citester") && credential != null && credential.equals("citester")) {
+		else if( isOverrideSpace() && username != null && username.equals("citester") && credential != null && credential.equals("citester")) {
 			return true;
 		}
 
@@ -46,5 +48,9 @@ public class LDAPClient {
 			logger.log("User authentication failed for " + username, PiazzaLogger.INFO);
 		}
 		return false;
+	}
+	
+	private boolean isOverrideSpace() {
+		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage"));
 	}
 }
