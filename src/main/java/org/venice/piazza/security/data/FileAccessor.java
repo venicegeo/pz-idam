@@ -134,7 +134,7 @@ public class FileAccessor {
 		return new Stats(getUsers().size(), getNumRoles(), getNumUsersWithNoRoles(), getNumUsersWithAllRoles());
 	}
 
-	private synchronized void writeToFile(Map<String, String> lines, boolean wholesaleReplace) throws IOException {
+	private synchronized void writeToFile(Map<String, String> lines, Boolean wholesaleReplace) throws IOException {
 		boolean first = true;
 		for (Map.Entry<String, String> entry : lines.entrySet()) {
 			byte[] line = (entry.getKey() + ":" + entry.getValue()).getBytes();
@@ -166,7 +166,7 @@ public class FileAccessor {
 		return sb.toString();
 	}
 
-	private int getNumRoles() throws IOException {
+	public int getNumRoles() throws IOException {
 		Set<String> roles = new HashSet<String>();
 		for (String user : getUsers()) {
 			roles.addAll(getRolesForUser(user));
@@ -174,7 +174,7 @@ public class FileAccessor {
 		return roles.size();
 	}
 
-	private int getNumUsersWithNoRoles() throws IOException {
+	public int getNumUsersWithNoRoles() throws IOException {
 		Set<String> usersNoRoles = new HashSet<String>();
 		for (String user : getUsers()) {
 			if (getRolesForUser(user).size() == 1 && getRolesForUser(user).get(0).length() == 0) {
@@ -184,7 +184,7 @@ public class FileAccessor {
 		return usersNoRoles.size();
 	}
 
-	private int getNumUsersWithAllRoles() throws IOException {
+	public int getNumUsersWithAllRoles() throws IOException {
 		Set<String> allRoles = new HashSet<String>();
 		for (String user : getUsers()) {
 			allRoles.addAll(getRolesForUser(user));
