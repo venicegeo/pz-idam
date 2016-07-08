@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,7 +63,7 @@ public class SecurityController {
 	 * 
 	 * @return Set<String> object
 	 */
-	@RequestMapping(value = "/users", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/users", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Set<String> getUsers() {
 		try {
 			return fa.getUsers();
@@ -80,7 +81,7 @@ public class SecurityController {
 	 * 
 	 * @return List<String> object in the form "username":"role1,role2,role3"
 	 */
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<String> getRoles(@PathVariable(value = "userid") String userid) {
 		try {
 			return fa.getRolesForUser(userid);
@@ -96,7 +97,7 @@ public class SecurityController {
 	 * @return Map<String,String> object in the form
 	 *         "username":"role1,role2,role3"
 	 */
-	@RequestMapping(value = "/users/roles", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/users/roles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, String> getUsersAndRoles() {
 		try {
 			return fa.getUsersAndRoles();
@@ -114,7 +115,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users/{userid}", method = RequestMethod.DELETE, produces = "application/json")
+	@RequestMapping(value = "/users/{userid}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, String> deleteUser(@PathVariable(value = "userid") String userid) {
 		Map<String, String> response = new HashMap<String, String>();
 		try {
@@ -143,7 +144,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users/{userid}/roles/{role}", method = RequestMethod.DELETE, produces = "application/json")
+	@RequestMapping(value = "/users/{userid}/roles/{role}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, String> deleteRoleFromUser(@PathVariable(value = "userid") String userid,
 			@PathVariable(value = "role") String role) {
 		Map<String, String> response = new HashMap<String, String>();
@@ -173,7 +174,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.DELETE, produces = "application/json")
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, String> deleteAllRolesFromUser(@PathVariable(value = "userid") String userid) {
 		Map<String, String> response = new HashMap<String, String>();
 		try {
@@ -200,7 +201,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users/roles", method = RequestMethod.POST, produces = "application/json")
+	@RequestMapping(value = "/users/roles", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, List<String>> addUsersAndRoles(@RequestBody Map<String, String> body) {
 		try {
 			List<String> successes = new ArrayList<String>();
@@ -236,7 +237,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users", method = RequestMethod.POST, produces = "application/json")
+	@RequestMapping(value = "/users", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, List<String>> addUsers(@RequestBody List<String> users) {
 		try {
 			List<String> successes = new ArrayList<String>();
@@ -277,7 +278,7 @@ public class SecurityController {
 	 * 
 	 * @return Map<String,String> object in the form "status":"The status"
 	 */
-	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.PUT, produces = "application/json")
+	@RequestMapping(value = "/users/{userid}/roles", method = RequestMethod.PUT, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Map<String, String> updateRolesForUser(@PathVariable(value = "userid") String userid,
 			@RequestBody List<String> roles) {
 
@@ -302,7 +303,7 @@ public class SecurityController {
 	 * 
 	 * @return Stats object containing the relevant user and role statistics
 	 */
-	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public Stats getStats() {
 		try {
 			return fa.getStats();
@@ -322,7 +323,7 @@ public class SecurityController {
 	 * 
 	 * @return boolean flag indicating true if verified, false if not.
 	 */
-	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = "application/json")
+	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public boolean authenticateUser(@RequestBody Map<String, String> body) {
 		try {
 			return ldapClient.getAuthenticationDecision(body.get("username"), body.get("credential"));
