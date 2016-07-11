@@ -36,9 +36,11 @@ import org.mockito.MockitoAnnotations;
 
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.security.controller.SecurityController;
+import org.venice.piazza.security.controller.AdminController;
+import org.venice.piazza.security.controller.AuthenticationController;
+import org.venice.piazza.security.controller.RoleManagementController;
 import org.venice.piazza.security.data.FileAccessor;
-import org.venice.piazza.security.data.LDAPClient;
+import org.venice.piazza.security.data.LDAPAccessor;
 import org.venice.piazza.security.data.Stats;
 
 public class SecurityTests {
@@ -47,14 +49,21 @@ public class SecurityTests {
 	private FileAccessor fa;
 
 	@Mock
-	private LDAPClient ldapClient;
+	private LDAPAccessor ldapClient;
 
 	@Mock
 	private RestTemplate restTemplate;
 
 	@InjectMocks
-	private SecurityController securityController;
+	private AdminController adminController;
 
+	@InjectMocks
+	private AuthenticationController authenticationController;
+	
+	@InjectMocks
+	private RoleManagementController roleManagementController;	
+	
+	
 	private Set<String> users = new HashSet<String>(Arrays.asList("yutzlejp", "beckerwg", "krasnebh", "mcmahojm",
 			"orfrf", "naquinkj", "doodypc", "dionmr", "chambebj", "bardenbm", "clarksp", "smithpq", "duncanjl",
 			"mauckaw", "smithcs", "lynummm", "gerlekmp", "baxtersh", "sanievsf", "baziledd", "brownjt", "citester"));
@@ -174,7 +183,7 @@ public class SecurityTests {
 	 */
 	@Test
 	public void testGetHealthCheck() {
-		String result = securityController.getHealthCheck();
+		String result = adminController.getHealthCheck();
 		assertTrue(result.contains("Hello"));
 	}
 
@@ -195,7 +204,7 @@ public class SecurityTests {
 		when(fa.getStats()).thenCallRealMethod();
 
 		// Test
-		Stats response = securityController.getStats();
+		Stats response = adminController.getStats();
 
 		// Verify
 		assertTrue(response.getNumRoles() >= 0);
@@ -205,7 +214,7 @@ public class SecurityTests {
 
 		// Test Exception
 		when(fa.getStats()).thenThrow(new IOException());
-		response = securityController.getStats();
+		response = adminController.getStats();
 		assertNull(response);
 	}
 
@@ -221,14 +230,14 @@ public class SecurityTests {
 		when(fa.getUsers()).thenCallRealMethod();
 
 		// Test
-		Set<String> response = securityController.getUsers();
+		Set<String> response = roleManagementController.getUsers();
 
 		// Verify
 		assertTrue(users.equals(response));
 
 		// Test Exception
 		when(fa.getUsers()).thenThrow(new IOException());
-		response = securityController.getUsers();
+		response = roleManagementController.getUsers();
 		assertNull(response);
 	}
 
@@ -248,14 +257,14 @@ public class SecurityTests {
 		when(fa.getRolesForUser(user)).thenCallRealMethod();
 
 		// Test
-		List<String> response = securityController.getRoles(user);
+		List<String> response = roleManagementController.getRoles(user);
 
 		// Verify
 		assertTrue(roles.equals(response));
 
 		// Test Exception
 		when(fa.getRolesForUser(user)).thenThrow(new IOException());
-		response = securityController.getRoles(user);
+		response = roleManagementController.getRoles(user);
 		assertNull(response);
 	}
 
@@ -271,14 +280,14 @@ public class SecurityTests {
 		when(fa.getUsersAndRoles()).thenReturn(usersAndRoles);
 
 		// Test
-		Map<String, String> response = securityController.getUsersAndRoles();
+		Map<String, String> response = roleManagementController.getUsersAndRoles();
 
 		// Verify
 		assertTrue(usersAndRoles.equals(response));
 
 		// Test Exception
 		when(fa.getUsersAndRoles()).thenThrow(new IOException());
-		response = securityController.getUsersAndRoles();
+		response = roleManagementController.getUsersAndRoles();
 		assertNull(response);
 	}
 
@@ -298,7 +307,7 @@ public class SecurityTests {
 		Mockito.doNothing().when(fa).addUsers(usersToAdd);
 
 		// Test - New User
-		Map<String, List<String>> response = securityController.addUsers(new ArrayList<String>(Arrays.asList(user)));
+		Map<String, List<String>> response = roleManagementController.addUsers(new ArrayList<String>(Arrays.asList(user)));
 
 		// Verify
 		assertTrue(response.get("Successes").size() == 1);
@@ -306,13 +315,13 @@ public class SecurityTests {
 
 		// Test - Existing User
 		when(fa.userExists(user)).thenReturn(true);
-		response = securityController.addUsers(new ArrayList<String>(Arrays.asList(user)));
+		response = roleManagementController.addUsers(new ArrayList<String>(Arrays.asList(user)));
 		assertTrue(response.get("Failures").size() == 1);
 		assertTrue(response.get("Failures").contains("User '" + user + "' already exists!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.addUsers(new ArrayList<String>(Arrays.asList(user)));
+		response = roleManagementController.addUsers(new ArrayList<String>(Arrays.asList(user)));
 		assertNull(response);
 	}
 
@@ -333,7 +342,7 @@ public class SecurityTests {
 		Mockito.doNothing().when(fa).addUsers(usersAndRolesToAdd);
 
 		// Test - New User
-		Map<String, List<String>> response = securityController.addUsersAndRoles(usersAndRolesToAdd);
+		Map<String, List<String>> response = roleManagementController.addUsersAndRoles(usersAndRolesToAdd);
 
 		// Verify
 		assertTrue(response.get("Successes").size() == 1);
@@ -341,13 +350,13 @@ public class SecurityTests {
 
 		// Test - Existing User
 		when(fa.userExists(user)).thenReturn(true);
-		response = securityController.addUsersAndRoles(usersAndRolesToAdd);
+		response = roleManagementController.addUsersAndRoles(usersAndRolesToAdd);
 		assertTrue(response.get("Failures").size() == 1);
 		assertTrue(response.get("Failures").contains("User '" + user + "' already exists!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.addUsersAndRoles(usersAndRolesToAdd);
+		response = roleManagementController.addUsersAndRoles(usersAndRolesToAdd);
 		assertNull(response);
 	}
 
@@ -367,21 +376,21 @@ public class SecurityTests {
 
 		// Test - User Exists
 		when(fa.userExists(user)).thenReturn(true);
-		Map<String, String> response = securityController.updateRolesForUser(user, role);
+		Map<String, String> response = roleManagementController.updateRolesForUser(user, role);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' updated with roles: " + role));
 
 		// Test - User Does Not Exist
 		when(fa.userExists(user)).thenReturn(false);
-		response = securityController.updateRolesForUser(user, role);
+		response = roleManagementController.updateRolesForUser(user, role);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' does not exist!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.updateRolesForUser(user, role);
+		response = roleManagementController.updateRolesForUser(user, role);
 		assertTrue(response.get("Status").contains("Exception: null"));
 	}
 
@@ -400,21 +409,21 @@ public class SecurityTests {
 
 		// Test - User Exists
 		when(fa.userExists(user)).thenReturn(true);
-		Map<String, String> response = securityController.deleteUser(user);
+		Map<String, String> response = roleManagementController.deleteUser(user);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' deleted."));
 
 		// Test - User Does Not Exist
 		when(fa.userExists(user)).thenReturn(false);
-		response = securityController.deleteUser(user);
+		response = roleManagementController.deleteUser(user);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' does not exist!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.deleteUser(user);
+		response = roleManagementController.deleteUser(user);
 		assertTrue(response.get("Status").contains("Exception: null"));
 	}
 
@@ -432,21 +441,21 @@ public class SecurityTests {
 
 		// Test - User Exists
 		when(fa.userExists(user)).thenReturn(true);
-		Map<String, String> response = securityController.deleteAllRolesFromUser(user);
+		Map<String, String> response = roleManagementController.deleteAllRolesFromUser(user);
 
 		// Verify
 		assertTrue(response.get("Status").contains("All roles for user '" + user + "' deleted."));
 
 		// Test - User Does Not Exist
 		when(fa.userExists(user)).thenReturn(false);
-		response = securityController.deleteAllRolesFromUser(user);
+		response = roleManagementController.deleteAllRolesFromUser(user);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' does not exist!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.deleteAllRolesFromUser(user);
+		response = roleManagementController.deleteAllRolesFromUser(user);
 		assertTrue(response.get("Status").contains("Exception: null"));
 	}
 
@@ -466,7 +475,7 @@ public class SecurityTests {
 		// Test - User And Role Exists
 		when(fa.userExists(user)).thenReturn(true);
 		when(fa.roleExists(user, role)).thenReturn(true);
-		Map<String, String> response = securityController.deleteRoleFromUser(user, role);
+		Map<String, String> response = roleManagementController.deleteRoleFromUser(user, role);
 
 		// Verify
 		assertTrue(response.get("Status").contains("Role '" + role + "' deleted for user '" + user + "'"));
@@ -474,7 +483,7 @@ public class SecurityTests {
 		// Test - User Exists, Role Does Not Exist
 		when(fa.userExists(user)).thenReturn(true);
 		when(fa.roleExists(user, role)).thenReturn(false);
-		response = securityController.deleteRoleFromUser(user, role);
+		response = roleManagementController.deleteRoleFromUser(user, role);
 
 		// Verify
 		assertTrue(response.get("Status").contains("Role '" + role + "' does not exist for user '" + user + "'"));
@@ -482,14 +491,14 @@ public class SecurityTests {
 		// Test - User Does Not Exist
 		when(fa.userExists(user)).thenReturn(false);
 		when(fa.roleExists(user, role)).thenReturn(false);
-		response = securityController.deleteRoleFromUser(user, role);
+		response = roleManagementController.deleteRoleFromUser(user, role);
 
 		// Verify
 		assertTrue(response.get("Status").contains("User '" + user + "' does not exist!"));
 
 		// Test Exception
 		when(fa.userExists(user)).thenThrow(new IOException());
-		response = securityController.deleteRoleFromUser(user, role);
+		response = roleManagementController.deleteRoleFromUser(user, role);
 		assertTrue(response.get("Status").contains("Exception: null"));
 	}
 
@@ -510,7 +519,7 @@ public class SecurityTests {
 		// Test
 		body.put("username", null);
 		body.put("credential", credential);
-		Boolean response = securityController.authenticateUser(body);
+		Boolean response = authenticationController.authenticateUser(body);
 
 		// Verify
 		assertFalse(response);
@@ -522,7 +531,7 @@ public class SecurityTests {
 		// Test
 		body.put("username", username);
 		body.put("credential", credential);
-		response = securityController.authenticateUser(body);
+		response = authenticationController.authenticateUser(body);
 
 		// Verify
 		assertFalse(response);
@@ -534,14 +543,14 @@ public class SecurityTests {
 		// Test
 		body.put("username", username);
 		body.put("credential", credential);
-		response = securityController.authenticateUser(body);
+		response = authenticationController.authenticateUser(body);
 
 		// Verify
 		assertTrue(response);
 
 		// Test Exception
 		when(ldapClient.getAuthenticationDecision(username, credential)).thenThrow(new RuntimeException());
-		response = securityController.authenticateUser(body);
+		response = authenticationController.authenticateUser(body);
 		assertFalse(response);
 	}
 }
