@@ -28,6 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.security.data.LDAPAccessor;
 import org.venice.piazza.security.data.MongoAccessor;
 
+import model.response.AuthenticationResponse;
+import model.response.ErrorResponse;
+import model.response.PiazzaResponse;
+import model.response.UUIDResponse;
+import util.PiazzaLogger;
 import util.UUIDFactory;
 
 /**
@@ -37,13 +42,12 @@ import util.UUIDFactory;
  */
 @RestController
 public class AuthenticationController {
-
+	@Autowired
+	private PiazzaLogger logger;
 	@Autowired
 	private MongoAccessor mongoAccessor;
-
 	@Autowired
 	private LDAPAccessor ldapAccessor;
-
 	@Autowired
 	private UUIDFactory uuidFactory;
 
@@ -58,13 +62,43 @@ public class AuthenticationController {
 	 * @return boolean flag indicating true if verified, false if not.
 	 */
 	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public boolean authenticateUser(@RequestBody Map<String, String> body) {
+	public boolean authenticateUserByUserPass(@RequestBody Map<String, String> body) {
 		try {
 			return ldapAccessor.getAuthenticationDecision(body.get("username"), body.get("credential"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+	/**
+	 * Retrieves an authentication decision based on the provided username and
+	 * credential
+	 * 
+	 * @param body
+	 *            A JSON object containing the 'username' and 'credential'
+	 *            fields.
+	 * 
+	 * @return boolean flag indicating true if verified, false if not.
+	 */
+	@RequestMapping(value = "/v2/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> authenticateUserByUUID(@RequestBody Map<String, String> body) {
+		try {
+			String uuid = body.get("uuid");
+			if (uuid != null) {
+				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(mongoAccessor.getUsername(uuid),
+						mongoAccessor.getAuthenticationDecision(uuid)), HttpStatus.OK);
+			} else {
+				return new ResponseEntity<PiazzaResponse>(new ErrorResponse("UUID is null!", "Security"),
+						HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
+			logger.log(error, PiazzaLogger.ERROR);
+			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	/**
@@ -77,23 +111,28 @@ public class AuthenticationController {
 	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
 	 */
 	@RequestMapping(value = "/key", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> retrieveUUID(@RequestBody Map<String, String> body) {
+	public ResponseEntity<PiazzaResponse> retrieveUUID(@RequestBody Map<String, String> body) {
 		try {
 			String username = body.get("username");
+			String uuid = null;
 
-			if (authenticateUser(body)) {
-				String uuid = uuidFactory.getUUID();
+			if (authenticateUserByUserPass(body)) {
+				if ((uuid = mongoAccessor.getUuid(username)) == null) {
+					uuid = uuidFactory.getUUID();
+					mongoAccessor.save(username, uuid);
+				}
 
-				mongoAccessor.save(username, uuid);
-
-				return new ResponseEntity<String>(uuid, HttpStatus.OK);
+				return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
 			}
 
-			return new ResponseEntity<String>("Authentication failed for user: " + username,
+			return new ResponseEntity<PiazzaResponse>(
+					new ErrorResponse("Authentication failed for user " + username, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new ResponseEntity<String>("Key could not be generated: " + e.getMessage(),
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
+			logger.log(error, PiazzaLogger.ERROR);
+			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

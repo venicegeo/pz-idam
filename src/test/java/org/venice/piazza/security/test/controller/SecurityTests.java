@@ -519,7 +519,7 @@ public class SecurityTests {
 		// Test
 		body.put("username", null);
 		body.put("credential", credential);
-		Boolean response = authenticationController.authenticateUser(body);
+		Boolean response = authenticationController.authenticateUserByUserPass(body);
 
 		// Verify
 		assertFalse(response);
@@ -531,7 +531,7 @@ public class SecurityTests {
 		// Test
 		body.put("username", username);
 		body.put("credential", credential);
-		response = authenticationController.authenticateUser(body);
+		response = authenticationController.authenticateUserByUserPass(body);
 
 		// Verify
 		assertFalse(response);
@@ -543,14 +543,14 @@ public class SecurityTests {
 		// Test
 		body.put("username", username);
 		body.put("credential", credential);
-		response = authenticationController.authenticateUser(body);
+		response = authenticationController.authenticateUserByUserPass(body);
 
 		// Verify
 		assertTrue(response);
 
 		// Test Exception
 		when(ldapClient.getAuthenticationDecision(username, credential)).thenThrow(new RuntimeException());
-		response = authenticationController.authenticateUser(body);
+		response = authenticationController.authenticateUserByUserPass(body);
 		assertFalse(response);
 	}
 }
