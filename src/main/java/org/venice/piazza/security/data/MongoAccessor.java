@@ -2,14 +2,12 @@ package org.venice.piazza.security.data;
 
 import javax.annotation.PostConstruct;
 
-import org.mongojack.JacksonDBCollection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -42,9 +40,15 @@ public class MongoAccessor {
 		}
 	}
 
+	public void update(String username, String uuid) {
+		BasicDBObject newObj = new BasicDBObject();
+		newObj.put("username", username);
+		newObj.put("uuid", uuid);
+		mongoDatabase.getCollection(mongoCollectionName).update(new BasicDBObject().append("username", username), newObj);
+	}
+	
 	public void save(String username, String uuid) {
-		DBCollection collection = mongoDatabase.getCollection(mongoCollectionName);
-		JacksonDBCollection.wrap(collection, UUIDAssignment.class, String.class).insert(new UUIDAssignment(username, uuid));
+		mongoDatabase.getCollection(mongoCollectionName).insert(new BasicDBObject().append("username", username).append("uuid", uuid));
 	}
 
 	public boolean getAuthenticationDecision(String uuid) {

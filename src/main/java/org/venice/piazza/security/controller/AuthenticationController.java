@@ -15,7 +15,11 @@
  **/
 package org.venice.piazza.security.controller;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -50,6 +54,9 @@ public class AuthenticationController {
 	private LDAPAccessor ldapAccessor;
 	@Autowired
 	private UUIDFactory uuidFactory;
+	@Autowired
+	private HttpServletRequest request;
+	
 
 	/**
 	 * Retrieves an authentication decision based on the provided username and
@@ -110,19 +117,34 @@ public class AuthenticationController {
 	 * 
 	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
 	 */
-	@RequestMapping(value = "/key", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PiazzaResponse> retrieveUUID(@RequestBody Map<String, String> body) {
+	@RequestMapping(value = "/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> retrieveUUID() {
 		try {
-			String username = body.get("username");
+			
+			String headerValue = request.getHeader("Authorization");
+			String username = null;
+			String credential = null;
 			String uuid = null;
-
-			if (authenticateUserByUserPass(body)) {
-				if ((uuid = mongoAccessor.getUuid(username)) == null) {
+			String[] headerParts, decodedUserPassParts;
+			
+			if( headerValue != null && 
+					(headerParts = headerValue.split(" ")).length == 2 &&
+					(decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":")).length == 2) {
+				
+				username = decodedUserPassParts[0];
+				credential = decodedUserPassParts[1];
+					
+				if (ldapAccessor.getAuthenticationDecision(username, credential)) {
 					uuid = uuidFactory.getUUID();
-					mongoAccessor.save(username, uuid);
-				}
 
-				return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
+					if (mongoAccessor.getUuid(username) != null) {
+						mongoAccessor.update(username, uuid);
+					} else {
+						mongoAccessor.save(username, uuid);
+					}
+
+					return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
+				}
 			}
 
 			return new ResponseEntity<PiazzaResponse>(
