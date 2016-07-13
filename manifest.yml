@@ -6,4 +6,5 @@ applications:
   timeout: 80
   services:
     - ldap
+    - pz-mongodb
   path: pz-security.jar

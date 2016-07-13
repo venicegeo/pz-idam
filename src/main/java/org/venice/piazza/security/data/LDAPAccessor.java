@@ -13,7 +13,7 @@ import javax.naming.directory.InitialDirContext;
 import java.util.Properties;
 
 @Component
-public class LDAPClient {
+public class LDAPAccessor {
 
 	@Value("${SPACE}")
 	private String SPACE;
@@ -27,10 +27,10 @@ public class LDAPClient {
 	private PiazzaLogger logger;
 
 	public boolean getAuthenticationDecision(String username, String credential) {
-		if( username == null || credential == null ) {
+		if (username == null || credential == null) {
 			return false;
-		}
-		else if( isOverrideSpace() && username != null && username.equals("citester") && credential != null && credential.equals("citester")) {
+		} else if (isOverrideSpace() && username != null && username.equals("citester") && credential != null
+				&& credential.equals("citester")) {
 			return true;
 		}
 
@@ -49,7 +49,7 @@ public class LDAPClient {
 		}
 		return false;
 	}
-	
+
 	private boolean isOverrideSpace() {
 		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage"));
 	}

@@ -28,8 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.security.data.FileAccessor;
-import org.venice.piazza.security.data.LDAPClient;
-import org.venice.piazza.security.data.Stats;
 
 /**
  * Controller that handles the User and Role requests for security information.
@@ -37,26 +35,14 @@ import org.venice.piazza.security.data.Stats;
  * @author Russell.Orf
  */
 @RestController
-public class SecurityController {
+public class RoleManagementController {
 
 	@Autowired
 	private FileAccessor fa;
-	@Autowired
-	private LDAPClient ldapClient;
 
 	private static final String SUCCESSES = "Successes";
 	private static final String FAILURES = "Failures";
 	private static final String STATUS = "Status";
-
-	/**
-	 * Healthcheck required for all Piazza Core Services
-	 * 
-	 * @return String
-	 */
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String getHealthCheck() {
-		return "Hello, Health Check here.";
-	}
 
 	/**
 	 * Retrieves all of the users defined in the system.
@@ -296,40 +282,5 @@ public class SecurityController {
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;
-	}
-
-	/**
-	 * Retrieves a Stats object with statistics for the Piazza users and roles
-	 * 
-	 * @return Stats object containing the relevant user and role statistics
-	 */
-	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public Stats getStats() {
-		try {
-			return fa.getStats();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	/**
-	 * Retrieves an authentication decision based on the provided username and
-	 * credential
-	 * 
-	 * @param body
-	 *            A JSON object containing the 'username' and 'credential'
-	 *            fields.
-	 * 
-	 * @return boolean flag indicating true if verified, false if not.
-	 */
-	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public boolean authenticateUser(@RequestBody Map<String, String> body) {
-		try {
-			return ldapClient.getAuthenticationDecision(body.get("username"), body.get("credential"));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
 	}
 }
