@@ -1,0 +1,13 @@
+applications:
+- name: pz-security
+  host: pz-security
+  buildpack: java_buildpack_offline
+  memory: 512M
+  instances: 1
+  timeout: 80
+  services:
+    - ldap
+    - pz-mongodb
+  path: pz-security.jar
+  env:
+    SPRING_PROFILES_ACTIVE: cloud
