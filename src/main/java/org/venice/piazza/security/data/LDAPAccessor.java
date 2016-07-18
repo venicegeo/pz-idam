@@ -30,7 +30,7 @@ public class LDAPAccessor {
 		if (username == null || credential == null) {
 			return false;
 		} else if (isOverrideSpace() && username != null && username.equals("citester") && credential != null
-				&& credential.equals("citester")) {
+				&& credential.equals("test4life")) {
 			return true;
 		}
 
