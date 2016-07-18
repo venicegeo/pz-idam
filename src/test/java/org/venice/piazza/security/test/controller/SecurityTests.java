@@ -175,7 +175,7 @@ public class SecurityTests {
 		usersAndCredentialsAndRoles.put("brownjt",
 				"brownjt:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
 		usersAndCredentialsAndRoles.put("citester",
-				"citester:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
+				"test4life:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
 	}
 
 	/**
@@ -511,7 +511,7 @@ public class SecurityTests {
 	public void testAuthenticateUser() throws IOException {
 		Map<String, String> body = new HashMap<String, String>();
 		String username = "citester";
-		String credential = "citester";
+		String credential = "test4life";
 
 		// Mock - User is empty
 		when(ldapClient.getAuthenticationDecision(null, credential)).thenCallRealMethod();
