@@ -9,5 +9,6 @@ applications:
   timeout: 80
   services:
     - ldap
+    - pz-mongodb
   env:
     SPRING_PROFILES_ACTIVE: cloud,fade-stage
