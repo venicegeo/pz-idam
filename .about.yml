@@ -44,7 +44,7 @@ testable: true
 licenses:
   pz-security:
     name: Apache-2.0
-    url: https://github.com/venicegeo/pz-gateway/blob/master/LICENSE.txt
+    url: https://github.com/venicegeo/pz-security/blob/master/LICENSE.txt
 
 # Who is the partner for your project? (Use the full name of the partner
 # documented here:
