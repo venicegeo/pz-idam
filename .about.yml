@@ -42,7 +42,7 @@ testable: true
 #     name: Name of the license from the Software Package Data Exchange (SPDX): https://spdx.org/licenses/
 #     url: URL for the text of the license
 licenses:
-  pz-gateway:
+  pz-security:
     name: Apache-2.0
     url: https://github.com/venicegeo/pz-gateway/blob/master/LICENSE.txt
 
