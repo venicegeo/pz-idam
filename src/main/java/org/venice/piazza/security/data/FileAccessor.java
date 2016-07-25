@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,18 +52,24 @@ public class FileAccessor {
 	private static Path PATH;
 
 	public Map<String, String> getUsersAndRoles() throws IOException {
-		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+		try(Stream<String> stream = Files.lines(getRoleFilePath())) {
+			return stream.filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
 				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[2] : "")));
+		}
 	}
 	
 	public Map<String, String> getUsersAndCredentials() throws IOException {
-		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+		try(Stream<String> stream = Files.lines(getRoleFilePath())) {
+			return stream.filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
 				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[1] : "")));
+		}
 	}	
 
 	public Map<String, String> getUsersAndCredentialsAndRoles() throws IOException {
-		return Files.lines(getRoleFilePath()).filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
+		try(Stream<String> stream = Files.lines(getRoleFilePath())) {
+			return stream.filter(s -> s.matches("^\\w+:\\w+:[\\w+,-]*(\\054\\w+[\\w+,-]*)*$"))
 				.collect(Collectors.toMap(k -> k.split(":")[0], v -> (v.split(":").length > 2 ? v.split(":")[1] + ":" + v.split(":")[2] : v.split(":")[1] + ":")));
+		}
 	}
 	
 	public Set<String> getUsers() throws IOException {
