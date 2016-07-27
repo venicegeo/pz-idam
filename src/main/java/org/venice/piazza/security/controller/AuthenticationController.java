@@ -149,7 +149,7 @@ public class AuthenticationController {
 
 			return new ResponseEntity<PiazzaResponse>(
 					new ErrorResponse("Authentication failed for user " + username, "Security"),
-					HttpStatus.INTERNAL_SERVER_ERROR);
+					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
