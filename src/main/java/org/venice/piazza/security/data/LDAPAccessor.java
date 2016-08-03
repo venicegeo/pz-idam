@@ -51,6 +51,6 @@ public class LDAPAccessor {
 	}
 
 	private boolean isOverrideSpace() {
-		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test"));
+		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod"));
 	}
 }
