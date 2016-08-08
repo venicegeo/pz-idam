@@ -64,9 +64,7 @@ public class SecurityTests {
 	private RoleManagementController roleManagementController;	
 	
 	
-	private Set<String> users = new HashSet<String>(Arrays.asList("yutzlejp", "beckerwg", "krasnebh", "mcmahojm",
-			"orfrf", "naquinkj", "doodypc", "dionmr", "chambebj", "bardenbm", "clarksp", "smithpq", "duncanjl",
-			"mauckaw", "smithcs", "lynummm", "gerlekmp", "baxtersh", "sanievsf", "baziledd", "brownjt", "citester"));
+	private Set<String> users = new HashSet<String>(Arrays.asList("dummy"));
 
 	private List<String> roles = new ArrayList<String>(
 			Arrays.asList("abort", "access", "admin-stats", "delete-service", "execute-service", "get", "get-resource",
@@ -87,95 +85,11 @@ public class SecurityTests {
 		// Mock a Service to use
 		stats = new Stats(1, 2, 3, 4);
 
-		usersAndRoles.put("yutzlejp",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("beckerwg",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("krasnebh",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("mcmahojm",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("orfrf",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("naquinkj",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("doodypc",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("dionmr",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("chambebj",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("bardenbm",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("clarksp",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("smithpq",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("duncanjl",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("mauckaw",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("smithcs",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("lynummm",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("gerlekmp",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("baxtersh",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("sanievsf",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("baziledd",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("brownjt",
-				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndRoles.put("citester",
+		usersAndRoles.put("dummy",
 				"abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
 
-		usersAndCredentialsAndRoles.put("yutzlejp",
-				"yutzlejp:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("beckerwg",
-				"beckerwg:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("krasnebh",
-				"krasnebh:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("mcmahojm",
-				"mcmahojm:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("orfrf",
-				"orfrf:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("naquinkj",
-				"naquinkj:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("doodypc",
-				"doodypc:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("dionmr",
-				"dionmr:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("chambebj",
-				"chambebj:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("bardenbm",
-				"bardenbm:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("clarksp",
-				"clarksp:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("smithpq",
-				"smithpq:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("duncanjl",
-				"duncanjl:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("mauckaw",
-				"mauckaw:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("smithcs",
-				"smithcs:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("lynummm",
-				"lynummm:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("gerlekmp",
-				"gerlekmp:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("baxtersh",
-				"baxtersh:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("sanievsf",
-				"sanievsf:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("baziledd",
-				"baziledd:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("brownjt",
-				"brownjt:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
-		usersAndCredentialsAndRoles.put("citester",
-				"test4life:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
+		usersAndCredentialsAndRoles.put("dummy",
+				"dummy:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service");
 	}
 
 	/**
@@ -248,7 +162,7 @@ public class SecurityTests {
 	 */
 	@Test
 	public void testGetRoles() throws IOException {
-		String user = "orfrf";
+		String user = "dummy";
 
 		// Mock
 		when(fa.getUsersAndRoles()).thenReturn(usersAndRoles);
