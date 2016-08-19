@@ -24,9 +24,9 @@ public class LDAPAccessor {
 	@Value("${security.gs_ldap.ctxfactory}")
 	private String LDAP_CTX_FACTORY;
 	
-	@Value("${vcap.services.pz-servicecontroller.username}")
+	@Value("${vcap.services.pz-servicecontroller.credentials.username}")
 	private String SYSTEM_PZSERVICECONTROLLER_USER;
-	@Value("${vcap.services.pz-servicecontroller.credential}")
+	@Value("${vcap.services.pz-servicecontroller.credentials.credential}")
 	private String SYSTEM_PZSERVICECONTROLLER_CRED;
 	
 	@Autowired
