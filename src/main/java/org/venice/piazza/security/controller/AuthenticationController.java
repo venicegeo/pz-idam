@@ -17,6 +17,7 @@ package org.venice.piazza.security.controller;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.security.data.LDAPAccessor;
 import org.venice.piazza.security.data.MongoAccessor;
@@ -56,7 +58,6 @@ public class AuthenticationController {
 	private UUIDFactory uuidFactory;
 	@Autowired
 	private HttpServletRequest request;
-	
 
 	/**
 	 * Retrieves an authentication decision based on the provided username and
@@ -79,14 +80,12 @@ public class AuthenticationController {
 	}
 
 	/**
-	 * Retrieves an authentication decision based on the provided username and
-	 * credential
+	 * Verifies that an API key is valid.
 	 * 
 	 * @param body
-	 *            A JSON object containing the 'username' and 'credential'
-	 *            fields.
+	 *            A JSON object containing the 'uuid' field.
 	 * 
-	 * @return boolean flag indicating true if verified, false if not.
+	 * @return AuthenticationResponse object containing the verification boolean of true or false
 	 */
 	@RequestMapping(value = "/v2/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> authenticateUserByUUID(@RequestBody Map<String, String> body) {
@@ -120,7 +119,6 @@ public class AuthenticationController {
 	@RequestMapping(value = "/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> retrieveUUID() {
 		try {
-			
 			String headerValue = request.getHeader("Authorization");
 			String username = null;
 			String credential = null;
@@ -153,6 +151,67 @@ public class AuthenticationController {
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
+			logger.log(error, PiazzaLogger.ERROR);
+			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Retrieves a user's UUID based on the provided username
+	 * 
+	 * @param query The username to retrieve the API key for.
+	 * 
+	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
+	 */
+	@RequestMapping(value = "/clientkey", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> retrieveClientUUID(@RequestParam(value = "username") String clientUsername) {
+		try {
+			String headerValue = request.getHeader("Authorization");
+			String[] headerParts, decodedUserPassParts;
+			
+			if( headerValue != null && (headerParts = headerValue.split(" ")).length == 2 &&
+					(decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":")).length >= 1) {
+				
+				Map<String,String> body = new HashMap<String,String>();
+				body.put("uuid", decodedUserPassParts[0]);
+				PiazzaResponse response = authenticateUserByUUID(body).getBody();
+				
+				if( response instanceof AuthenticationResponse ) {
+					AuthenticationResponse authResp = (AuthenticationResponse) response;
+					
+					if( authResp.getAuthenticated().booleanValue() ) {
+						if( ldapAccessor.isSystemUser(authResp.getUsername()) ) {					
+							String clientUUID = mongoAccessor.getUuid(clientUsername);
+							
+							if( clientUUID != null ) {
+								return new ResponseEntity<PiazzaResponse>(new UUIDResponse(clientUUID), HttpStatus.OK);
+							}
+							else {
+								return new ResponseEntity<PiazzaResponse>(
+										new ErrorResponse("UUID of client not found.", "Security"), HttpStatus.NOT_FOUND);								
+							}
+						}
+						else {
+							return new ResponseEntity<PiazzaResponse>(
+									new ErrorResponse("Sender is not authorized for this request.", "Security"), HttpStatus.UNAUTHORIZED);						
+						}
+					}
+					else {
+						return new ResponseEntity<PiazzaResponse>(
+								new ErrorResponse("Could not authenticate identity of sender.", "Security"), HttpStatus.INTERNAL_SERVER_ERROR);
+					}
+				}
+				else {
+					return new ResponseEntity<PiazzaResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+				}
+			}
+
+			return new ResponseEntity<PiazzaResponse>(
+					new ErrorResponse("Authorization header is malformed.", "Security"), HttpStatus.BAD_REQUEST);
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			String error = String.format("Error retrieving UUID for clien: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);

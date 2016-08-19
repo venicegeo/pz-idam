@@ -23,15 +23,24 @@ public class LDAPAccessor {
 	private String LDAP_URL;
 	@Value("${security.gs_ldap.ctxfactory}")
 	private String LDAP_CTX_FACTORY;
+	
+	@Value("${vcap.services.pz-servicecontroller.username}")
+	private String SYSTEM_PZSERVICECONTROLLER_USER;
+	@Value("${vcap.services.pz-servicecontroller.credential}")
+	private String SYSTEM_PZSERVICECONTROLLER_CRED;
+	
 	@Autowired
 	private PiazzaLogger logger;
 
 	public boolean getAuthenticationDecision(String username, String credential) {
-		if (username == null || credential == null) {
+		if( username == null || credential == null ) {
 			return false;
-		} else if (isOverrideSpace() && username != null && username.equals("citester") && credential != null
-				&& credential.equals("test4life")) {
-			return true;
+		} 
+		else if( username != null && credential != null ) {
+			
+			if( (isOverrideSpace() && username.equals("citester") && credential.equals("test4life")) ||  isApprovedSystemUser(username, credential) ) {
+				return true;
+			}
 		}
 
 		Properties env = new Properties();
@@ -53,4 +62,22 @@ public class LDAPAccessor {
 	private boolean isOverrideSpace() {
 		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod"));
 	}
+	
+	private boolean isApprovedSystemUser(String username, String credential) {
+		
+		if( SYSTEM_PZSERVICECONTROLLER_USER.equals(username) && SYSTEM_PZSERVICECONTROLLER_USER.equals(credential)) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public boolean isSystemUser(String username) {
+		
+		if( SYSTEM_PZSERVICECONTROLLER_USER.equals(username) ) {
+			return true;
+		}
+		
+		return false;
+	}	
 }
