@@ -65,7 +65,7 @@ public class LDAPAccessor {
 	
 	private boolean isApprovedSystemUser(String username, String credential) {
 		
-		if( SYSTEM_PZSERVICECONTROLLER_USER.equals(username) && SYSTEM_PZSERVICECONTROLLER_USER.equals(credential)) {
+		if( SYSTEM_PZSERVICECONTROLLER_USER.equals(username) && SYSTEM_PZSERVICECONTROLLER_CRED.equals(credential)) {
 			return true;
 		}
 		
