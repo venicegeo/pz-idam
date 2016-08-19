@@ -8,6 +8,7 @@ applications:
   services:
     - ldap
     - pz-mongodb
+    - pz-servicecontroller
   path: pz-security.jar
   env:
     SPRING_PROFILES_ACTIVE: cloud
