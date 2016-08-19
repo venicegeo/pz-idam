@@ -10,5 +10,6 @@ applications:
   services:
     - ldap
     - pz-mongodb
+    - pz-servicecontroller
   env:
     SPRING_PROFILES_ACTIVE: cloud,fade-stage
