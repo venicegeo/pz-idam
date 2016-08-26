@@ -11,5 +11,7 @@ applications:
     - ldap
     - pz-mongodb
     - pz-servicecontroller
+    - beachfront
+    - pztest-integration
   env:
     SPRING_PROFILES_ACTIVE: cloud,fade-stage

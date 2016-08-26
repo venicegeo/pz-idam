@@ -29,6 +29,16 @@ public class LDAPAccessor {
 	@Value("${vcap.services.pz-servicecontroller.credentials.credential}")
 	private String SYSTEM_PZSERVICECONTROLLER_CRED;
 	
+	@Value("${vcap.services.beachfront.credentials.username}")
+	private String SYSTEM_BEACHFRONT_USER;
+	@Value("${vcap.services.beachfront.credentials.credential}")
+	private String SYSTEM_BEACHFRONT_CRED;
+	
+	@Value("${vcap.services.pztest-integration.credentials.username}")
+	private String SYSTEM_PZTESTINTEGRATION_USER;
+	@Value("${vcap.services.pztest-integration.credentials.credential}")
+	private String SYSTEM_PZTESTINTEGRATION_CRED;
+	
 	@Autowired
 	private PiazzaLogger logger;
 
@@ -37,8 +47,7 @@ public class LDAPAccessor {
 			return false;
 		} 
 		else if( username != null && credential != null ) {
-			
-			if( (isOverrideSpace() && username.equals("citester") && credential.equals("test4life")) ||  isApprovedSystemUser(username, credential) ) {
+			if( (isOverrideSpace() && isApprovedTestUser(username, credential)) ||  isApprovedSystemUser(username, credential) ) {
 				return true;
 			}
 		}
@@ -61,6 +70,19 @@ public class LDAPAccessor {
 
 	private boolean isOverrideSpace() {
 		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod"));
+	}
+	
+	private boolean isApprovedTestUser(String username, String credential) {
+		
+		if( SYSTEM_BEACHFRONT_USER.equals(username) && SYSTEM_BEACHFRONT_CRED.equals(credential)) {
+			return true;
+		}
+		
+		if( SYSTEM_PZTESTINTEGRATION_USER.equals(username) && SYSTEM_PZTESTINTEGRATION_CRED.equals(credential)) {
+			return true;
+		}
+		
+		return false;
 	}
 	
 	private boolean isApprovedSystemUser(String username, String credential) {

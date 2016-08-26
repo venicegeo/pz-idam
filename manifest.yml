@@ -8,4 +8,6 @@ applications:
     - ldap
     - pz-mongodb
     - pz-servicecontroller
+    - beachfront
+    - pztest-integration
   path: pz-security.jar

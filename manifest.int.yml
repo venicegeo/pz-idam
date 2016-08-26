@@ -9,6 +9,8 @@ applications:
     - ldap
     - pz-mongodb
     - pz-servicecontroller
+    - beachfront
+    - pztest-integration
   path: pz-security.jar
   env:
     SPRING_PROFILES_ACTIVE: cloud
