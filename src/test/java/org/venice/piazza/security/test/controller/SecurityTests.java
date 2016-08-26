@@ -452,10 +452,10 @@ public class SecurityTests {
 
 		// Mock
 		ReflectionTestUtils.setField(ldapClient, "SPACE", "int");
-		ReflectionTestUtils.setField(ldapClient, "SYSTEM_PZTESTINTEGRATION_USER", "citester");
-		ReflectionTestUtils.setField(ldapClient, "SYSTEM_PZTESTINTEGRATION_CRED", "test4life");
-		ReflectionTestUtils.setField(ldapClient, "SYSTEM_BEACHFRONT_USER", "bfuser");
-		ReflectionTestUtils.setField(ldapClient, "SYSTEM_BEACHFRONT_USER", "bfpass");
+		ReflectionTestUtils.setField(ldapClient, "TEST_PZTESTINTEGRATION_USER", "citester");
+		ReflectionTestUtils.setField(ldapClient, "TEST_PZTESTINTEGRATION_CRED", "test4life");
+		ReflectionTestUtils.setField(ldapClient, "TEST_BEACHFRONT_USER", "bfuser");
+		ReflectionTestUtils.setField(ldapClient, "TEST_BEACHFRONT_USER", "bfpass");
 		when(ldapClient.getAuthenticationDecision(username, credential)).thenCallRealMethod();
 
 		// Test

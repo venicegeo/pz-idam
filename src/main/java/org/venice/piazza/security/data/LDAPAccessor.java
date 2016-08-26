@@ -30,14 +30,14 @@ public class LDAPAccessor {
 	private String SYSTEM_PZSERVICECONTROLLER_CRED;
 	
 	@Value("${vcap.services.beachfront.credentials.username}")
-	private String SYSTEM_BEACHFRONT_USER;
+	private String TEST_BEACHFRONT_USER;
 	@Value("${vcap.services.beachfront.credentials.credential}")
-	private String SYSTEM_BEACHFRONT_CRED;
+	private String TEST_BEACHFRONT_CRED;
 	
 	@Value("${vcap.services.pztest-integration.credentials.username}")
-	private String SYSTEM_PZTESTINTEGRATION_USER;
+	private String TEST_PZTESTINTEGRATION_USER;
 	@Value("${vcap.services.pztest-integration.credentials.credential}")
-	private String SYSTEM_PZTESTINTEGRATION_CRED;
+	private String TEST_PZTESTINTEGRATION_CRED;
 	
 	@Autowired
 	private PiazzaLogger logger;
@@ -74,11 +74,11 @@ public class LDAPAccessor {
 	
 	private boolean isApprovedTestUser(String username, String credential) {
 		
-		if( SYSTEM_BEACHFRONT_USER.equals(username) && SYSTEM_BEACHFRONT_CRED.equals(credential)) {
+		if( TEST_BEACHFRONT_USER.equals(username) && TEST_BEACHFRONT_CRED.equals(credential)) {
 			return true;
 		}
 		
-		if( SYSTEM_PZTESTINTEGRATION_USER.equals(username) && SYSTEM_PZTESTINTEGRATION_CRED.equals(credential)) {
+		if( TEST_PZTESTINTEGRATION_USER.equals(username) && TEST_PZTESTINTEGRATION_CRED.equals(credential)) {
 			return true;
 		}
 		
