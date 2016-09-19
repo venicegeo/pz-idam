@@ -1,7 +1,7 @@
 applications:
 - name: pz-security
   host: pz-security
-  memory: 512M
+  memory: 1024M
   instances: 1
   timeout: 80
   services:
