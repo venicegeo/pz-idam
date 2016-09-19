@@ -11,3 +11,4 @@ applications:
     - beachfront
     - pztest-integration
   path: pz-security.jar
+  buildpack: java_buildpack_offline
