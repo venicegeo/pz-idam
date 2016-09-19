@@ -1,0 +1,13 @@
+applications:
+- name: pz-security
+  host: pz-security
+  memory: 1024M
+  instances: 1
+  timeout: 80
+  services:
+    - ldap
+    - pz-mongodb
+    - pz-servicecontroller
+    - beachfront
+    - pztest-integration
+  path: pz-security.jar
