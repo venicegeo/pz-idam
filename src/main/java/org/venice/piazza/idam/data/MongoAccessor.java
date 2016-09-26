@@ -1,4 +1,4 @@
-package org.venice.piazza.security.data;
+package org.venice.piazza.idam.data;
 
 import javax.annotation.PostConstruct;
 

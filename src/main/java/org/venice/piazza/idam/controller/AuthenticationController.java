@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.security.controller;
+package org.venice.piazza.idam.controller;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -31,8 +31,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.venice.piazza.security.data.LDAPAccessor;
-import org.venice.piazza.security.data.MongoAccessor;
+import org.venice.piazza.idam.data.LDAPAccessor;
+import org.venice.piazza.idam.data.MongoAccessor;
 
 import model.response.AuthenticationResponse;
 import model.response.ErrorResponse;

@@ -1,4 +1,4 @@
-package org.venice.piazza.security.data;
+package org.venice.piazza.idam.data;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

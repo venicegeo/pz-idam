@@ -6,10 +6,10 @@
 
 # This is a short name of your project that can be used as a URL slug.
 # (required)
-name: pz-security
+name: pz-idam
 
 # This is the display name of your project. (required)
-full_name: Piazza Security
+full_name: Piazza Identity And Access Management
 
 # What is the problem your project solves? What is the solution? Use the
 # format shown below. The #dashboard team will gladly help you put this
@@ -20,7 +20,7 @@ description: The purpose of this component is to provide REST endpoints for auth
 # What is the measurable impact of your project? Use the format shown below.
 # The #dashboard team will gladly help you put this together for your project.
 # (required)
-impact: Piazza Security provides the backend services for Gateway to authenticate and authorize client requests for the Piazza system.
+impact: Piazza Identity And Access Management provides the backend services for Gateway to authenticate and authorize client requests for the Piazza system.
 
 
 # What kind of team owns the repository? (required)
@@ -42,9 +42,9 @@ testable: true
 #     name: Name of the license from the Software Package Data Exchange (SPDX): https://spdx.org/licenses/
 #     url: URL for the text of the license
 licenses:
-  pz-security:
+  pz-idam:
     name: Apache-2.0
-    url: https://github.com/venicegeo/pz-security/blob/master/LICENSE.txt
+    url: https://github.com/venicegeo/pz-idam/blob/master/LICENSE.txt
 
 # Who is the partner for your project? (Use the full name of the partner
 # documented here:

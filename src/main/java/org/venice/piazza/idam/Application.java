@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.security;
+package org.venice.piazza.idam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -30,7 +30,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 @SpringBootApplication
-@ComponentScan({ "org.venice.piazza.security, util" })
+@ComponentScan({ "org.venice.piazza.idam, util" })
 public class Application extends SpringBootServletInitializer {
 
 	@Override

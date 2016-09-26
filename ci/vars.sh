@@ -1,4 +1,4 @@
 #!/bin/bash
 
-APP=pz-security
+APP=pz-idam
 EXT=jar

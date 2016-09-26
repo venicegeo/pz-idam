@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.security.data;
+package org.venice.piazza.idam.data;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class FileAccessor {
 	@Autowired
 	private ResourceLoader resourceLoader;
 
-	@Value("${pz.security.fileurl}")
+	@Value("${pz.idam.fileurl}")
 	private String FILE;
 
 	private static Path PATH;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.security.controller;
+package org.venice.piazza.idam.controller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.venice.piazza.security.data.FileAccessor;
+import org.venice.piazza.idam.data.FileAccessor;
 
 /**
  * Controller that handles the User and Role requests for security information.

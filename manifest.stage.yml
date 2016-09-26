@@ -1,6 +1,6 @@
 applications:
-- name: pz-security
-  host: pz-security
+- name: pz-idam
+  host: pz-idam
   memory: 2048M
   instances: 1
   timeout: 80
@@ -10,5 +10,5 @@ applications:
     - pz-servicecontroller
     - beachfront
     - pztest-integration
-  path: pz-security.jar
+  path: pz-idam.jar
   buildpack: java_buildpack_offline

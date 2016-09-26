@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.security.test.controller;
+package org.venice.piazza.idam.test.controller;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -36,12 +36,12 @@ import org.mockito.MockitoAnnotations;
 
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.security.controller.AdminController;
-import org.venice.piazza.security.controller.AuthenticationController;
-import org.venice.piazza.security.controller.RoleManagementController;
-import org.venice.piazza.security.data.FileAccessor;
-import org.venice.piazza.security.data.LDAPAccessor;
-import org.venice.piazza.security.data.Stats;
+import org.venice.piazza.idam.controller.AdminController;
+import org.venice.piazza.idam.controller.AuthenticationController;
+import org.venice.piazza.idam.controller.RoleManagementController;
+import org.venice.piazza.idam.data.FileAccessor;
+import org.venice.piazza.idam.data.LDAPAccessor;
+import org.venice.piazza.idam.data.Stats;
 
 public class SecurityTests {
 

@@ -8,7 +8,7 @@ popd > /dev/null
 source $root/ci/vars.sh
 
 # Path to output JAR
-src=$root/target/piazza-security*.jar
+src=$root/target/piazza-idam*.jar
 
 # Build Spring-boot JAR
 [ -f $src ] || mvn clean package -U

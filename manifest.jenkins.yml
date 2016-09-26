@@ -1,7 +1,7 @@
 applications:
-- name: pz-security
-  host: pz-security
-  path: pz-security.jar
+- name: pz-idam
+  host: pz-idam
+  path: pz-idam.jar
   buildpack: java_buildpack_offline
   domain: stage.geointservices.io
   memory: 512M
