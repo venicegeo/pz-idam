@@ -5,7 +5,7 @@
 
 	<groupId>org.venice.piazza</groupId>
 	<artifactId>piazza-idam</artifactId>
-	<version>0.1.0</version>
+	<version>1.0.0</version>
 
 	<packaging>${packaging}</packaging>
 
