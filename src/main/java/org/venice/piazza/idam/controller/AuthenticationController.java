@@ -16,12 +16,15 @@
 package org.venice.piazza.idam.controller;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -59,6 +62,8 @@ public class AuthenticationController {
 	@Autowired
 	private HttpServletRequest request;
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
+	
 	/**
 	 * Retrieves an authentication decision based on the provided username and
 	 * credential
@@ -74,7 +79,7 @@ public class AuthenticationController {
 		try {
 			return ldapAccessor.getAuthenticationDecision(body.get("username"), body.get("credential"));
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 		}
 		return false;
 	}
@@ -99,7 +104,7 @@ public class AuthenticationController {
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
@@ -125,23 +130,26 @@ public class AuthenticationController {
 			String uuid = null;
 			String[] headerParts, decodedUserPassParts;
 			
-			if( headerValue != null && 
-					(headerParts = headerValue.split(" ")).length == 2 &&
-					(decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":")).length == 2) {
-				
-				username = decodedUserPassParts[0];
-				credential = decodedUserPassParts[1];
-					
-				if (ldapAccessor.getAuthenticationDecision(username, credential)) {
-					uuid = uuidFactory.getUUID();
 
-					if (mongoAccessor.getUuid(username) != null) {
-						mongoAccessor.update(username, uuid);
-					} else {
-						mongoAccessor.save(username, uuid);
+			if (headerValue != null) {
+				headerParts = headerValue.split(" ");
+				decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":");
+
+				if (headerParts.length == 2 && decodedUserPassParts.length == 2) {
+					username = decodedUserPassParts[0];
+					credential = decodedUserPassParts[1];
+
+					if (ldapAccessor.getAuthenticationDecision(username, credential)) {
+						uuid = uuidFactory.getUUID();
+
+						if (mongoAccessor.getUuid(username) != null) {
+							mongoAccessor.update(username, uuid);
+						} else {
+							mongoAccessor.save(username, uuid);
+						}
+
+						return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
 					}
-
-					return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
 				}
 			}
 
@@ -149,7 +157,7 @@ public class AuthenticationController {
 					new ErrorResponse("Authentication failed for user " + username, "Security"),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
@@ -170,47 +178,51 @@ public class AuthenticationController {
 			String headerValue = request.getHeader("Authorization");
 			String[] headerParts, decodedUserPassParts;
 			
-			if( headerValue != null && (headerParts = headerValue.split(" ")).length == 2 &&
-					(decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":")).length >= 1) {
-				
-				Map<String,String> body = new HashMap<String,String>();
-				body.put("uuid", decodedUserPassParts[0]);
-				PiazzaResponse response = authenticateUserByUUID(body).getBody();
-				
-				if( response instanceof AuthenticationResponse ) {
-					AuthenticationResponse authResp = (AuthenticationResponse) response;
+			if( headerValue != null ){
+				headerParts = headerValue.split(" ");
+				decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":");
+
+				if( headerParts.length == 2 && decodedUserPassParts.length >= 1) {
 					
-					if( authResp.getAuthenticated().booleanValue() ) {
-						if( ldapAccessor.isSystemUser(authResp.getUsername()) ) {					
-							String clientUUID = mongoAccessor.getUuid(clientUsername);
-							
-							if( clientUUID != null ) {
-								return new ResponseEntity<PiazzaResponse>(new UUIDResponse(clientUUID), HttpStatus.OK);
+					Map<String,String> body = new HashMap<String,String>();
+					body.put("uuid", decodedUserPassParts[0]);
+					PiazzaResponse response = authenticateUserByUUID(body).getBody();
+					
+					if( response instanceof AuthenticationResponse ) {
+						AuthenticationResponse authResp = (AuthenticationResponse) response;
+						
+						if( authResp.getAuthenticated().booleanValue() ) {
+							if( ldapAccessor.isSystemUser(authResp.getUsername()) ) {					
+								String clientUUID = mongoAccessor.getUuid(clientUsername);
+								
+								if( clientUUID != null ) {
+									return new ResponseEntity<PiazzaResponse>(new UUIDResponse(clientUUID), HttpStatus.OK);
+								}
+								else {
+									return new ResponseEntity<PiazzaResponse>(
+											new ErrorResponse("UUID of client not found.", "Security"), HttpStatus.NOT_FOUND);								
+								}
 							}
 							else {
 								return new ResponseEntity<PiazzaResponse>(
-										new ErrorResponse("UUID of client not found.", "Security"), HttpStatus.NOT_FOUND);								
+										new ErrorResponse("Sender is not authorized for this request.", "Security"), HttpStatus.UNAUTHORIZED);						
 							}
 						}
 						else {
 							return new ResponseEntity<PiazzaResponse>(
-									new ErrorResponse("Sender is not authorized for this request.", "Security"), HttpStatus.UNAUTHORIZED);						
+									new ErrorResponse("Could not authenticate identity of sender.", "Security"), HttpStatus.INTERNAL_SERVER_ERROR);
 						}
 					}
 					else {
-						return new ResponseEntity<PiazzaResponse>(
-								new ErrorResponse("Could not authenticate identity of sender.", "Security"), HttpStatus.INTERNAL_SERVER_ERROR);
+						return new ResponseEntity<PiazzaResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 					}
-				}
-				else {
-					return new ResponseEntity<PiazzaResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 				}
 			}
 
 			return new ResponseEntity<PiazzaResponse>(
 					new ErrorResponse("Authorization header is malformed.", "Security"), HttpStatus.BAD_REQUEST);
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error retrieving UUID for clien: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),

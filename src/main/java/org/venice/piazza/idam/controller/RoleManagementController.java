@@ -16,10 +16,14 @@
 package org.venice.piazza.idam.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +48,8 @@ public class RoleManagementController {
 	private static final String FAILURES = "Failures";
 	private static final String STATUS = "Status";
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(RoleManagementController.class);
+	
 	/**
 	 * Retrieves all of the users defined in the system.
 	 * 
@@ -54,7 +60,7 @@ public class RoleManagementController {
 		try {
 			return fa.getUsers();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
@@ -72,7 +78,7 @@ public class RoleManagementController {
 		try {
 			return fa.getRolesForUser(userid);
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
@@ -88,7 +94,7 @@ public class RoleManagementController {
 		try {
 			return fa.getUsersAndRoles();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
@@ -113,7 +119,7 @@ public class RoleManagementController {
 				response.put(STATUS, "User '" + userid + "' deleted.");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;
@@ -146,7 +152,7 @@ public class RoleManagementController {
 				response.put(STATUS, "Role '" + role + "' deleted for user '" + userid + "'");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;
@@ -172,7 +178,7 @@ public class RoleManagementController {
 				response.put(STATUS, "All roles for user '" + userid + "' deleted.");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;
@@ -210,7 +216,7 @@ public class RoleManagementController {
 			response.put(FAILURES, failures);
 			return response;
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
@@ -246,7 +252,7 @@ public class RoleManagementController {
 			response.put(FAILURES, failures);
 			return response;
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
@@ -278,7 +284,7 @@ public class RoleManagementController {
 				response.put(STATUS, "User '" + userid + "' does not exist!");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			response.put(STATUS, "Exception: " + e.getMessage());
 		}
 		return response;

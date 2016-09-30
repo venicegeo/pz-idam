@@ -15,6 +15,10 @@
  **/
 package org.venice.piazza.idam.controller;
 
+import java.util.Arrays;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +38,8 @@ public class AdminController {
 	@Autowired
 	private FileAccessor fa;
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
+	
 	/**
 	 * Healthcheck required for all Piazza Core Services
 	 * 
@@ -54,7 +60,7 @@ public class AdminController {
 		try {
 			return fa.getStats();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Arrays.toString(e.getStackTrace()));
 			return null;
 		}
 	}
