@@ -16,11 +16,14 @@
 package org.venice.piazza.idam.controller;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -57,6 +60,8 @@ public class AuthenticationController {
 	@Autowired
 	private HttpServletRequest request;
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
+	
 	/**
 	 * Verifies that an API key is valid.
 	 * 
@@ -77,7 +82,7 @@ public class AuthenticationController {
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
@@ -102,24 +107,26 @@ public class AuthenticationController {
 			String credential = null;
 			String uuid = null;
 			String[] headerParts, decodedUserPassParts;
-			
-			if( headerValue != null && 
-					(headerParts = headerValue.split(" ")).length == 2 &&
-					(decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":")).length == 2) {
-				
-				username = decodedUserPassParts[0];
-				credential = decodedUserPassParts[1];
-					
-				if (piazzaAuthenticator.getAuthenticationDecision(username, credential, null)) {
-					uuid = uuidFactory.getUUID();
 
-					if (mongoAccessor.getUuid(username) != null) {
-						mongoAccessor.update(username, uuid);
-					} else {
-						mongoAccessor.save(username, uuid);
+			if (headerValue != null) {
+				headerParts = headerValue.split(" ");
+				decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":");
+
+				if (headerParts.length == 2 && decodedUserPassParts.length == 2) {
+					username = decodedUserPassParts[0];
+					credential = decodedUserPassParts[1];
+
+					if (piazzaAuthenticator.getAuthenticationDecision(username, credential, null)) {
+						uuid = uuidFactory.getUUID();
+
+						if (mongoAccessor.getUuid(username) != null) {
+							mongoAccessor.update(username, uuid);
+						} else {
+							mongoAccessor.save(username, uuid);
+						}
+
+						return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
 					}
-
-					return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
 				}
 			}
 
@@ -127,7 +134,7 @@ public class AuthenticationController {
 					new ErrorResponse("Authentication failed for user " + username, "Security"),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),

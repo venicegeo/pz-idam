@@ -57,13 +57,10 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 
 	public boolean getAuthenticationDecision(String username, String credential, String mechanism) {
 		
-		if( username == null || credential == null ) {
+		if (username == null || credential == null) {
 			return false;
-		} 
-		else if( username != null && credential != null ) {
-			if( (isOverrideSpace() && isApprovedTestUser(username, credential)) ) {
-				return true;
-			}
+		} else if ((isOverrideSpace() && isApprovedTestUser(username, credential))) {
+			return true;
 		}
 		
 		Properties env = new Properties();
