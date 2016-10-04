@@ -33,10 +33,7 @@ import java.util.Properties;
 public class LDAPAuthenticator implements PiazzaAuthenticator {
 
 	@Value("${SPACE}")
-	private String SPACE;	
-	
-	@Value("${pz.idam.authn.provider}")
-	private String AUTHN_PROVIDER;
+	private String SPACE;
 
 	@Value("${vcap.services.beachfront.credentials.username}")
 	private String TEST_BEACHFRONT_USER;
@@ -59,6 +56,7 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	private PiazzaLogger logger;
 
 	public boolean getAuthenticationDecision(String username, String credential, String mechanism) {
+		
 		if( username == null || credential == null ) {
 			return false;
 		} 

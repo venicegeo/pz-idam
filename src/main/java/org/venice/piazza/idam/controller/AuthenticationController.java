@@ -58,26 +58,6 @@ public class AuthenticationController {
 	private HttpServletRequest request;
 
 	/**
-	 * Retrieves an authentication decision based on the provided username and
-	 * credential
-	 * 
-	 * @param body
-	 *            A JSON object containing the 'username' and 'credential'
-	 *            fields.
-	 * 
-	 * @return boolean flag indicating true if verified, false if not.
-	 */
-	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public boolean authenticateUserByUserPass(@RequestBody Map<String, String> body) {
-		try {
-			return piazzaAuthenticator.getAuthenticationDecision(body.get("username"), body.get("credential"), null);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	/**
 	 * Verifies that an API key is valid.
 	 * 
 	 * @param body

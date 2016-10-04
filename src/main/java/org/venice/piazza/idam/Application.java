@@ -34,7 +34,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.venice.piazza.idam.authn.GEOAxISAuthenticator;
+import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.authn.LDAPAuthenticator;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 
@@ -99,11 +99,11 @@ public class Application extends SpringBootServletInitializer {
 
 	@Configuration
 	@Profile({ "geoaxis" })
-	protected static class GEOAxISConfig {
+	protected static class GxConfig {
 
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
-			return new GEOAxISAuthenticator();
+			return new GxAuthenticator();
 		}
 	}
 }

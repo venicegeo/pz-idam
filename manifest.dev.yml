@@ -12,3 +12,5 @@ applications:
     - pztest-integration
   path: pz-idam.jar
   buildpack: java_buildpack_offline
+  env:
+    SPRING_PROFILES_ACTIVE: ldap

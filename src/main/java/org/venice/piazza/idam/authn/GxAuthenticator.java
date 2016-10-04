@@ -27,7 +27,7 @@ import org.venice.piazza.idam.model.GxAuthNResponse;
 
 @Component
 @Profile( { "geoaxis" })
-public class GEOAxISAuthenticator implements PiazzaAuthenticator {
+public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Value("${vcap.services.geoaxis.api.url}")
 	private String GX_API_URL;
@@ -43,7 +43,7 @@ public class GEOAxISAuthenticator implements PiazzaAuthenticator {
 	private RestTemplate restTemplate;
 	
 	public boolean getAuthenticationDecision(String username, String credential, String mechanism) {
-
+		
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
