@@ -15,6 +15,9 @@
  **/
 package org.venice.piazza.idam;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -22,16 +25,26 @@ import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.venice.piazza.idam.authn.GxAuthenticator;
+import org.venice.piazza.idam.authn.LDAPAuthenticator;
+import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 
 @SpringBootApplication
 @ComponentScan({ "org.venice.piazza.idam, util" })
 public class Application extends SpringBootServletInitializer {
+	@Value("${http.max.total}")
+	private int httpMaxTotal;
+	@Value("${http.max.route}")
+	private int httpMaxRoute;
 
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
@@ -41,7 +54,15 @@ public class Application extends SpringBootServletInitializer {
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args); //NOSONAR
 	}
-	
+
+	@Bean
+	public RestTemplate restTemplate() {
+		RestTemplate restTemplate = new RestTemplate();
+		HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setMaxConnPerRoute(httpMaxRoute).build();
+		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+		return restTemplate;
+	}
+
 	@Configuration
 	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 
@@ -64,5 +85,25 @@ public class Application extends SpringBootServletInitializer {
 			source.registerCorsConfiguration("/**", config);
 			return new CorsFilter(source);
 		}
-	}	
+	}
+
+	@Configuration
+	@Profile({ "ldap" })
+	protected static class LDAPConfig {
+
+		@Bean
+		public PiazzaAuthenticator piazzaAuthenticator() {
+			return new LDAPAuthenticator();
+		}
+	}
+
+	@Configuration
+	@Profile({ "geoaxis" })
+	protected static class GxConfig {
+
+		@Bean
+		public PiazzaAuthenticator piazzaAuthenticator() {
+			return new GxAuthenticator();
+		}
+	}
 }

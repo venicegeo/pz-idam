@@ -18,7 +18,6 @@ package org.venice.piazza.idam.controller;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,9 +31,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.venice.piazza.idam.data.LDAPAccessor;
+import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.data.MongoAccessor;
 
 import model.response.AuthenticationResponse;
@@ -56,7 +54,7 @@ public class AuthenticationController {
 	@Autowired
 	private MongoAccessor mongoAccessor;
 	@Autowired
-	private LDAPAccessor ldapAccessor;
+	private PiazzaAuthenticator piazzaAuthenticator;
 	@Autowired
 	private UUIDFactory uuidFactory;
 	@Autowired
@@ -64,26 +62,6 @@ public class AuthenticationController {
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
 	
-	/**
-	 * Retrieves an authentication decision based on the provided username and
-	 * credential
-	 * 
-	 * @param body
-	 *            A JSON object containing the 'username' and 'credential'
-	 *            fields.
-	 * 
-	 * @return boolean flag indicating true if verified, false if not.
-	 */
-	@RequestMapping(value = "/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public boolean authenticateUserByUserPass(@RequestBody Map<String, String> body) {
-		try {
-			return ldapAccessor.getAuthenticationDecision(body.get("username"), body.get("credential"));
-		} catch (Exception e) {
-			LOGGER.error(Arrays.toString(e.getStackTrace()));
-		}
-		return false;
-	}
-
 	/**
 	 * Verifies that an API key is valid.
 	 * 
@@ -97,8 +75,8 @@ public class AuthenticationController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(mongoAccessor.getUsername(uuid),
-						mongoAccessor.getAuthenticationDecision(uuid)), HttpStatus.OK);
+				return new ResponseEntity<PiazzaResponse>(
+						new AuthenticationResponse(mongoAccessor.getUsername(uuid), mongoAccessor.isAPIKeyValid(uuid)), HttpStatus.OK);
 			} else {
 				return new ResponseEntity<PiazzaResponse>(new ErrorResponse("UUID is null!", "Security"),
 						HttpStatus.INTERNAL_SERVER_ERROR);
@@ -129,7 +107,6 @@ public class AuthenticationController {
 			String credential = null;
 			String uuid = null;
 			String[] headerParts, decodedUserPassParts;
-			
 
 			if (headerValue != null) {
 				headerParts = headerValue.split(" ");
@@ -139,7 +116,7 @@ public class AuthenticationController {
 					username = decodedUserPassParts[0];
 					credential = decodedUserPassParts[1];
 
-					if (ldapAccessor.getAuthenticationDecision(username, credential)) {
+					if (piazzaAuthenticator.getAuthenticationDecision(username, credential, null)) {
 						uuid = uuidFactory.getUUID();
 
 						if (mongoAccessor.getUuid(username) != null) {
@@ -159,71 +136,6 @@ public class AuthenticationController {
 		} catch (Exception exception) {
 			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
-			logger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
-					HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-	
-	/**
-	 * Retrieves a user's UUID based on the provided username
-	 * 
-	 * @param query The username to retrieve the API key for.
-	 * 
-	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
-	 */
-	@RequestMapping(value = "/clientkey", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PiazzaResponse> retrieveClientUUID(@RequestParam(value = "username") String clientUsername) {
-		try {
-			String headerValue = request.getHeader("Authorization");
-			String[] headerParts, decodedUserPassParts;
-			
-			if( headerValue != null ){
-				headerParts = headerValue.split(" ");
-				decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":");
-
-				if( headerParts.length == 2 && decodedUserPassParts.length >= 1) {
-					
-					Map<String,String> body = new HashMap<String,String>();
-					body.put("uuid", decodedUserPassParts[0]);
-					PiazzaResponse response = authenticateUserByUUID(body).getBody();
-					
-					if( response instanceof AuthenticationResponse ) {
-						AuthenticationResponse authResp = (AuthenticationResponse) response;
-						
-						if( authResp.getAuthenticated().booleanValue() ) {
-							if( ldapAccessor.isSystemUser(authResp.getUsername()) ) {					
-								String clientUUID = mongoAccessor.getUuid(clientUsername);
-								
-								if( clientUUID != null ) {
-									return new ResponseEntity<PiazzaResponse>(new UUIDResponse(clientUUID), HttpStatus.OK);
-								}
-								else {
-									return new ResponseEntity<PiazzaResponse>(
-											new ErrorResponse("UUID of client not found.", "Security"), HttpStatus.NOT_FOUND);								
-								}
-							}
-							else {
-								return new ResponseEntity<PiazzaResponse>(
-										new ErrorResponse("Sender is not authorized for this request.", "Security"), HttpStatus.UNAUTHORIZED);						
-							}
-						}
-						else {
-							return new ResponseEntity<PiazzaResponse>(
-									new ErrorResponse("Could not authenticate identity of sender.", "Security"), HttpStatus.INTERNAL_SERVER_ERROR);
-						}
-					}
-					else {
-						return new ResponseEntity<PiazzaResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-					}
-				}
-			}
-
-			return new ResponseEntity<PiazzaResponse>(
-					new ErrorResponse("Authorization header is malformed.", "Security"), HttpStatus.BAD_REQUEST);
-		} catch (Exception exception) {
-			LOGGER.error(Arrays.toString(exception.getStackTrace()));
-			String error = String.format("Error retrieving UUID for clien: %s", exception.getMessage());
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);

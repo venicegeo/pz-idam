@@ -15,17 +15,9 @@
  **/
 package org.venice.piazza.idam.controller;
 
-import java.util.Arrays;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.venice.piazza.idam.data.FileAccessor;
-import org.venice.piazza.idam.data.Stats;
 
 /**
  * Controller that handles the Admin requests
@@ -35,11 +27,6 @@ import org.venice.piazza.idam.data.Stats;
 @RestController
 public class AdminController {
 
-	@Autowired
-	private FileAccessor fa;
-
-	private final static Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
-	
 	/**
 	 * Healthcheck required for all Piazza Core Services
 	 * 
@@ -47,21 +34,22 @@ public class AdminController {
 	 */
 	@RequestMapping(value = "/", method = RequestMethod.GET)
 	public String getHealthCheck() {
-		return "Hello, Health Check here.";
+		return "Hello, Health Check here for pz-idam.";
 	}
 
-	/**
-	 * Retrieves a Stats object with statistics for the Piazza users and roles
-	 * 
-	 * @return Stats object containing the relevant user and role statistics
-	 */
-	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public Stats getStats() {
-		try {
-			return fa.getStats();
-		} catch (Exception e) {
-			LOGGER.error(Arrays.toString(e.getStackTrace()));
-			return null;
-		}
-	}
+	// /**
+	// * Retrieves a Stats object with statistics for the Piazza users and roles
+	// *
+	// * @return Stats object containing the relevant user and role statistics
+	// */
+	// @RequestMapping(value = "/admin/stats", method = RequestMethod.GET,
+	// produces = MediaType.APPLICATION_JSON_VALUE)
+	// public Stats getStats() {
+	// try {
+	// return fa.getStats();
+	// } catch (Exception e) {
+	// e.printStackTrace();
+	// return null;
+	// }
+	// }
 }

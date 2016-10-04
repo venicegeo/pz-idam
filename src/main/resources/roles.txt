@@ -1,1 +1,0 @@
-dummy:dummy:abort,access,admin-stats,delete-service,execute-service,get,get-resource,ingest,list-service,read-service,register-service,search-service,update-service
