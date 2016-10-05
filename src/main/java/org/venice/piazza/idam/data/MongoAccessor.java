@@ -16,6 +16,7 @@
 package org.venice.piazza.idam.data;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,12 +49,20 @@ public class MongoAccessor {
 	@PostConstruct
 	private void initialize() {
 		try {
-			mongoDatabase = new MongoClient(new MongoClientURI(mongoHost)).getDB(mongoDBName);
+			//revisit this code to close the client or rewrite mongoclient instantiation
+			mongoDatabase = new MongoClient(new MongoClientURI(mongoHost)).getDB(mongoDBName); //NOSONAR
 		} catch (Exception ex) {
 			logger.log(String.format("Error Contacting Mongo Host %s: %s", mongoHost, ex.getMessage()),
 					PiazzaLogger.ERROR);
 		}
 	}
+
+	/*
+	@PreDestroy
+	private void close() {
+		mongoDatabase.getMongo().close();
+	}
+	*/
 
 	public void update(String username, String uuid) {
 		BasicDBObject newObj = new BasicDBObject();
