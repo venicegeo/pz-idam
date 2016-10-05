@@ -55,7 +55,7 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private PiazzaLogger logger;
 
-	public boolean getAuthenticationDecision(String username, String credential, String mechanism) {
+	public boolean getAuthenticationDecision(String username, String credential) {
 		
 		if( username == null || credential == null ) {
 			return false;

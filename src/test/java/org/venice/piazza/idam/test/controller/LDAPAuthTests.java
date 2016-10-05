@@ -55,17 +55,17 @@ public class LDAPAuthTests {
 	public void testGetAuthenticationDecisionUserPass() {
 		
 		// (1) Username is null, credential is null
-		assertFalse(ldapAuthenticator.getAuthenticationDecision(null, "mypass", null));
-		assertFalse(ldapAuthenticator.getAuthenticationDecision("myuser", null, null));
+		assertFalse(ldapAuthenticator.getAuthenticationDecision(null, "mypass"));
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("myuser", null));
 
 		// (2) Username, credential are non-null, override space, BF user
-		assertTrue(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpass", null));
+		assertTrue(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpass"));
 		
 		// (3) Username, credential are non-null, override space, PZTEST user
-		assertTrue(ldapAuthenticator.getAuthenticationDecision("citester", "test4life", null));
+		assertTrue(ldapAuthenticator.getAuthenticationDecision("citester", "test4life"));
 		
 		// (4) Username, credential are non-null, LDAP
-		assertFalse(ldapAuthenticator.getAuthenticationDecision("notauser", "notapass", null));
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("notauser", "notapass"));
 	}
 	
 	@Test(expected=UnsupportedOperationException.class)

@@ -149,7 +149,7 @@ public class ControllerTests {
 		
 		// (2) Mock - Header present, Auth fails
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass",  null)).thenReturn(false);
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(false);
 		
 		// Test
 		response = authenticationController.retrieveUUID();
@@ -160,7 +160,7 @@ public class ControllerTests {
 		
 		// (3) Mock - Header present, Auth succeeds, new key
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass",  null)).thenReturn(true);
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(true);
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getUuid("testuser")).thenReturn(null);
 		Mockito.doNothing().when(mongoAccessor).save("testuser", "1234");
@@ -174,7 +174,7 @@ public class ControllerTests {
 		
 		// (4) Mock - Header present, Auth succeeds, replacing key with new
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass",  null)).thenReturn(true);
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(true);
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getUuid("testuser")).thenReturn("4321");
 		Mockito.doNothing().when(mongoAccessor).update("testuser", "1234");
@@ -187,7 +187,7 @@ public class ControllerTests {
 		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));
 		
 		// (5) Mock Exception
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass",  null)).thenThrow(new RuntimeException("My Bad"));
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
 		Mockito.doNothing().when(logger).log(Mockito.anyString(),  Mockito.anyString());
 		
 		// Test

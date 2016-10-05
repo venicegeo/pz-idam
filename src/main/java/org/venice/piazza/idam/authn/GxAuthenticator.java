@@ -18,7 +18,6 @@ package org.venice.piazza.idam.authn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
@@ -26,44 +25,33 @@ import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 
 @Component
-@Profile( { "geoaxis" })
+@Profile({ "geoaxis" })
 public class GxAuthenticator implements PiazzaAuthenticator {
 
-	@Value("${vcap.services.geoaxis.api.url}")
-	private String GX_API_URL;
-	@Value("${vcap.services.geoaxis.api.uri.atncert}")
-	private String GX_API_URI_ATNCERT;
-	@Value("${vcap.services.geoaxis.api.uri.atnbasic}")
-	private String GX_API_URI_ATNBASIC;
-	
-	private final String GX_API_URL_ATN_BASIC = GX_API_URL + GX_API_URI_ATNBASIC;
-	private final String GX_API_URL_ATN_CERT = GX_API_URL + GX_API_URI_ATNCERT;
+	@Value("${vcap.services.geoaxis.api.url.atncert}")
+	private String GX_API_URL_ATN_CERT;
+	@Value("${vcap.services.geoaxis.api.url.atnbasic}")
+	private String GX_API_URL_ATN_BASIC;
 
 	@Autowired
 	private RestTemplate restTemplate;
-	
-	public boolean getAuthenticationDecision(String username, String credential, String mechanism) {
-		
+
+	public boolean getAuthenticationDecision(String username, String credential) {
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
-		request.setMechanism(mechanism);
-		request.setHostIdentifier("//OAMServlet/basicprotected");
-		
-		ResponseEntity<GxAuthNResponse> response = restTemplate.postForEntity(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class);
-		
-		return response.getBody().isSuccessful();
-	}
-	
-	public boolean getAuthenticationDecision(String pem) {
+		request.setMechanism("GxDisAus");
+		request.setHostIdentifier("//OAMServlet/disaususerprotected");
 
+		return restTemplate.postForObject(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class).isSuccessful();
+	}
+
+	public boolean getAuthenticationDecision(String pem) {
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
 		request.setPemCert(pem);
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
-		
-		ResponseEntity<GxAuthNResponse> response = restTemplate.postForEntity(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class);
-				
-		return response.getBody().isSuccessful();
-	}	
+
+		return restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class).isSuccessful();
+	}
 }

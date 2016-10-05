@@ -110,7 +110,7 @@ public class AuthenticationController {
 				username = decodedUserPassParts[0];
 				credential = decodedUserPassParts[1];
 					
-				if (piazzaAuthenticator.getAuthenticationDecision(username, credential, null)) {
+				if (piazzaAuthenticator.getAuthenticationDecision(username, credential)) {
 					uuid = uuidFactory.getUUID();
 
 					if (mongoAccessor.getUuid(username) != null) {

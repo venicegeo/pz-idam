@@ -25,8 +25,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.GxAuthenticator;
@@ -59,17 +57,16 @@ public class GxAuthTests {
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername("bsmith");
 		request.setPassword("mypass");
-		request.setMechanism("GxOID");
-		request.setHostIdentifier("//OAMServlet/basicprotected");
+		request.setMechanism("GxDisAus");
+		request.setHostIdentifier("//OAMServlet/disaususerprotected");
 	
 		GxAuthNResponse gxResponse = new GxAuthNResponse();
 		gxResponse.setSuccessful(false);
-		ResponseEntity<GxAuthNResponse> response = new ResponseEntity<GxAuthNResponse>(gxResponse, HttpStatus.OK);
 				
-		Mockito.doReturn(response).when(restTemplate).postForEntity(eq("https://geoaxis.api.com/atnrest/basic"), refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/basic"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith","mypass","GxOID");
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith","mypass");
 		
 		// Verify
 		assertFalse(isAuthenticated);
@@ -88,9 +85,8 @@ public class GxAuthTests {
 	
 		GxAuthNResponse gxResponse = new GxAuthNResponse();
 		gxResponse.setSuccessful(false);
-		ResponseEntity<GxAuthNResponse> response = new ResponseEntity<GxAuthNResponse>(gxResponse, HttpStatus.OK);
 				
-		Mockito.doReturn(response).when(restTemplate).postForEntity(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
 		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("pemcertgoeshere");

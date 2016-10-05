@@ -17,7 +17,7 @@ package org.venice.piazza.idam.authn;
 
 public interface PiazzaAuthenticator {
 
-	public boolean getAuthenticationDecision(String username, String credential, String mechanism);
+	public boolean getAuthenticationDecision(String username, String credential);
 
 	public boolean getAuthenticationDecision(String pem);
 }
