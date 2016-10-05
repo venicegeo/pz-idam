@@ -10,6 +10,7 @@ applications:
     - pz-servicecontroller
     - beachfront
     - pztest-integration
+    - geoaxis
   path: pz-idam.jar
   buildpack: java_buildpack_offline
   env:
