@@ -28,9 +28,9 @@ import org.venice.piazza.idam.model.GxAuthNResponse;
 @Profile({ "geoaxis" })
 public class GxAuthenticator implements PiazzaAuthenticator {
 
-	@Value("${vcap.services.geoaxis.api.url.atncert}")
+	@Value("${vcap.services.geoaxis.credentials.api.url.atncert}")
 	private String GX_API_URL_ATN_CERT;
-	@Value("${vcap.services.geoaxis.api.url.atnbasic}")
+	@Value("${vcap.services.geoaxis.credentials.api.url.atnbasic}")
 	private String GX_API_URL_ATN_BASIC;
 
 	@Autowired
