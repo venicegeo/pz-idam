@@ -15,6 +15,9 @@
  **/
 package org.venice.piazza.idam;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -28,6 +31,9 @@ import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 @SpringBootApplication
 @ComponentScan({ "org.venice.piazza.idam, util" })
@@ -41,7 +47,7 @@ public class Application extends SpringBootServletInitializer {
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
 	}
-	
+
 	@Configuration
 	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 
@@ -64,5 +70,23 @@ public class Application extends SpringBootServletInitializer {
 			source.registerCorsConfiguration("/**", config);
 			return new CorsFilter(source);
 		}
-	}	
+	}
+
+	@Configuration
+	protected static class GatewayConfig extends WebMvcConfigurerAdapter {
+		@Override
+		public void addInterceptors(InterceptorRegistry registry) {
+			registry.addInterceptor(new HandlerInterceptorAdapter() {
+				@Override
+				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+					if ((request.getScheme().equals("http")) || (request.getHeader("X-Forwarded-Proto").equals("http"))) {
+						String redirectUrl = String.format("%s://%s%s", "https", request.getServerName(), request.getRequestURI());
+						response.sendRedirect(redirectUrl);
+						return false;
+					}
+					return true;
+				}
+			});
+		}
+	}
 }
