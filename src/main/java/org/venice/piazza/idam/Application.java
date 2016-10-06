@@ -15,8 +15,10 @@
  **/
 package org.venice.piazza.idam;
 
-import java.awt.List;
 import java.util.Arrays;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -30,8 +32,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -40,6 +40,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.authn.LDAPAuthenticator;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
@@ -58,7 +61,7 @@ public class Application extends SpringBootServletInitializer {
 	}
 
 	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args); //NOSONAR
+		SpringApplication.run(Application.class, args); // NOSONAR
 	}
 
 	@Bean
@@ -66,7 +69,8 @@ public class Application extends SpringBootServletInitializer {
 		RestTemplate restTemplate = new RestTemplate();
 		HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setMaxConnPerRoute(httpMaxRoute).build();
 		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
-		restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this required?
+		restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this
+																										// required?
 		return restTemplate;
 	}
 
@@ -111,6 +115,25 @@ public class Application extends SpringBootServletInitializer {
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
 			return new GxAuthenticator();
+		}
+	}
+
+	@Configuration
+	@Profile({ "secure" })
+	protected static class IdamConfig extends WebMvcConfigurerAdapter {
+		@Override
+		public void addInterceptors(InterceptorRegistry registry) {
+			registry.addInterceptor(new HandlerInterceptorAdapter() {
+				@Override
+				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+					if ((request.getScheme().equals("http")) || (request.getHeader("X-Forwarded-Proto").equals("http"))) {
+						String redirectUrl = String.format("%s://%s%s", "https", request.getServerName(), request.getRequestURI());
+						response.sendRedirect(redirectUrl);
+						return false;
+					}
+					return true;
+				}
+			});
 		}
 	}
 }
