@@ -41,14 +41,14 @@ public class LDAPAuthTests {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 		
-		ReflectionTestUtils.setField(ldapAuthenticator, "SPACE", "int");
-		ReflectionTestUtils.setField(ldapAuthenticator, "TEST_PZTESTINTEGRATION_USER", "citester");
-		ReflectionTestUtils.setField(ldapAuthenticator, "TEST_PZTESTINTEGRATION_CRED", "test4life");
-		ReflectionTestUtils.setField(ldapAuthenticator, "TEST_BEACHFRONT_USER", "bfuser");
-		ReflectionTestUtils.setField(ldapAuthenticator, "TEST_BEACHFRONT_CRED", "bfpass");
-		ReflectionTestUtils.setField(ldapAuthenticator, "LDAP_USER_DN", "invalid");		
-		ReflectionTestUtils.setField(ldapAuthenticator, "LDAP_URL", "invalid");
-		ReflectionTestUtils.setField(ldapAuthenticator, "LDAP_CTX_FACTORY", "invalid");
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "int");
+		ReflectionTestUtils.setField(ldapAuthenticator, "testPzTestIntegrationUser", "citester");
+		ReflectionTestUtils.setField(ldapAuthenticator, "testPzTestIntegrationCred", "test4life");
+		ReflectionTestUtils.setField(ldapAuthenticator, "testBeachFrontUser", "bfuser");
+		ReflectionTestUtils.setField(ldapAuthenticator, "testBeachFrontCred", "bfpass");
+		ReflectionTestUtils.setField(ldapAuthenticator, "ldapUserDN", "invalid");		
+		ReflectionTestUtils.setField(ldapAuthenticator, "ldapURL", "invalid");
+		ReflectionTestUtils.setField(ldapAuthenticator, "ldapCtxFactory", "invalid");
 	}
 	
 	@Test

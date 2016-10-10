@@ -57,7 +57,7 @@ public class GxAuthTests {
 	public void testGetAuthenticationDecisionUserPass() {
 		
 		// Mock Gx Service Call
-		ReflectionTestUtils.setField(gxAuthenticator, "GX_API_URL_ATN_BASIC", "https://geoaxis.api.com/atnrest/basic");
+		ReflectionTestUtils.setField(gxAuthenticator, "gxApiUrlAtnBasic", "https://geoaxis.api.com/atnrest/basic");
 		
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername("bsmith");
@@ -81,7 +81,7 @@ public class GxAuthTests {
 	public void testGetAuthenticationDecisionPKI() {
 		
 		// Mock Gx Service Call
-		ReflectionTestUtils.setField(gxAuthenticator, "GX_API_URL_ATN_CERT", "https://geoaxis.api.com/atnrest/cert");
+		ReflectionTestUtils.setField(gxAuthenticator, "gxApiUrlAtnCert", "https://geoaxis.api.com/atnrest/cert");
 		
 		String testPEMFormatted = "-----BEGIN CERTIFICATE-----\nthis\nis\njust\na\ntest\nyes\nit\nis\n-----END CERTIFICATE-----";
 		String testPEM = "-----BEGIN CERTIFICATE----- this is just a test yes it is -----END CERTIFICATE-----";
