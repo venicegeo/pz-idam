@@ -32,7 +32,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.authn.LDAPAuthenticator;
 import org.venice.piazza.idam.controller.AdminController;
 import org.venice.piazza.idam.controller.AuthenticationController;
