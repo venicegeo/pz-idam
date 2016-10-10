@@ -76,6 +76,6 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		String pemFooter = "-----END CERTIFICATE-----";
 		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);		
 		
-		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +",  "\n") + pemFooter;
+		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +",  "\n") + "\n" + pemFooter;
 	}
 }

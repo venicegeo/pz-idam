@@ -19,6 +19,8 @@ import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.refEq;
 
+import java.util.Arrays;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -31,6 +33,8 @@ import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
+import org.venice.piazza.idam.model.Principal;
+import org.venice.piazza.idam.model.PrincipalItem;
 
 public class GxAuthTests {
 
@@ -78,18 +82,31 @@ public class GxAuthTests {
 		// Mock Gx Service Call
 		ReflectionTestUtils.setField(gxAuthenticator, "GX_API_URL_ATN_CERT", "https://geoaxis.api.com/atnrest/cert");
 		
+		String testPEMFormatted = "-----BEGIN CERTIFICATE-----\nthis\nis\njust\na\ntest\nyes\nit\nis\n-----END CERTIFICATE-----";
+		String testPEM = "-----BEGIN CERTIFICATE----- this is just a test yes it is -----END CERTIFICATE-----";
+		
+		// Mock Request
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
-		request.setPemCert("pemcertgoeshere");
+		request.setPemCert(testPEMFormatted);
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
 	
+		// Mock Response
+		PrincipalItem principalItem = new PrincipalItem();
+		principalItem.setName("UID");
+		principalItem.setValue("testuser");
+		
+		Principal principal = new Principal();
+		principal.setPrincipal(Arrays.asList(principalItem));
+		
 		GxAuthNResponse gxResponse = new GxAuthNResponse();
 		gxResponse.setSuccessful(false);
+		gxResponse.setPrincipals(principal);
 				
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("pemcertgoeshere").getAuthenticated();
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
 		
 		// Verify
 		assertFalse(isAuthenticated);		
