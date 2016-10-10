@@ -16,12 +16,11 @@
 package org.venice.piazza.idam.data;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
@@ -46,14 +45,17 @@ public class MongoAccessor {
 
 	private DB mongoDatabase;
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
+	
 	@PostConstruct
 	private void initialize() {
 		try {
 			//revisit this code to close the client or rewrite mongoclient instantiation
 			mongoDatabase = new MongoClient(new MongoClientURI(mongoHost)).getDB(mongoDBName); //NOSONAR
-		} catch (Exception ex) {
-			logger.log(String.format("Error Contacting Mongo Host %s: %s", mongoHost, ex.getMessage()),
-					PiazzaLogger.ERROR);
+		} catch (Exception exception) {
+			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
+			LOGGER.error(error, exception);
+			logger.log(error, PiazzaLogger.ERROR);
 		}
 	}
 

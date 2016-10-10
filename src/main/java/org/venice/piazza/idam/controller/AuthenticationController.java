@@ -82,8 +82,8 @@ public class AuthenticationController {
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
-			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
+			LOGGER.error(error, exception);
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);
@@ -152,8 +152,8 @@ public class AuthenticationController {
 					new ErrorResponse("Authentication failed for user " + username, "Security"),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
-			LOGGER.error(Arrays.toString(exception.getStackTrace()));
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
+			LOGGER.error(error, exception);			
 			logger.log(error, PiazzaLogger.ERROR);
 			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
 					HttpStatus.INTERNAL_SERVER_ERROR);

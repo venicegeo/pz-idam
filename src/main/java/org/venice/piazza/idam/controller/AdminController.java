@@ -15,6 +15,9 @@
  **/
 package org.venice.piazza.idam.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AdminController {
 
+	@Autowired
+	private Environment env;
+	
 	/**
 	 * Healthcheck required for all Piazza Core Services
 	 * 
@@ -37,19 +43,13 @@ public class AdminController {
 		return "Hello, Health Check here for pz-idam.";
 	}
 
-	// /**
-	// * Retrieves a Stats object with statistics for the Piazza users and roles
-	// *
-	// * @return Stats object containing the relevant user and role statistics
-	// */
-	// @RequestMapping(value = "/admin/stats", method = RequestMethod.GET,
-	// produces = MediaType.APPLICATION_JSON_VALUE)
-	// public Stats getStats() {
-	// try {
-	// return fa.getStats();
-	// } catch (Exception e) {
-	// e.printStackTrace();
-	// return null;
-	// }
-	// }
+	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public String getStats() {
+		try {			
+			return "{ \"profiles\":\"" + String.join(",",  env.getActiveProfiles()) + "\" }";
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 }

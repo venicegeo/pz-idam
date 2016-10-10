@@ -42,6 +42,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private RestTemplate restTemplate;
 
+	@Override
 	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
@@ -50,10 +51,11 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		request.setHostIdentifier("//OAMServlet/disaususerprotected");
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class);
-		
+
 		return new AuthenticationResponse(username, gxResponse.isSuccessful());
 	}
 
+	@Override
 	public AuthenticationResponse getAuthenticationDecision(String pem) {
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
 		request.setPemCert(getFormattedPem(pem));
@@ -61,23 +63,23 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		request.setHostIdentifier("//OAMServlet/certprotected");
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class);
-		
-		if( gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
+
+		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
-			for( PrincipalItem item : listItems ) {
-				if( item.getName().equalsIgnoreCase("UID")) {
+			for (PrincipalItem item : listItems) {
+				if ("UID".equalsIgnoreCase(item.getName())) {
 					return new AuthenticationResponse(item.getValue(), gxResponse.isSuccessful());
 				}
 			}
 		}
 		return new AuthenticationResponse(null, false);
 	}
-	
+
 	private String getFormattedPem(String pem) {
 		String pemHeader = "-----BEGIN CERTIFICATE-----";
 		String pemFooter = "-----END CERTIFICATE-----";
-		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);		
-		
-		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +",  "\n") + "\n" + pemFooter;
+		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);
+
+		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +", "\n") + "\n" + pemFooter;
 	}
 }

@@ -15,6 +15,8 @@
  **/
 package org.venice.piazza.idam.authn;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -56,11 +58,14 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private PiazzaLogger logger;
 
+	private final static Logger LOGGER = LoggerFactory.getLogger(LDAPAuthenticator.class);
+
+	@Override
 	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
 		
 		if (username == null || credential == null) {
 			return new AuthenticationResponse(username, false);
-		} else if ((isOverrideSpace() && isApprovedTestUser(username, credential))) {
+		} else if (isOverrideSpace() && isApprovedTestUser(username, credential)) {
 			return new AuthenticationResponse(username, true);
 		}
 		
@@ -75,18 +80,21 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 			dc.close();
 			return new AuthenticationResponse(username, true);
 		} catch (NamingException ne) {
-			logger.log("User authentication failed for " + username, PiazzaLogger.INFO);
+			String error = "User authentication failed for " + username;
+			LOGGER.error(error, ne);
+			logger.log(error, PiazzaLogger.INFO);
 		}
 
 		return new AuthenticationResponse(username, false);
 	}
 	
+	@Override
 	public AuthenticationResponse getAuthenticationDecision(String pem) {
 		throw new UnsupportedOperationException("LDAP authentication does not support PKI Certificates!");
 	}
 	
 	private boolean isOverrideSpace() {
-		return (SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod"));
+		return SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod");
 	}
 	
 	private boolean isApprovedTestUser(String username, String credential) {
