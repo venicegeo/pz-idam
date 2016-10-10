@@ -15,6 +15,8 @@
  **/
 package org.venice.piazza.idam.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
@@ -33,6 +35,8 @@ public class AdminController {
 	@Autowired
 	private Environment env;
 	
+	private static final Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
+	
 	/**
 	 * Healthcheck required for all Piazza Core Services
 	 * 
@@ -47,8 +51,8 @@ public class AdminController {
 	public String getStats() {
 		try {			
 			return "{ \"profiles\":\"" + String.join(",",  env.getActiveProfiles()) + "\" }";
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (Exception exception) {
+			LOGGER.error("Failed to retrieve admin statistics", exception);
 			return null;
 		}
 	}

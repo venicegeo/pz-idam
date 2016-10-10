@@ -32,7 +32,7 @@ import util.PiazzaLogger;
 public class MongoAccessor {
 
 	@Autowired
-	private PiazzaLogger logger;
+	private PiazzaLogger pzLogger;
 
 	@Value("${vcap.services.pz-mongodb.credentials.uri}")
 	private String mongoHost;
@@ -45,7 +45,10 @@ public class MongoAccessor {
 
 	private DB mongoDatabase;
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
+	
+	private static final String USERNAME = "username";
+	private static final String UUID = "uuid";
 	
 	@PostConstruct
 	private void initialize() {
@@ -55,7 +58,7 @@ public class MongoAccessor {
 		} catch (Exception exception) {
 			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
 			LOGGER.error(error, exception);
-			logger.log(error, PiazzaLogger.ERROR);
+			pzLogger.log(error, PiazzaLogger.ERROR);
 		}
 	}
 
@@ -68,17 +71,17 @@ public class MongoAccessor {
 
 	public void update(String username, String uuid) {
 		BasicDBObject newObj = new BasicDBObject();
-		newObj.put("username", username);
-		newObj.put("uuid", uuid);
-		mongoDatabase.getCollection(mongoCollectionName).update(new BasicDBObject().append("username", username), newObj);
+		newObj.put(USERNAME, username);
+		newObj.put(UUID, uuid);
+		mongoDatabase.getCollection(mongoCollectionName).update(new BasicDBObject().append(USERNAME, username), newObj);
 	}
 	
 	public void save(String username, String uuid) {
-		mongoDatabase.getCollection(mongoCollectionName).insert(new BasicDBObject().append("username", username).append("uuid", uuid));
+		mongoDatabase.getCollection(mongoCollectionName).insert(new BasicDBObject().append(USERNAME, username).append(UUID, uuid));
 	}
 
 	public boolean isAPIKeyValid(String uuid) {
-		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject("uuid", uuid));
+		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject(UUID, uuid));
 		if (obj != null) {
 			return true;
 		}
@@ -86,17 +89,17 @@ public class MongoAccessor {
 	}
 
 	public String getUsername(String uuid) {
-		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject("uuid", uuid));
-		if (obj != null && obj.containsField("username")) {
-			return obj.get("username").toString();
+		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject(UUID, uuid));
+		if (obj != null && obj.containsField(USERNAME)) {
+			return obj.get(USERNAME).toString();
 		}
 		return null;
 	}
 
 	public String getUuid(String username) {
-		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject("username", username));
-		if (obj != null && obj.containsField("uuid")) {
-			return obj.get("uuid").toString();
+		DBObject obj = mongoDatabase.getCollection(mongoCollectionName).findOne(new BasicDBObject(USERNAME, username));
+		if (obj != null && obj.containsField(UUID)) {
+			return obj.get(UUID).toString();
 		}
 		return null;
 	}

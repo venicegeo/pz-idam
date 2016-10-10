@@ -56,9 +56,9 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	private String LDAP_CTX_FACTORY;
 	
 	@Autowired
-	private PiazzaLogger logger;
+	private PiazzaLogger pzLogger;
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(LDAPAuthenticator.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(LDAPAuthenticator.class);
 
 	@Override
 	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
@@ -82,7 +82,7 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 		} catch (NamingException ne) {
 			String error = "User authentication failed for " + username;
 			LOGGER.error(error, ne);
-			logger.log(error, PiazzaLogger.INFO);
+			pzLogger.log(error, PiazzaLogger.INFO);
 		}
 
 		return new AuthenticationResponse(username, false);
@@ -94,7 +94,7 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	}
 	
 	private boolean isOverrideSpace() {
-		return SPACE.equalsIgnoreCase("int") || SPACE.equalsIgnoreCase("stage") || SPACE.equalsIgnoreCase("test") || SPACE.equalsIgnoreCase("prod");
+		return "int".equalsIgnoreCase(SPACE) || "stage".equalsIgnoreCase(SPACE) || "test".equalsIgnoreCase(SPACE) || "prod".equalsIgnoreCase(SPACE);
 	}
 	
 	private boolean isApprovedTestUser(String username, String credential) {

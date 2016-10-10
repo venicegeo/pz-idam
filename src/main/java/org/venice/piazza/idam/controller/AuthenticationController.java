@@ -16,7 +16,6 @@
 package org.venice.piazza.idam.controller;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 
@@ -50,7 +49,7 @@ import util.UUIDFactory;
 @RestController
 public class AuthenticationController {
 	@Autowired
-	private PiazzaLogger logger;
+	private PiazzaLogger pzLogger;
 	@Autowired
 	private MongoAccessor mongoAccessor;
 	@Autowired
@@ -60,7 +59,9 @@ public class AuthenticationController {
 	@Autowired
 	private HttpServletRequest request;
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
+	
+	private static final String IDAM_COMPONENT_NAME = "IDAM";
 	
 	/**
 	 * Verifies that an API key is valid.
@@ -78,14 +79,14 @@ public class AuthenticationController {
 				return new ResponseEntity<PiazzaResponse>(
 						new AuthenticationResponse(mongoAccessor.getUsername(uuid), mongoAccessor.isAPIKeyValid(uuid)), HttpStatus.OK);
 			} else {
-				return new ResponseEntity<PiazzaResponse>(new ErrorResponse("UUID is null!", "Security"),
+				return new ResponseEntity<PiazzaResponse>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME),
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);
-			logger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
+			pzLogger.log(error, PiazzaLogger.ERROR);
+			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -104,17 +105,14 @@ public class AuthenticationController {
 		try {
 			String headerValue = request.getHeader("Authorization");
 			String username = null;
-			String credential = null;
 			String uuid = null;
-			String decodedAuthNInfo = null;
-			String[] headerParts, decodedUserPassParts;
 
 			if (headerValue != null) {
-				headerParts = headerValue.split(" ");
+				String[] headerParts = headerValue.split(" ");
 				
 				if (headerParts.length == 2 ) {
 					
-					decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+					String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
 					
 					// PKI Auth
 					if( decodedAuthNInfo.split(":").length == 1) {
@@ -127,9 +125,9 @@ public class AuthenticationController {
 					
 					// BASIC Auth
 					else if ( decodedAuthNInfo.split(":").length == 2) {
-						decodedUserPassParts = decodedAuthNInfo.split(":");
+						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
 						username = decodedUserPassParts[0];
-						credential = decodedUserPassParts[1];
+						String credential = decodedUserPassParts[1];
 						
 						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getAuthenticated()) {
 							uuid = uuidFactory.getUUID();
@@ -149,13 +147,13 @@ public class AuthenticationController {
 			}
 
 			return new ResponseEntity<PiazzaResponse>(
-					new ErrorResponse("Authentication failed for user " + username, "Security"),
+					new ErrorResponse("Authentication failed for user " + username, IDAM_COMPONENT_NAME),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);			
-			logger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, "Security"),
+			pzLogger.log(error, PiazzaLogger.ERROR);
+			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
