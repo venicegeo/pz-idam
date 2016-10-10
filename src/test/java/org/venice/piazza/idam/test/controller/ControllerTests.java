@@ -29,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.GxAuthenticator;
@@ -46,6 +47,9 @@ import util.UUIDFactory;
 
 public class ControllerTests {
 
+	@Mock
+	private Environment env;
+	
 	@Mock
 	private RestTemplate restTemplate;
 
@@ -85,6 +89,13 @@ public class ControllerTests {
 	public void testGetHealthCheck() {
 		String result = adminController.getHealthCheck();
 		assertTrue(result.contains("Hello"));		
+	}
+	
+	@Test
+	public void testGetAdminStats() {
+		when(env.getActiveProfiles()).thenReturn(new String[] { "geoaxis" } );		
+		String result = adminController.getAdminStats();
+		assertTrue( "{ \"profiles\":\"geoaxis\" }".equals(result) );
 	}
 	
 	@Test

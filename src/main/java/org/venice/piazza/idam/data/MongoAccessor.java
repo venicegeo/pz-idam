@@ -16,6 +16,8 @@
 package org.venice.piazza.idam.data;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,8 @@ public class MongoAccessor {
 	private String mongoCollectionName;
 
 	private DB mongoDatabase;
-
+	private MongoClient mongoClient;
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	
 	private static final String USERNAME = "username";
@@ -53,8 +56,8 @@ public class MongoAccessor {
 	@PostConstruct
 	private void initialize() {
 		try {
-			//revisit this code to close the client or rewrite mongoclient instantiation
-			mongoDatabase = new MongoClient(new MongoClientURI(mongoHost)).getDB(mongoDBName); //NOSONAR
+			mongoClient = new MongoClient(new MongoClientURI(mongoHost)); 
+			mongoDatabase = mongoClient.getDB(mongoDBName); //NOSONAR
 		} catch (Exception exception) {
 			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
 			LOGGER.error(error, exception);
@@ -62,12 +65,10 @@ public class MongoAccessor {
 		}
 	}
 
-	/*
 	@PreDestroy
 	private void close() {
-		mongoDatabase.getMongo().close();
+		mongoClient.close();
 	}
-	*/
 
 	public void update(String username, String uuid) {
 		BasicDBObject newObj = new BasicDBObject();
