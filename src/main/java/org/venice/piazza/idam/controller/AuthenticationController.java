@@ -76,18 +76,17 @@ public class AuthenticationController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				return new ResponseEntity<PiazzaResponse>(
+				return new ResponseEntity<>(
 						new AuthenticationResponse(mongoAccessor.getUsername(uuid), mongoAccessor.isAPIKeyValid(uuid)), HttpStatus.OK);
 			} else {
-				return new ResponseEntity<PiazzaResponse>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME),
+				return new ResponseEntity<>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME),
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -141,19 +140,19 @@ public class AuthenticationController {
 							mongoAccessor.save(username, uuid);
 						}
 
-						return new ResponseEntity<PiazzaResponse>(new UUIDResponse(uuid), HttpStatus.OK);
+						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);
 					}
 				}
 			}
 
-			return new ResponseEntity<PiazzaResponse>(
+			return new ResponseEntity<>(
 					new ErrorResponse("Authentication failed for user " + username, IDAM_COMPONENT_NAME),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);			
 			pzLogger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<PiazzaResponse>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

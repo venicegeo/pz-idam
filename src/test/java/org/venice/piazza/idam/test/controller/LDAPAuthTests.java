@@ -41,7 +41,6 @@ public class LDAPAuthTests {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 		
-		ReflectionTestUtils.setField(ldapAuthenticator, "space", "int");
 		ReflectionTestUtils.setField(ldapAuthenticator, "testPzTestIntegrationUser", "citester");
 		ReflectionTestUtils.setField(ldapAuthenticator, "testPzTestIntegrationCred", "test4life");
 		ReflectionTestUtils.setField(ldapAuthenticator, "testBeachFrontUser", "bfuser");
@@ -58,11 +57,33 @@ public class LDAPAuthTests {
 		assertFalse(ldapAuthenticator.getAuthenticationDecision(null, "mypass").getAuthenticated());
 		assertFalse(ldapAuthenticator.getAuthenticationDecision("myuser", null).getAuthenticated());
 
-		// (2) Username, credential are non-null, override space, BF user
+		// (2a) Username, credential are non-null, INT override space, BF user
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "int");
 		assertTrue(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpass").getAuthenticated());
 		
-		// (3) Username, credential are non-null, override space, PZTEST user
+		// (2b) Username, credential are non-null, not an override space
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "dev");
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpass").getAuthenticated());
+		
+		// (2c) Username, credential are non-null, TEST override space, BF user fails
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "test");
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("bfusername", "bfpass").getAuthenticated());
+		
+		// (2d) Username, credential are non-null, PROD override space, BF user fails
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "prod");
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpassed").getAuthenticated());
+		
+		// (2e) Username, credential are non-null, STAGE override space, BF user
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "stage");
+		assertTrue(ldapAuthenticator.getAuthenticationDecision("bfuser", "bfpass").getAuthenticated());		
+		
+		// (3a) Username, credential are non-null, override space, PZTEST user
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "int");		
 		assertTrue(ldapAuthenticator.getAuthenticationDecision("citester", "test4life").getAuthenticated());
+		
+		// (3b) Username, credential are non-null, override space, PZTEST user fails
+		ReflectionTestUtils.setField(ldapAuthenticator, "space", "int");		
+		assertFalse(ldapAuthenticator.getAuthenticationDecision("citester", "test5life").getAuthenticated());		
 		
 		// (4) Username, credential are non-null, LDAP
 		assertFalse(ldapAuthenticator.getAuthenticationDecision("notauser", "notapass").getAuthenticated());
