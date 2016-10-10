@@ -35,9 +35,9 @@ import org.venice.piazza.idam.model.GxAuthNResponse;
 public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Value("${vcap.services.geoaxis.credentials.api.url.atncert}")
-	private String GX_API_URL_ATN_CERT;
+	private String gxApiUrlAtnCert;
 	@Value("${vcap.services.geoaxis.credentials.api.url.atnbasic}")
-	private String GX_API_URL_ATN_BASIC;
+	private String gxApiUrlAtnBasic;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -50,7 +50,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		request.setMechanism("GxDisAus");
 		request.setHostIdentifier("//OAMServlet/disaususerprotected");
 
-		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class);
+		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
 		return new AuthenticationResponse(username, gxResponse.isSuccessful());
 	}
@@ -62,7 +62,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
 
-		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class);
+		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
 
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();

@@ -36,24 +36,24 @@ import java.util.Properties;
 public class LDAPAuthenticator implements PiazzaAuthenticator {
 
 	@Value("${SPACE}")
-	private String SPACE;
+	private String space;
 
 	@Value("${vcap.services.beachfront.credentials.username}")
-	private String TEST_BEACHFRONT_USER;
+	private String testBeachFrontUser;
 	@Value("${vcap.services.beachfront.credentials.credential}")
-	private String TEST_BEACHFRONT_CRED;
+	private String testBeachFrontCred;
 	
 	@Value("${vcap.services.pztest-integration.credentials.username}")
-	private String TEST_PZTESTINTEGRATION_USER;
+	private String testPzTestIntegrationUser;
 	@Value("${vcap.services.pztest-integration.credentials.credential}")
-	private String TEST_PZTESTINTEGRATION_CRED;	
+	private String testPzTestIntegrationCred;	
 	
 	@Value("${vcap.services.ldap.credentials.userdn}")
-	private String LDAP_USER_DN;
+	private String ldapUserDN;
 	@Value("${vcap.services.ldap.credentials.url}")
-	private String LDAP_URL;
+	private String ldapURL;
 	@Value("${security.gs_ldap.ctxfactory}")
-	private String LDAP_CTX_FACTORY;
+	private String ldapCtxFactory;
 	
 	@Autowired
 	private PiazzaLogger pzLogger;
@@ -70,10 +70,10 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 		}
 		
 		Properties env = new Properties();
-		env.put(DirContext.INITIAL_CONTEXT_FACTORY, LDAP_CTX_FACTORY);
-		env.put(DirContext.PROVIDER_URL, LDAP_URL);
+		env.put(DirContext.INITIAL_CONTEXT_FACTORY, ldapCtxFactory);
+		env.put(DirContext.PROVIDER_URL, ldapURL);
 		env.put(Context.SECURITY_AUTHENTICATION, "simple");
-		env.put(Context.SECURITY_PRINCIPAL, "uid=" + username + "," + LDAP_USER_DN);
+		env.put(Context.SECURITY_PRINCIPAL, "uid=" + username + "," + ldapUserDN);
 		env.put(Context.SECURITY_CREDENTIALS, credential);
 		try {
 			DirContext dc = new InitialDirContext(env);
@@ -94,16 +94,16 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	}
 	
 	private boolean isOverrideSpace() {
-		return "int".equalsIgnoreCase(SPACE) || "stage".equalsIgnoreCase(SPACE) || "test".equalsIgnoreCase(SPACE) || "prod".equalsIgnoreCase(SPACE);
+		return "int".equalsIgnoreCase(space) || "stage".equalsIgnoreCase(space) || "test".equalsIgnoreCase(space) || "prod".equalsIgnoreCase(space);
 	}
 	
 	private boolean isApprovedTestUser(String username, String credential) {
 		
-		if( TEST_BEACHFRONT_USER.equals(username) && TEST_BEACHFRONT_CRED.equals(credential)) {
+		if( testBeachFrontUser.equals(username) && testBeachFrontCred.equals(credential)) {
 			return true;
 		}
 		
-		if( TEST_PZTESTINTEGRATION_USER.equals(username) && TEST_PZTESTINTEGRATION_CRED.equals(credential)) {
+		if( testPzTestIntegrationUser.equals(username) && testPzTestIntegrationCred.equals(credential)) {
 			return true;
 		}
 		
