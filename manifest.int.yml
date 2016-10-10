@@ -12,6 +12,6 @@ applications:
     - pztest-integration
     - geoaxis
   path: pz-idam.jar
-  buildpack: java_buildpack_offline
+  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
   env:
     SPRING_PROFILES_ACTIVE: ldap

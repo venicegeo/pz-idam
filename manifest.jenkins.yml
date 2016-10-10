@@ -2,7 +2,7 @@ applications:
 - name: pz-idam
   host: pz-idam
   path: pz-idam.jar
-  buildpack: java_buildpack_offline
+  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
   domain: stage.geointservices.io
   memory: 512M
   instances: 1
