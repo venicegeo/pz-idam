@@ -116,13 +116,16 @@ public class AuthenticationController {
 					
 					decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
 					
-					if( decodedAuthNInfo.startsWith("-----BEGIN CERTIFICATE-----") ) {
-						AuthenticationResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo);
+					// PKI Auth
+					if( decodedAuthNInfo.split(":").length == 1) {
+						AuthenticationResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
 						if( authResponse.getAuthenticated() ) {
 							username = authResponse.getUsername(); 
 							uuid = uuidFactory.getUUID();
 						}						
 					}
+					
+					// BASIC Auth
 					else if ( decodedAuthNInfo.split(":").length == 2) {
 						decodedUserPassParts = decodedAuthNInfo.split(":");
 						username = decodedUserPassParts[0];

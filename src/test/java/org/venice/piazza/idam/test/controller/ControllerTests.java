@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.authn.LDAPAuthenticator;
 import org.venice.piazza.idam.controller.AdminController;
 import org.venice.piazza.idam.controller.AuthenticationController;
@@ -158,8 +159,7 @@ public class ControllerTests {
 		assertTrue(response.getBody() instanceof ErrorResponse);
 		assertTrue(((ErrorResponse)(response.getBody())).message.contains("Authentication failed for user"));
 		
-		// (3) Mock - Header present, Auth succeeds, new key
-		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
+		// (3) Mock - Header present, BASIC Auth succeeds, new key
 		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse("testuser", true));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getUuid("testuser")).thenReturn(null);
@@ -172,9 +172,21 @@ public class ControllerTests {
 		assertTrue(response.getBody() instanceof UUIDResponse);
 		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));		
 		
-		// (4) Mock - Header present, Auth succeeds, replacing key with new
-		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse("testuser", true));
+		// (4) Mock - Header present, BASIC Auth succeeds, replacing key with new
+		when(mongoAccessor.getUuid("testuser")).thenReturn("4321");
+		Mockito.doNothing().when(mongoAccessor).update("testuser", "1234");
+		
+		// Test
+		response = authenticationController.retrieveUUID();
+		
+		// Verify
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));
+		
+		
+		// (5) Mock - Header present, PKI Auth succeeds, replacing key with new
+		when(request.getHeader("Authorization")).thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
+		when(ldapAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----")).thenReturn(new AuthenticationResponse("testuser", true));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getUuid("testuser")).thenReturn("4321");
 		Mockito.doNothing().when(mongoAccessor).update("testuser", "1234");
@@ -186,7 +198,9 @@ public class ControllerTests {
 		assertTrue(response.getBody() instanceof UUIDResponse);
 		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));
 		
-		// (5) Mock Exception
+		
+		// (6) Mock Exception
+		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");		
 		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
 		Mockito.doNothing().when(logger).log(Mockito.anyString(),  Mockito.anyString());
 		

@@ -16,6 +16,7 @@
 package org.venice.piazza.idam.test.controller;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.refEq;
 
@@ -91,24 +92,51 @@ public class GxAuthTests {
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
 	
-		// Mock Response
+		// (1) Mock Response - No PrincipalItems returned.
+		Principal principal = new Principal();
+		GxAuthNResponse gxResponse = new GxAuthNResponse();
+		gxResponse.setSuccessful(false);
+		gxResponse.setPrincipals(principal);
+		
+		// Test
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
+		String username = gxAuthenticator.getAuthenticationDecision(testPEM).getUsername();
+
+		// Verify
+		assertFalse(isAuthenticated);
+		assertNull(username);
+
+		// (2) Mock Response - UID returned
 		PrincipalItem principalItem = new PrincipalItem();
 		principalItem.setName("UID");
 		principalItem.setValue("testuser");
 		
-		Principal principal = new Principal();
 		principal.setPrincipal(Arrays.asList(principalItem));
-		
-		GxAuthNResponse gxResponse = new GxAuthNResponse();
-		gxResponse.setSuccessful(false);
 		gxResponse.setPrincipals(principal);
-				
-		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));		
+		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
 		
 		// Verify
-		assertFalse(isAuthenticated);		
+		assertFalse(isAuthenticated);
+		
+		// (3) Mock Response - PrincipalItems with no UID returned.
+		principalItem = new PrincipalItem();
+		principalItem.setName("CN");
+		principalItem.setValue("a CN string");
+		
+		principal.setPrincipal(Arrays.asList(principalItem));
+		gxResponse.setPrincipals(principal);
+		
+		// Test
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));		
+		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
+		username = gxAuthenticator.getAuthenticationDecision(testPEM).getUsername();
+		
+		// Verify
+		assertFalse(isAuthenticated);
+		assertNull(username);		
 	}
 }

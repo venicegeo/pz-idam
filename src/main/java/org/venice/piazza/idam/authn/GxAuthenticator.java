@@ -62,10 +62,12 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class);
 		
-		List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
-		for( PrincipalItem item : listItems ) {
-			if( item.getName().equalsIgnoreCase("UID")) {
-				return new AuthenticationResponse(item.getValue(), gxResponse.isSuccessful());
+		if( gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
+			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
+			for( PrincipalItem item : listItems ) {
+				if( item.getName().equalsIgnoreCase("UID")) {
+					return new AuthenticationResponse(item.getValue(), gxResponse.isSuccessful());
+				}
 			}
 		}
 		return new AuthenticationResponse(null, false);
