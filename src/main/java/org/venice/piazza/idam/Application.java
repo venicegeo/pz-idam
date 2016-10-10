@@ -15,11 +15,24 @@
  **/
 package org.venice.piazza.idam;
 
-import java.awt.List;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.util.Arrays;
 
+import javax.net.ssl.SSLContext;
+
+import java.security.cert.CertificateException;
+
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -30,8 +43,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -47,10 +58,6 @@ import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 @SpringBootApplication
 @ComponentScan({ "org.venice.piazza.idam, util" })
 public class Application extends SpringBootServletInitializer {
-	@Value("${http.max.total}")
-	private int httpMaxTotal;
-	@Value("${http.max.route}")
-	private int httpMaxRoute;
 
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
@@ -58,16 +65,7 @@ public class Application extends SpringBootServletInitializer {
 	}
 
 	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args); //NOSONAR
-	}
-
-	@Bean
-	public RestTemplate restTemplate() {
-		RestTemplate restTemplate = new RestTemplate();
-		HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setMaxConnPerRoute(httpMaxRoute).build();
-		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
-		restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this required?
-		return restTemplate;
+		SpringApplication.run(Application.class, args); // NOSONAR
 	}
 
 	@Configuration
@@ -108,9 +106,46 @@ public class Application extends SpringBootServletInitializer {
 	@Profile({ "geoaxis" })
 	protected static class GxConfig {
 
+		@Value("${http.max.total}")
+		private int httpMaxTotal;
+
+		@Value("${http.max.route}")
+		private int httpMaxRoute;
+
+		@Value("${vcap.services.geoaxis.credential.keystore.path}")
+		private String keystorePath;
+
+		@Value("${vcap.services.geoaxis.credential.keystore.passphrase}")
+		private String keystorePassphrase;
+
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
 			return new GxAuthenticator();
+		}
+
+		@Bean
+		public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), keystorePassphrase.toCharArray())
+					.loadTrustMaterial(getStore(), new TrustSelfSignedStrategy()).useProtocol("TLS").build();
+			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext).setMaxConnPerRoute(httpMaxRoute).build();
+
+			RestTemplate restTemplate = new RestTemplate();
+			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+			restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this required?
+			return restTemplate;
+		}
+
+		protected KeyStore getStore()
+				throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+			final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
+			InputStream inputStream = new FileInputStream(keystorePath);
+			try {
+				store.load(inputStream, keystorePassphrase.toCharArray());
+			} finally {
+				inputStream.close();
+			}
+
+			return store;
 		}
 	}
 }

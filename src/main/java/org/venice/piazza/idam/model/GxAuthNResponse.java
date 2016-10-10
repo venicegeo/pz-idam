@@ -15,15 +15,28 @@
  **/
 package org.venice.piazza.idam.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GxAuthNResponse {
 
 	private boolean successful;
 
+	private Principal principals;
+	
 	public boolean isSuccessful() {
 		return successful;
 	}
-
+	
 	public void setSuccessful(boolean successful) {
 		this.successful = successful;
+	}
+	
+	public Principal getPrincipals() {
+		return principals;
+	}
+
+	public void setPrincipals(Principal principals) {
+		this.principals = principals;
 	}
 }

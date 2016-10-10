@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import model.response.AuthenticationResponse;
 import util.PiazzaLogger;
 
 import javax.naming.Context;
@@ -55,12 +56,12 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private PiazzaLogger logger;
 
-	public boolean getAuthenticationDecision(String username, String credential) {
+	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
 		
 		if (username == null || credential == null) {
-			return false;
+			return new AuthenticationResponse(username, false);
 		} else if ((isOverrideSpace() && isApprovedTestUser(username, credential))) {
-			return true;
+			return new AuthenticationResponse(username, true);
 		}
 		
 		Properties env = new Properties();
@@ -72,14 +73,15 @@ public class LDAPAuthenticator implements PiazzaAuthenticator {
 		try {
 			DirContext dc = new InitialDirContext(env);
 			dc.close();
-			return true;
+			return new AuthenticationResponse(username, true);
 		} catch (NamingException ne) {
 			logger.log("User authentication failed for " + username, PiazzaLogger.INFO);
 		}
-		return false;
+
+		return new AuthenticationResponse(username, false);
 	}
 	
-	public boolean getAuthenticationDecision(String pem) {
+	public AuthenticationResponse getAuthenticationDecision(String pem) {
 		throw new UnsupportedOperationException("LDAP authentication does not support PKI Certificates!");
 	}
 	

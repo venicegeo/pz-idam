@@ -15,12 +15,18 @@
  **/
 package org.venice.piazza.idam.authn;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
+import org.venice.piazza.idam.model.PrincipalItem;
+
+import model.response.AuthenticationResponse;
+
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 
@@ -36,22 +42,40 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	public boolean getAuthenticationDecision(String username, String credential) {
+	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
 		request.setMechanism("GxDisAus");
 		request.setHostIdentifier("//OAMServlet/disaususerprotected");
 
-		return restTemplate.postForObject(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class).isSuccessful();
+		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_BASIC, request, GxAuthNResponse.class);
+		
+		return new AuthenticationResponse(username, gxResponse.isSuccessful());
 	}
 
-	public boolean getAuthenticationDecision(String pem) {
+	public AuthenticationResponse getAuthenticationDecision(String pem) {
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
-		request.setPemCert(pem);
+		request.setPemCert(getFormattedPem(pem));
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
 
-		return restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class).isSuccessful();
+		GxAuthNResponse gxResponse = restTemplate.postForObject(GX_API_URL_ATN_CERT, request, GxAuthNResponse.class);
+		
+		List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
+		for( PrincipalItem item : listItems ) {
+			if( item.getName().equalsIgnoreCase("UID")) {
+				return new AuthenticationResponse(item.getValue(), gxResponse.isSuccessful());
+			}
+		}
+		return new AuthenticationResponse(null, false);
+	}
+	
+	private String getFormattedPem(String pem) {
+		String pemHeader = "-----BEGIN CERTIFICATE-----";
+		String pemFooter = "-----END CERTIFICATE-----";
+		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);		
+		
+		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +",  "\n") + pemFooter;
 	}
 }

@@ -13,13 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.idam.authn;
+package org.venice.piazza.idam.model;
 
-import model.response.AuthenticationResponse;
+import java.util.List;
 
-public interface PiazzaAuthenticator {
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-	public AuthenticationResponse getAuthenticationDecision(String username, String credential);
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Principal {
+	private List<PrincipalItem> principal;
+	
+	public List<PrincipalItem> getPrincipal() {
+		return principal;
+	}
 
-	public AuthenticationResponse getAuthenticationDecision(String pem);
+	public void setPrincipal(List<PrincipalItem> principal) {
+		this.principal = principal;
+	}
 }

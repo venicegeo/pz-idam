@@ -106,19 +106,34 @@ public class AuthenticationController {
 			String username = null;
 			String credential = null;
 			String uuid = null;
+			String decodedAuthNInfo = null;
 			String[] headerParts, decodedUserPassParts;
 
 			if (headerValue != null) {
 				headerParts = headerValue.split(" ");
-				decodedUserPassParts = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8).split(":");
-
-				if (headerParts.length == 2 && decodedUserPassParts.length == 2) {
-					username = decodedUserPassParts[0];
-					credential = decodedUserPassParts[1];
-
-					if (piazzaAuthenticator.getAuthenticationDecision(username, credential)) {
-						uuid = uuidFactory.getUUID();
-
+				
+				if (headerParts.length == 2 ) {
+					
+					decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+					
+					if( decodedAuthNInfo.startsWith("-----BEGIN CERTIFICATE-----") ) {
+						AuthenticationResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo);
+						if( authResponse.getAuthenticated() ) {
+							username = authResponse.getUsername(); 
+							uuid = uuidFactory.getUUID();
+						}						
+					}
+					else if ( decodedAuthNInfo.split(":").length == 2) {
+						decodedUserPassParts = decodedAuthNInfo.split(":");
+						username = decodedUserPassParts[0];
+						credential = decodedUserPassParts[1];
+						
+						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getAuthenticated()) {
+							uuid = uuidFactory.getUUID();
+						}
+					}
+					
+					if( uuid != null && username != null ) {
 						if (mongoAccessor.getUuid(username) != null) {
 							mongoAccessor.update(username, uuid);
 						} else {

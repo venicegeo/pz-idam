@@ -66,7 +66,7 @@ public class GxAuthTests {
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/basic"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith","mypass");
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith","mypass").getAuthenticated();
 		
 		// Verify
 		assertFalse(isAuthenticated);
@@ -89,7 +89,7 @@ public class GxAuthTests {
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request), eq(GxAuthNResponse.class));
 		
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("pemcertgoeshere");
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("pemcertgoeshere").getAuthenticated();
 		
 		// Verify
 		assertFalse(isAuthenticated);		
