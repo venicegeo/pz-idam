@@ -118,6 +118,9 @@ public class Application extends SpringBootServletInitializer {
 		@Value("${vcap.services.geoaxis.credential.keystore.passphrase}")
 		private String keystorePassphrase;
 
+		@Value("${vcap.services.geoaxis.credential.piazza.key.passphrase}")
+		private String piazzaKeyPassphrase;
+		
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
 			return new GxAuthenticator();
@@ -125,7 +128,7 @@ public class Application extends SpringBootServletInitializer {
 
 		@Bean
 		public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
-			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), keystorePassphrase.toCharArray())
+			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(getStore(), new TrustSelfSignedStrategy()).useProtocol("TLS").build();
 			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext).setMaxConnPerRoute(httpMaxRoute).build();
 
@@ -135,8 +138,7 @@ public class Application extends SpringBootServletInitializer {
 			return restTemplate;
 		}
 
-		protected KeyStore getStore()
-				throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+		protected KeyStore getStore() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
 			final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
 			InputStream inputStream = new FileInputStream(keystorePath);
 			try {
