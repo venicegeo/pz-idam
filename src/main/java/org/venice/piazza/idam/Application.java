@@ -112,13 +112,13 @@ public class Application extends SpringBootServletInitializer {
 		@Value("${http.max.route}")
 		private int httpMaxRoute;
 
-		@Value("${vcap.services.geoaxis.credential.keystore.path}")
+		@Value("${JKS_FILE}")
 		private String keystorePath;
 
-		@Value("${vcap.services.geoaxis.credential.keystore.passphrase}")
+		@Value("${JKS_PASSPHRASE}")
 		private String keystorePassphrase;
 
-		@Value("${vcap.services.geoaxis.credential.piazza.key.passphrase}")
+		@Value("${PZ_PASSPHRASE}")
 		private String piazzaKeyPassphrase;
 		
 		@Bean
