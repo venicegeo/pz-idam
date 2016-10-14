@@ -113,7 +113,7 @@ public class Application extends SpringBootServletInitializer {
 		private int httpMaxRoute;
 
 		@Value("${JKS_FILE}")
-		private String keystorePath;
+		private String keystoreFileName;
 
 		@Value("${JKS_PASSPHRASE}")
 		private String keystorePassphrase;
@@ -140,7 +140,7 @@ public class Application extends SpringBootServletInitializer {
 
 		protected KeyStore getStore() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
 			final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
-			InputStream inputStream = new FileInputStream(keystorePath);
+			InputStream inputStream = getClass().getClassLoader().getResourceAsStream(keystoreFileName);
 			try {
 				store.load(inputStream, keystorePassphrase.toCharArray());
 			} finally {
