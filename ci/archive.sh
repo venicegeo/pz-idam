@@ -7,6 +7,9 @@ popd > /dev/null
 # gather some data about the repo
 source $root/ci/vars.sh
 
+# Copy JKS
+[ -z "$JKS" ] || mv $JKS $root/src/main/resources/pz-idam.jks
+
 # Path to output JAR
 src=$root/target/piazza-idam*.jar
 
@@ -15,3 +18,5 @@ src=$root/target/piazza-idam*.jar
 
 # stage the artifact for a mvn deploy
 mv $src $root/$APP.$EXT
+
+[ -z "$JKS" ] || rm $root/src/main/resources/pz-idam.jks
