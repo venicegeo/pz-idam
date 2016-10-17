@@ -19,4 +19,5 @@ src=$root/target/piazza-idam*.jar
 # stage the artifact for a mvn deploy
 mv $src $root/$APP.$EXT
 
+# Remove JKS file
 [ -z "$JKS" ] || rm $root/src/main/resources/pz-idam.jks
