@@ -13,22 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.idam.model.user;
-
-import java.util.HashMap;
-import java.util.Map;
+package org.venice.piazza.idam.model.authz;
 
 /**
- * Throttle metadata for a user that tracks that users activity with Piazza jobs. Will keep a record count of all Piazza
- * Jobs a user has performed in the last period of activity. This user is collected in order to determine if a user
- * should eventually be throttled or not due to excessive activity.
+ * Model for incoming Authorization check requests, as used by the Authorization Controller.
  * 
  * @author Patrick.Doody
  *
  */
-public class UserThrottles {
+public class AuthorizationCheck {
+	public String username;
+	public Object action;
+
 	/**
-	 * Associated a Job type with the number of occurrances of that Job
+	 * Default constructor
 	 */
-	public Map<String, Integer> throttles = new HashMap<String, Integer>();
+	public AuthorizationCheck() {
+
+	}
+
+	@Override
+	public String toString() {
+		return String.format("User %s requesting Action %s", username, action.toString());
+	}
 }
