@@ -1,10 +1,7 @@
 applications:
 - name: pz-idam
   host: pz-idam
-  path: pz-idam.jar
-  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
-  domain: stage.geointservices.io
-  memory: 512M
+  memory: 2048M
   instances: 1
   timeout: 80
   services:
@@ -13,5 +10,8 @@ applications:
     - pz-servicecontroller
     - beachfront
     - pztest-integration
+    - geoaxis
+  path: pz-idam.jar
+  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
   env:
-    SPRING_PROFILES_ACTIVE: cloud,fade-stage
+    SPRING_PROFILES_ACTIVE: geoaxis
