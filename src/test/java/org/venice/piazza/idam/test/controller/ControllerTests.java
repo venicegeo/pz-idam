@@ -18,6 +18,7 @@ package org.venice.piazza.idam.test.controller;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +42,7 @@ import model.response.AuthenticationResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UUIDResponse;
+import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 import util.UUIDFactory;
 
@@ -48,25 +50,25 @@ public class ControllerTests {
 
 	@Mock
 	private Environment env;
-	
+
 	@Mock
 	private RestTemplate restTemplate;
 
 	@Mock
 	private LDAPAuthenticator ldapAuthenticator;
-	
+
 	@Mock
 	private MongoAccessor mongoAccessor;
-	
+
 	@Mock
 	private UUIDFactory uuidFactory;
-	
+
 	@Mock
 	private HttpServletRequest request;
-	
+
 	@Mock
 	private PiazzaLogger logger;
-	
+
 	@InjectMocks
 	private AdminController adminController;
 
@@ -87,138 +89,143 @@ public class ControllerTests {
 	@Test
 	public void testGetHealthCheck() {
 		String result = adminController.getHealthCheck();
-		assertTrue(result.contains("Hello"));		
+		assertTrue(result.contains("Hello"));
 	}
-	
+
 	@Test
 	public void testGetAdminStats() {
-		when(env.getActiveProfiles()).thenReturn(new String[] { "geoaxis" } );		
+		when(env.getActiveProfiles()).thenReturn(new String[] { "geoaxis" });
 		String result = adminController.getAdminStats();
-		assertTrue( "{ \"profiles\":\"geoaxis\" }".equals(result) );
+		assertTrue("{ \"profiles\":\"geoaxis\" }".equals(result));
 	}
-	
+
 	@Test
 	public void testAuthenticateUserByUUID() {
 		// (1) Mock uuid is missing
-		
+
 		// Test
-		ResponseEntity<PiazzaResponse> response = authenticationController.authenticateUserByUUID(new HashMap<String,String>());
-		
+		ResponseEntity<PiazzaResponse> response = authenticationController.authenticateUserByUUID(new HashMap<String, String>());
+
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse)response.getBody()).message.equals("UUID is null!"));
-		
+		assertTrue(((ErrorResponse) response.getBody()).message.equals("UUID is null!"));
+
 		// (2) Mock uuid is present in request, but missing
-		Map<String,String> body = new HashMap<String,String>();
+		Map<String, String> body = new HashMap<String, String>();
 		body.put("uuid", "1234");
 		when(mongoAccessor.getUsername("1234")).thenReturn(null);
-		when(mongoAccessor.isAPIKeyValid("1234")).thenReturn(false);
-		
-		// Test
-		response = authenticationController.authenticateUserByUUID(body);
-		
-		// Verify
-		assertTrue(response.getBody() instanceof AuthenticationResponse);
-		assertFalse(((AuthenticationResponse)(response.getBody())).authenticated);
-		
-		// (3) Mock uuid is present in request, and valid
-		when(mongoAccessor.getUsername("1234")).thenReturn("bsmith");
-		when(mongoAccessor.isAPIKeyValid("1234")).thenReturn(true);		
-		
+		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(false);
+
 		// Test
 		response = authenticationController.authenticateUserByUUID(body);
 
 		// Verify
 		assertTrue(response.getBody() instanceof AuthenticationResponse);
-		assertTrue(((AuthenticationResponse)(response.getBody())).authenticated);
-		assertTrue(((AuthenticationResponse)(response.getBody())).username.equals("bsmith"));
+		assertFalse(((AuthenticationResponse) (response.getBody())).authenticated);
+
+		// (3) Mock uuid is present in request, and valid
+		UserProfile mockProfile = new UserProfile();
+		mockProfile.setUsername("bsmith");
+		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
+		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(true);
+
+		// Test
+		response = authenticationController.authenticateUserByUUID(body);
+
+		// Verify
+		assertTrue(response.getBody() instanceof AuthenticationResponse);
+		assertTrue(((AuthenticationResponse) (response.getBody())).authenticated);
+		assertTrue(((AuthenticationResponse) (response.getBody())).getProfile().getUsername().equals("bsmith"));
 
 		// (4) Mock Exception thrown
-		when(mongoAccessor.getUsername("1234")).thenThrow(new RuntimeException("My Bad"));
-		Mockito.doNothing().when(logger).log(Mockito.anyString(),  Mockito.anyString());
+		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenThrow(new RuntimeException("My Bad"));
+		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.anyString());
 
 		// Test
 		response = authenticationController.authenticateUserByUUID(body);
-		
+
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse)(response.getBody())).message.equals("Error authenticating UUID: My Bad"));
+		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error authenticating UUID: My Bad"));
 	}
-	
+
 	@Test
 	public void testRetrieveUUID() {
-		
+
 		// (1) Mock - Header is missing
 		when(request.getHeader("Authorization")).thenReturn(null);
-		
+
 		// Test
 		ResponseEntity<PiazzaResponse> response = authenticationController.retrieveUUID();
-		
+
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse)(response.getBody())).message.contains("Authentication failed for user"));
-		
+		assertTrue(((ErrorResponse) (response.getBody())).message.contains("Authentication failed for user"));
+
 		// (2) Mock - Header present, Auth fails
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse("testuser", false));
-		
-		// Test
-		response = authenticationController.retrieveUUID();
-		
-		// Verify
-		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse)(response.getBody())).message.contains("Authentication failed for user"));
-		
-		// (3) Mock - Header present, BASIC Auth succeeds, new key
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse("testuser", true));
-		when(uuidFactory.getUUID()).thenReturn("1234");
-		when(mongoAccessor.getUuid("testuser")).thenReturn(null);
-		Mockito.doNothing().when(mongoAccessor).save("testuser", "1234");
-		
-		// Test
-		response = authenticationController.retrieveUUID();
-		
-		// Verify
-		assertTrue(response.getBody() instanceof UUIDResponse);
-		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));		
-		
-		// (4) Mock - Header present, BASIC Auth succeeds, replacing key with new
-		when(mongoAccessor.getUuid("testuser")).thenReturn("4321");
-		Mockito.doNothing().when(mongoAccessor).update("testuser", "1234");
-		
-		// Test
-		response = authenticationController.retrieveUUID();
-		
-		// Verify
-		assertTrue(response.getBody() instanceof UUIDResponse);
-		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));
-		
-		
-		// (5) Mock - Header present, PKI Auth succeeds, replacing key with new
-		when(request.getHeader("Authorization")).thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
-		when(ldapAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----")).thenReturn(new AuthenticationResponse("testuser", true));
-		when(uuidFactory.getUUID()).thenReturn("1234");
-		when(mongoAccessor.getUuid("testuser")).thenReturn("4321");
-		Mockito.doNothing().when(mongoAccessor).update("testuser", "1234");
-		
-		// Test
-		response = authenticationController.retrieveUUID();
-		
-		// Verify
-		assertTrue(response.getBody() instanceof UUIDResponse);
-		assertTrue(((UUIDResponse)(response.getBody())).getUuid().equals("1234"));
-		
-		
-		// (6) Mock Exception
-		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");		
-		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
-		Mockito.doNothing().when(logger).log(Mockito.anyString(),  Mockito.anyString());
-		
+		UserProfile mockProfile = new UserProfile();
+		mockProfile.setUsername("testuser");
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass"))
+				.thenReturn(new AuthenticationResponse(mockProfile, false));
+
 		// Test
 		response = authenticationController.retrieveUUID();
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse)(response.getBody())).message.equals("Error retrieving UUID: My Bad"));
+		assertTrue(((ErrorResponse) (response.getBody())).message.contains("Authentication failed for user"));
+
+		// (3) Mock - Header present, BASIC Auth succeeds, new key
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse(mockProfile, true));
+		when(uuidFactory.getUUID()).thenReturn("1234");
+		when(mongoAccessor.getApiKey("testuser")).thenReturn(null);
+		Mockito.doNothing().when(mongoAccessor).createApiKey("testuser", "1234");
+
+		// Test
+		response = authenticationController.retrieveUUID();
+
+		// Verify
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse) (response.getBody())).getUuid().equals("1234"));
+
+		// (4) Mock - Header present, BASIC Auth succeeds, replacing key with new
+		when(mongoAccessor.getApiKey("testuser")).thenReturn("4321");
+		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");
+
+		// Test
+		response = authenticationController.retrieveUUID();
+
+		// Verify
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse) (response.getBody())).getUuid().equals("1234"));
+
+		// (5) Mock - Header present, PKI Auth succeeds, replacing key with new
+		when(request.getHeader("Authorization"))
+				.thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
+		when(ldapAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----"))
+				.thenReturn(new AuthenticationResponse(mockProfile, true));
+		when(uuidFactory.getUUID()).thenReturn("1234");
+		when(mongoAccessor.getApiKey("testuser")).thenReturn("4321");
+		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");
+
+		// Test
+		response = authenticationController.retrieveUUID();
+
+		// Verify
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse) (response.getBody())).getUuid().equals("1234"));
+
+		// (6) Mock Exception
+		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
+		when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
+		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.anyString());
+
+		// Test
+		response = authenticationController.retrieveUUID();
+
+		// Verify
+		assertTrue(response.getBody() instanceof ErrorResponse);
+		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error retrieving UUID: My Bad"));
 	}
 }

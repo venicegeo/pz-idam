@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package org.venice.piazza.idam.model.authz;
+package org.venice.piazza.idam.model;
 
 /**
  * Represents the Response object for an Authorization check endpoint.
@@ -21,18 +21,18 @@ package org.venice.piazza.idam.model.authz;
  * @author Patrick.Doody
  *
  */
-public class AuthorizationResponse {
+public class AuthResponse {
 	public Boolean authorized;
 	public Object details;
 
-	public AuthorizationResponse() {
+	public AuthResponse() {
 	}
 
-	public AuthorizationResponse(Boolean authorized) {
+	public AuthResponse(Boolean authorized) {
 		this.authorized = authorized;
 	}
 
-	public AuthorizationResponse(Boolean authorized, Object details) {
+	public AuthResponse(Boolean authorized, Object details) {
 		this(authorized);
 		this.details = details;
 	}

@@ -32,9 +32,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
+import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
-import org.venice.piazza.idam.model.authz.AuthorizationResponse;
 
 import util.PiazzaLogger;
 
@@ -71,34 +71,34 @@ public class AuthorizationController {
 	 *         specified action, and additional information for details of the check.
 	 */
 	@RequestMapping(value = "/authorization", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<AuthorizationResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
+	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
 		try {
 			// First, check that the request is authenticated.
 			// TODO
 
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
-				AuthorizationResponse response = authorizer.canUserPerformAction(authorizationCheck);
+				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
 				if (response.getAuthorized().booleanValue() == false) {
 					throw new AuthorizationException("Failed to Authorize", response);
 				}
 			}
 
 			// Return successful response.
-			return new ResponseEntity<AuthorizationResponse>(new AuthorizationResponse(true), HttpStatus.OK);
+			return new ResponseEntity<AuthResponse>(new AuthResponse(true), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
 			logger.log(error, PiazzaLogger.ERROR);
 			// Return Error
-			return new ResponseEntity<AuthorizationResponse>(new AuthorizationResponse(false, error), HttpStatus.UNAUTHORIZED);
+			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
 			String error = String.format("Error checking authorization: %s: %s", authorizationCheck.toString(), exception.getMessage());
 			LOGGER.error(error, exception);
 			logger.log(error, PiazzaLogger.ERROR);
 			// Return Error
-			return new ResponseEntity<AuthorizationResponse>(new AuthorizationResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 }

@@ -18,6 +18,8 @@ package org.venice.piazza.idam.model.user;
 import java.util.HashMap;
 import java.util.Map;
 
+import model.security.authz.Throttle;
+
 /**
  * Throttle metadata for a user that tracks that users activity with Piazza jobs. Will keep a record count of all Piazza
  * Jobs a user has performed in the last period of activity. This user is collected in order to determine if a user
@@ -28,7 +30,7 @@ import java.util.Map;
  */
 public class UserThrottles {
 	/**
-	 * Associated a Job type with the number of occurrances of that Job
+	 * Associated a Throttle type with the current number of occurrences of that instance for the current time period
 	 */
-	public Map<String, Integer> throttles = new HashMap<String, Integer>();
+	public Map<Throttle, Integer> throttles = new HashMap<Throttle, Integer>();
 }

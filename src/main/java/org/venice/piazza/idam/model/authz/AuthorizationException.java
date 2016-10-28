@@ -15,6 +15,8 @@
  **/
 package org.venice.piazza.idam.model.authz;
 
+import org.venice.piazza.idam.model.AuthResponse;
+
 /**
  * An authorization exception.
  * 
@@ -23,18 +25,18 @@ package org.venice.piazza.idam.model.authz;
  */
 public class AuthorizationException extends Exception {
 	private static final long serialVersionUID = 1L;
-	private AuthorizationResponse response;
+	private AuthResponse response;
 
 	public AuthorizationException(String message) {
 		super(message);
 	}
 
-	public AuthorizationException(String message, AuthorizationResponse response) {
+	public AuthorizationException(String message, AuthResponse response) {
 		this(message);
 		this.response = response;
 	}
 
-	public AuthorizationResponse getResponse() {
+	public AuthResponse getResponse() {
 		return response;
 	}
 }

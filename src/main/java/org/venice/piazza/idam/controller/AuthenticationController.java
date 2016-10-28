@@ -60,9 +60,9 @@ public class AuthenticationController {
 	private HttpServletRequest request;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
-	
+
 	private static final String IDAM_COMPONENT_NAME = "IDAM";
-	
+
 	/**
 	 * Verifies that an API key is valid.
 	 * 
@@ -76,11 +76,11 @@ public class AuthenticationController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				return new ResponseEntity<>(
-						new AuthenticationResponse(mongoAccessor.getUsername(uuid), mongoAccessor.isAPIKeyValid(uuid)), HttpStatus.OK);
+				return new ResponseEntity<PiazzaResponse>(
+						new AuthenticationResponse(mongoAccessor.getUserProfileByApiKey(uuid), mongoAccessor.isApiKeyValid(uuid)),
+						HttpStatus.OK);
 			} else {
-				return new ResponseEntity<>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME),
-						HttpStatus.INTERNAL_SERVER_ERROR);
+				return new ResponseEntity<>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
@@ -94,8 +94,7 @@ public class AuthenticationController {
 	 * Retrieves a UUID based on the provided username and credential
 	 * 
 	 * @param body
-	 *            A JSON object containing the 'username' and 'credential'
-	 *            fields.
+	 *            A JSON object containing the 'username' and 'credential' fields.
 	 * 
 	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
 	 */
@@ -108,36 +107,36 @@ public class AuthenticationController {
 
 			if (headerValue != null) {
 				String[] headerParts = headerValue.split(" ");
-				
-				if (headerParts.length == 2 ) {
-					
+
+				if (headerParts.length == 2) {
+
 					String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
-					
+
 					// PKI Auth
-					if( decodedAuthNInfo.split(":").length == 1) {
+					if (decodedAuthNInfo.split(":").length == 1) {
 						AuthenticationResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-						if( authResponse.getAuthenticated() ) {
-							username = authResponse.getUsername(); 
+						if (authResponse.getAuthenticated()) {
+							username = authResponse.getProfile().getUsername();
 							uuid = uuidFactory.getUUID();
-						}						
+						}
 					}
-					
+
 					// BASIC Auth
-					else if ( decodedAuthNInfo.split(":").length == 2) {
+					else if (decodedAuthNInfo.split(":").length == 2) {
 						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
 						username = decodedUserPassParts[0];
 						String credential = decodedUserPassParts[1];
-						
+
 						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getAuthenticated()) {
 							uuid = uuidFactory.getUUID();
 						}
 					}
-					
-					if( uuid != null && username != null ) {
-						if (mongoAccessor.getUuid(username) != null) {
-							mongoAccessor.update(username, uuid);
+
+					if (uuid != null && username != null) {
+						if (mongoAccessor.getApiKey(username) != null) {
+							mongoAccessor.updateApiKey(username, uuid);
 						} else {
-							mongoAccessor.save(username, uuid);
+							mongoAccessor.createApiKey(username, uuid);
 						}
 
 						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);
@@ -145,15 +144,13 @@ public class AuthenticationController {
 				}
 			}
 
-			return new ResponseEntity<>(
-					new ErrorResponse("Authentication failed for user " + username, IDAM_COMPONENT_NAME),
+			return new ResponseEntity<>(new ErrorResponse("Authentication failed for user " + username, IDAM_COMPONENT_NAME),
 					HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
-			LOGGER.error(error, exception);			
+			LOGGER.error(error, exception);
 			pzLogger.log(error, PiazzaLogger.ERROR);
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME),
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 }

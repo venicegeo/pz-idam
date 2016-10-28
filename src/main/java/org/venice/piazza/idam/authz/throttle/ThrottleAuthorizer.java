@@ -25,8 +25,8 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
+import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
-import org.venice.piazza.idam.model.authz.AuthorizationResponse;
 import org.venice.piazza.idam.model.user.UserThrottles;
 
 /**
@@ -44,7 +44,7 @@ public class ThrottleAuthorizer implements Authorizer {
 	private Map<String, UserThrottles> throttles = new HashMap<String, UserThrottles>();
 
 	@Override
-	public AuthorizationResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
+	public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
 		// TODO
 		return null;
 	}
