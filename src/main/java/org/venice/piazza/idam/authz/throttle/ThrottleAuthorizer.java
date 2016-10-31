@@ -30,7 +30,7 @@ import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 import org.venice.piazza.idam.model.user.UserThrottles;
 
 /**
- * In-memory throttle table that live lookups will be performed against - to prevent excessive DB Reads as Piazza Jobs
+ * Throttle table that live lookups will be performed against - to prevent excessive DB Reads as Piazza Jobs
  * pass through the system. Frequently will update against the MongoDB so as not to grow stale.
  * 
  * @author Patrick.Doody

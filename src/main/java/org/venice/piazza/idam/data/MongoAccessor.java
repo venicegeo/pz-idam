@@ -196,7 +196,7 @@ public class MongoAccessor {
 	 * 
 	 * @return Mongo collection for Deployments
 	 */
-	public JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
+	private JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
 		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, UserProfile.class, String.class);
 	}
