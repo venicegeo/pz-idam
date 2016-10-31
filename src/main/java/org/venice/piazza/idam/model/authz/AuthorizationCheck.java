@@ -15,6 +15,8 @@
  **/
 package org.venice.piazza.idam.model.authz;
 
+import model.security.authz.Permission;
+
 /**
  * Model for incoming Authorization check requests, as used by the Authorization Controller.
  * 
@@ -23,7 +25,7 @@ package org.venice.piazza.idam.model.authz;
  */
 public class AuthorizationCheck {
 	public String username;
-	public Object action;
+	public Permission action;
 
 	/**
 	 * Default constructor
@@ -35,5 +37,21 @@ public class AuthorizationCheck {
 	@Override
 	public String toString() {
 		return String.format("User %s requesting Action %s", username, action.toString());
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public Permission getAction() {
+		return action;
+	}
+
+	public void setAction(Permission action) {
+		this.action = action;
 	}
 }
