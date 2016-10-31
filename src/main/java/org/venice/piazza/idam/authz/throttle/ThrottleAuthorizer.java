@@ -15,16 +15,24 @@
  **/
 package org.venice.piazza.idam.authz.throttle;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Arrays;
+import java.util.List;
 
-import javax.annotation.PostConstruct;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
+import org.venice.piazza.idam.data.MongoAccessor;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
+
+import com.amazonaws.HttpMethod;
+import com.mongodb.MongoException;
+
+import model.security.authz.Permission;
+import util.PiazzaLogger;
 
 /**
  * Authorizer that determines if a specified user action will be prevented due to excessive use of that action
@@ -36,26 +44,80 @@ import org.venice.piazza.idam.model.authz.AuthorizationCheck;
  */
 @Component
 public class ThrottleAuthorizer implements Authorizer {
+	@Autowired
+	private MongoAccessor accessor;
+	@Autowired
+	private PiazzaLogger pzLogger;
 	@Value("${throttle.frequency.interval}")
 	private Integer THROTTLE_FREQUENCY_INTERVAL;
 
+	private static final List<String> THROTTLED_POST_ENDPOINTS = Arrays.asList("data", "job", "data/file", "deployment");
+	private static final Logger LOGGER = LoggerFactory.getLogger(ThrottleAuthorizer.class);
+
 	@Override
 	public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
-		// TODO
-		return null;
+		// Check if the user is trying to perform a Piazza Job, which is subject to throttling
+		Permission action = authorizationCheck.getAction();
+		if (isJobThrottlable(action)) {
+			// Subject to throttling. Perform a lookup in the Jobs table.
+			Integer invocations = null;
+			try {
+				// Get the number of invocations for this user
+				invocations = accessor.getInvocationsForUserThrottle(authorizationCheck.getUsername(),
+						model.security.authz.Throttle.Component.job);
+				// Determine if the number of invocations exceeds the limit
+				if (isThrottleInvocationsExceeded(invocations, authorizationCheck.getUsername())) {
+					String message = String.format("Number of Jobs for user %s has been exceeded (%s). Please try again tomorrow.",
+							authorizationCheck.getUsername(), invocations);
+					return new AuthResponse(false, message);
+				} else {
+					return new AuthResponse(true);
+				}
+			} catch (MongoException mongoException) {
+				String error = String.format(
+						"Error getting number of invocations for Auth Check %s. %s. Throttle authorization checks may not be functioning correctly.",
+						authorizationCheck.toString(), mongoException.getMessage());
+				LOGGER.error(error, mongoException);
+				pzLogger.log(error, PiazzaLogger.ERROR);
+				// Currently, do not deny this request. The database is not properly working and we don't want to
+				// blacklist everything if the database can't be reached.
+			}
+		}
+
+		return new AuthResponse(true);
 	}
 
 	/**
-	 * Reads the latest throttles from the MongoDB persistence at a regular interval. TODO: Not used right now
+	 * Determines if the number of invocations for a Job Component throttle exceeds the throttle limit.
+	 * 
+	 * @param invocations
+	 *            The number of current invocations
+	 * @param username
+	 *            The username
+	 * @return True if the throttle has been exceeded (denied!), false if not
 	 */
-	@PostConstruct
-	private void runUpdateSchedule() {
-		new Timer().schedule(new TimerTask() {
-			@Override
-			public void run() {
-				/// sync();
-			}
-		}, 0, THROTTLE_FREQUENCY_INTERVAL);
+	private boolean isThrottleInvocationsExceeded(Integer invocations, String username) {
+		// TODO: Tie in some group management, roles, access, rules. Lots of stuff.
+		if (invocations > 1000) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
+	/**
+	 * Determines if the Action is a Job subject to throttling or not, based on the endpoint the user is trying to
+	 * access.
+	 * 
+	 * @param action
+	 *            The action the user wishes to perform
+	 * @return True if the action is subject to throttling, false if not
+	 */
+	private boolean isJobThrottlable(Permission action) {
+		if ((THROTTLED_POST_ENDPOINTS.contains(action.getUri())) && (action.getRequestMethod().equals(HttpMethod.POST.toString()))) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }

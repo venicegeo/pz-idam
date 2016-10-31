@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.idam.authz.Authorizer;
+import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
@@ -50,6 +51,8 @@ public class AuthorizationController {
 	private PiazzaLogger logger;
 	@Autowired
 	private ThrottleAuthorizer throttleAuthorizer;
+	@Autowired
+	private EndpointAuthorizer endpointAuthorizer;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationController.class);
 	private List<Authorizer> authorizers = new ArrayList<Authorizer>();
@@ -59,6 +62,7 @@ public class AuthorizationController {
 	 */
 	@PostConstruct
 	private void initializeAuthorizers() {
+		authorizers.add(endpointAuthorizer);
 		authorizers.add(throttleAuthorizer);
 	}
 
