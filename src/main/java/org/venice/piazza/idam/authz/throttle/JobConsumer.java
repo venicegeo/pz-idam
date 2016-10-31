@@ -30,8 +30,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.venice.piazza.idam.data.MongoAccessor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 
 import messaging.job.KafkaClientFactory;
 import model.request.PiazzaJobRequest;
@@ -49,6 +51,8 @@ import util.PiazzaLogger;
 public class JobConsumer {
 	@Autowired
 	private PiazzaLogger pzLogger;
+	@Autowired
+	private MongoAccessor accessor;
 	@Value("${SPACE}")
 	private String space;
 	@Value("${vcap.services.pz-kafka.credentials.host}")
@@ -126,6 +130,16 @@ public class JobConsumer {
 	 */
 	private void processThrottle(PiazzaJobRequest jobRequest) {
 		String username = jobRequest.createdBy;
-		String jobType = jobRequest.jobType.getClass().getSimpleName();
+		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.job;
+		// Update persistence
+		try {
+			accessor.incrementUserThrottles(username, component);
+		} catch (MongoException exception) {
+			String error = String.format(
+					"Error updating Throttle for Component %s for User %s : %s. The users Throttles could not be updated.", component,
+					username, exception.getMessage());
+			LOGGER.error(error, exception);
+			pzLogger.log(error, PiazzaLogger.ERROR);
+		}
 	}
 }

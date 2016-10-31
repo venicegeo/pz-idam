@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import model.security.authz.Throttle;
+import model.security.authz.Throttle.Component;
 
 /**
  * Throttle metadata for a user that tracks that users activity with Piazza jobs. Will keep a record count of all Piazza
@@ -29,8 +30,49 @@ import model.security.authz.Throttle;
  *
  */
 public class UserThrottles {
+	public String username;
 	/**
-	 * Associated a Throttle type with the current number of occurrences of that instance for the current time period
+	 * Maps a Throttle component to the number of invocations for that component.
 	 */
-	public Map<Throttle, Integer> throttles = new HashMap<Throttle, Integer>();
+	public Map<String, Integer> throttles = new HashMap<String, Integer>();
+
+	public UserThrottles() {
+		// Currently, there are three types of throttles per component. Automatically create this based on the enum in
+		// the Throttle. Create a map entry for each and set the current count to zero.
+		for (Component component : Throttle.Component.values()) {
+			throttles.put(component.toString(), 0);
+		}
+	}
+
+	public UserThrottles(String username) {
+		this();
+		this.username = username;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public Map<String, Integer> getThrottles() {
+		return throttles;
+	}
+
+	public void setThrottles(Map<String, Integer> throttles) {
+		this.throttles = throttles;
+	}
+
+	/**
+	 * Gets the number of invocations for the specified component
+	 * 
+	 * @param component
+	 *            The component
+	 * @return The number of invocations
+	 */
+	public Integer getInvocations(Component component) {
+		return throttles.get(component.toString());
+	}
 }

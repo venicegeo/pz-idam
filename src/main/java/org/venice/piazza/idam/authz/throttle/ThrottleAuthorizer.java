@@ -15,8 +15,6 @@
  **/
 package org.venice.piazza.idam.authz.throttle;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -27,11 +25,11 @@ import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
-import org.venice.piazza.idam.model.user.UserThrottles;
 
 /**
- * Throttle table that live lookups will be performed against - to prevent excessive DB Reads as Piazza Jobs
- * pass through the system. Frequently will update against the MongoDB so as not to grow stale.
+ * Authorizer that determines if a specified user action will be prevented due to excessive use of that action
+ * (throttling). This will use Throttle information in the Mongo instance to determine if a user should be throttled or
+ * not.
  * 
  * @author Patrick.Doody
  *
@@ -41,8 +39,6 @@ public class ThrottleAuthorizer implements Authorizer {
 	@Value("${throttle.frequency.interval}")
 	private Integer THROTTLE_FREQUENCY_INTERVAL;
 
-	private Map<String, UserThrottles> throttles = new HashMap<String, UserThrottles>();
-
 	@Override
 	public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
 		// TODO
@@ -50,23 +46,16 @@ public class ThrottleAuthorizer implements Authorizer {
 	}
 
 	/**
-	 * Reads the latest throttles from the MongoDB persistence at a regular interval.
+	 * Reads the latest throttles from the MongoDB persistence at a regular interval. TODO: Not used right now
 	 */
 	@PostConstruct
 	private void runUpdateSchedule() {
 		new Timer().schedule(new TimerTask() {
 			@Override
 			public void run() {
-				sync();
+				/// sync();
 			}
 		}, 0, THROTTLE_FREQUENCY_INTERVAL);
-	}
-
-	/**
-	 * Updates the in-memory map from the most recent values in the MongoDB table.
-	 */
-	private void sync() {
-
 	}
 
 }

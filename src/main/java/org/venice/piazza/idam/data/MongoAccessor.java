@@ -18,12 +18,16 @@ package org.venice.piazza.idam.data;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.mongojack.DBQuery;
 import org.mongojack.JacksonDBCollection;
+import org.mongojack.DBQuery.Query;
+import org.mongojack.DBUpdate.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.venice.piazza.idam.model.user.UserThrottles;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -34,7 +38,9 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 
+import model.data.deployment.Deployment;
 import model.security.authz.UserProfile;
+import model.status.StatusUpdate;
 import util.PiazzaLogger;
 
 @Component
@@ -192,12 +198,88 @@ public class MongoAccessor {
 	}
 
 	/**
-	 * Gets the Mongo Collection of all Deployments currently referenced within Piazza.
+	 * Gets the Mongo Collection of all User Profiles
 	 * 
-	 * @return Mongo collection for Deployments
+	 * @return Mongo collection for Profiles
 	 */
 	private JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
 		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, UserProfile.class, String.class);
+	}
+
+	/**
+	 * Gets the Mongo Collection of the User Throttles. This is the information that determines how many invocations of
+	 * a particular action that a user has performed in the last period of time.
+	 * 
+	 * @return Mongo collection for User Throttles
+	 */
+	private JacksonDBCollection<UserThrottles, String> getUserThrottlesCollection() {
+		DBCollection collection = mongoDatabase.getCollection(THROTTLE_COLLECTION_NAME);
+		return JacksonDBCollection.wrap(collection, UserThrottles.class, String.class);
+	}
+
+	/**
+	 * Returns the current Throttles information for the specified user
+	 * 
+	 * @param username
+	 *            The user
+	 * @return The throttle information, containing counts for invocations of each Throttle
+	 */
+	public UserThrottles getCurrentThrottlesForUser(String username) throws MongoException {
+		BasicDBObject query = new BasicDBObject("username", username);
+		UserThrottles userThrottles;
+
+		try {
+			userThrottles = getUserThrottlesCollection().findOne(query);
+		} catch (MongoTimeoutException mte) {
+			LOGGER.error(INSTANCE_NOT_AVAILABLE_ERROR, mte);
+			throw new MongoException(INSTANCE_NOT_AVAILABLE_ERROR);
+		}
+
+		return userThrottles;
+	}
+
+	/**
+	 * Gets the current number of invocations for the specified user for the specified component
+	 * 
+	 * @param username
+	 *            The username
+	 * @param component
+	 *            The component
+	 * @return The number of invocations
+	 */
+	public Integer getInvocationsForUserThrottle(String username, model.security.authz.Throttle.Component component) throws MongoException {
+		return getCurrentThrottlesForUser(username).getThrottles().get(component.toString());
+	}
+
+	/**
+	 * Adds an entry for user throttles in the database.
+	 * 
+	 * @param userThrottles
+	 *            The Throttles object, containing the username.
+	 */
+	public void insertUserThrottles(UserThrottles userThrottles) throws MongoException {
+		getUserThrottlesCollection().insert(userThrottles);
+	}
+
+	/**
+	 * Increments the count for a users throttles for the specific component.
+	 * 
+	 * @param component
+	 *            The component, as defined in the Throttle model
+	 */
+	public void incrementUserThrottles(String username, model.security.authz.Throttle.Component component) throws MongoException {
+		Integer currentInvocations = getInvocationsForUserThrottle(username, component);
+		Builder update = new Builder();
+		update.set(String.format("throttles.%s", component.toString()), currentInvocations++);
+		Query query = DBQuery.is("username", username);
+		getUserThrottlesCollection().update(query, update);
+	}
+
+	/**
+	 * Clears all throttle invocations in the Throttle table.
+	 */
+	public void clearThrottles() {
+		// TODO !
 	}
 }
