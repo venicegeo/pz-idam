@@ -19,9 +19,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.mongojack.DBQuery;
-import org.mongojack.JacksonDBCollection;
 import org.mongojack.DBQuery.Query;
 import org.mongojack.DBUpdate.Builder;
+import org.mongojack.JacksonDBCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,9 +38,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 
-import model.data.deployment.Deployment;
+import model.security.authz.ProfileTemplate;
 import model.security.authz.UserProfile;
-import model.status.StatusUpdate;
 import util.PiazzaLogger;
 
 @Component
@@ -53,8 +52,6 @@ public class MongoAccessor {
 	private String API_KEY_COLLECTION_NAME;
 	@Value("${mongo.db.userprofile.collection.name}")
 	private String USER_PROFILE_COLLECTION_NAME;
-	@Value("${mongo.db.profiletemplate.collection.name}")
-	private String PROFILE_TEMPLATE_COLLECTION_NAME;
 	@Value("${mongo.db.throttle.collection.name}")
 	private String THROTTLE_COLLECTION_NAME;
 
