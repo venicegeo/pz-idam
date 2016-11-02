@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
+import org.venice.piazza.idam.data.MongoAccessor;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
@@ -53,6 +54,8 @@ public class AuthorizationController {
 	private ThrottleAuthorizer throttleAuthorizer;
 	@Autowired
 	private EndpointAuthorizer endpointAuthorizer;
+	@Autowired
+	private MongoAccessor mongoAccessor;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationController.class);
 	private List<Authorizer> authorizers = new ArrayList<Authorizer>();
@@ -77,9 +80,6 @@ public class AuthorizationController {
 	@RequestMapping(value = "/authorization", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
 		try {
-			// First, check that the request is authenticated.
-			// TODO
-
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
 				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
