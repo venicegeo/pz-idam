@@ -18,19 +18,14 @@ package org.venice.piazza.idam.authz;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import model.security.authz.ProfileTemplate;
-import model.security.authz.Throttle;
 
 /**
  * Factory class which is capable of creating ProfileTemplate Models for various default groups. Used for initial
@@ -45,7 +40,7 @@ public class ProfileTemplateFactory {
 
 	/**
 	 * Gets the ProfileTemplate for the specified role. This role must have an accompanying .json file in the
-	 * resources/permissions and resources/throttles directory, which can be read from.
+	 * resources/profiles folder.
 	 * <p>
 	 * The ID is not set.
 	 * </p>
@@ -55,44 +50,12 @@ public class ProfileTemplateFactory {
 	 * @return ProfileTemplate for the specified role.
 	 */
 	public ProfileTemplate getTemplate(String role) throws IOException {
-		ProfileTemplate profileTemplate = new ProfileTemplate();
-		// Get the Permissions from the local .json file
-		profileTemplate.setPermissions(getPermissions(role));
-		// Populate the default Throttle values
-		profileTemplate.setThrottles(getThrottles(role));
-		// Empty container for third party keys
-		profileTemplate.setThirdPartyKeys(new HashMap<String, String>());
-
-		return profileTemplate;
-	}
-
-	/**
-	 * Gets the list of default Throttle values for the specified role. Reads from the .json file in the throttles
-	 * directory.
-	 * 
-	 * @param role
-	 *            The role
-	 * @return The list of permissions
-	 */
-	private List<Throttle> getThrottles(String role) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Gets the Permissions Map for the specified role. Reads from the .json file in the permissions directory.
-	 * 
-	 * @param role
-	 *            The role
-	 * @return The Permissions map
-	 */
-	private Map<String, Boolean> getPermissions(String role) throws IOException {
 		// Load the .json resource
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream templateStream = null;
 		String templateString = null;
 		try {
-			templateStream = classLoader.getResourceAsStream(String.format("%s%s%s", "permissions", File.separator, role));
+			templateStream = classLoader.getResourceAsStream(String.format("%s%s%s", "profiles", File.separator, role));
 			templateString = IOUtils.toString(templateStream);
 		} finally {
 			try {
@@ -101,10 +64,7 @@ public class ProfileTemplateFactory {
 				LOGGER.error("Error closing GeoServer Template Stream.", exception);
 			}
 		}
-		// Read the String into the permissions map
-		TypeReference<HashMap<String, Boolean>> typeRef = new TypeReference<HashMap<String, Boolean>>() {
-		};
-		Map<String, Boolean> permissions = mapper.readValue(templateString, typeRef);
-		return permissions;
+		// Read the String into the Template object
+		return mapper.readValue(templateString, ProfileTemplate.class);
 	}
 }
