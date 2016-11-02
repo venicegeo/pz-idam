@@ -15,12 +15,14 @@
  **/
 package org.venice.piazza.idam.authz.endpoint;
 
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.authz.ProfileTemplateFactory;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
@@ -37,36 +39,36 @@ import util.PiazzaLogger;
 @Component
 public class EndpointAuthorizer implements Authorizer {
 	@Autowired
-	private MongoAccessor accessor;
-	@Autowired
 	private PiazzaLogger pzLogger;
+	@Autowired
+	private ProfileTemplateFactory profileTemplateFactory;
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(EndpointAuthorizer.class);
 
 	@Override
 	public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
 		// Get the Profile Template for the user requesting the action. This Template contains endpoint information.
 		String username = authorizationCheck.getUsername();
-		ProfileTemplate profileTemplate = getProfileTemplateForUser(username);
+		ProfileTemplate profileTemplate;
+		try {
+			profileTemplate = profileTemplateFactory.getProfileTemplateForUser(username);
+		} catch (IOException exception) {
+			String message = String.format("Error getting Profile Template from provider for %s Cannot grant access as a result. Error: %s",
+					authorizationCheck.toString(), exception.getMessage());
+			LOGGER.error(message, exception);
+			pzLogger.log(message, PiazzaLogger.ERROR);
+			return new AuthResponse(false, message);
+		}
 		// Get the appropriate Permission from the Profile Template that matches the Permission
 		String keyName = authorizationCheck.getAction().getKeyName();
 		Boolean canPerformAction = profileTemplate.getPermissions().get(keyName);
 		if (canPerformAction) {
+			pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()), PiazzaLogger.INFO);
 			return new AuthResponse(true);
 		} else {
+			pzLogger.log(String.format("%s denied by Endpoint Authorizer.", authorizationCheck.toString()), PiazzaLogger.INFO);
 			return new AuthResponse(false, String.format("The user does not have the ability to access the %s endpoint.",
 					authorizationCheck.getAction().toString()));
 		}
-	}
-
-	/**
-	 * Requests the Profile Template from GeoAxis for the specified user
-	 * 
-	 * @param username
-	 *            The username
-	 * @return The profile template, as stored in GeoAxis, which dictates what the user can or cannot do within Piazza
-	 */
-	private ProfileTemplate getProfileTemplateForUser(String username) {
-		// TODO: Connect to GeoAxis
-		return new ProfileTemplate();
 	}
 }

@@ -22,6 +22,7 @@ import java.io.InputStream;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,6 +35,7 @@ import model.security.authz.ProfileTemplate;
  * @author Patrick.Doody
  *
  */
+@Component
 public class ProfileTemplateFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProfileTemplateFactory.class);
 	private ObjectMapper mapper = new ObjectMapper();
@@ -49,7 +51,7 @@ public class ProfileTemplateFactory {
 	 *            The role
 	 * @return ProfileTemplate for the specified role.
 	 */
-	public ProfileTemplate getTemplate(String role) throws IOException {
+	public ProfileTemplate getDefaultTemplate(String role) throws IOException {
 		// Load the .json resource
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream templateStream = null;
@@ -66,5 +68,17 @@ public class ProfileTemplateFactory {
 		}
 		// Read the String into the Template object
 		return mapper.readValue(templateString, ProfileTemplate.class);
+	}
+
+	/**
+	 * Requests the Profile Template from GeoAxis for the specified user
+	 * 
+	 * @param username
+	 *            The username
+	 * @return The profile template, as stored in GeoAxis, which dictates what the user can or cannot do within Piazza
+	 */
+	public ProfileTemplate getProfileTemplateForUser(String username) throws IOException {
+		// TODO: Connect to GeoAxis
+		return getDefaultTemplate("admin");
 	}
 }
