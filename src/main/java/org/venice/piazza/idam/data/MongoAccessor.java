@@ -15,9 +15,6 @@
  **/
 package org.venice.piazza.idam.data;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 

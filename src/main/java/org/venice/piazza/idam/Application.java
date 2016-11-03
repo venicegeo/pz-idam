@@ -15,7 +15,6 @@
  **/
 package org.venice.piazza.idam;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyManagementException;
@@ -23,11 +22,10 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
-
-import java.security.cert.CertificateException;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -52,7 +50,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.venice.piazza.idam.authn.GxAuthenticator;
-import org.venice.piazza.idam.authn.LDAPAuthenticator;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 
 @SpringBootApplication
@@ -93,12 +90,16 @@ public class Application extends SpringBootServletInitializer {
 	}
 
 	@Configuration
-	@Profile({ "ldap" })
-	protected static class LDAPConfig {
-
+	@Profile({ "disable-authn" })
+	protected static class DisabledConfig {
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
-			return new LDAPAuthenticator();
+			return null;
+		}
+
+		@Bean
+		public RestTemplate restTemplate() {
+			return new RestTemplate();
 		}
 	}
 
@@ -120,21 +121,24 @@ public class Application extends SpringBootServletInitializer {
 
 		@Value("${PZ_PASSPHRASE}")
 		private String piazzaKeyPassphrase;
-		
+
 		@Bean
 		public PiazzaAuthenticator piazzaAuthenticator() {
 			return new GxAuthenticator();
 		}
 
 		@Bean
-		public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+		public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException,
+				KeyStoreException, CertificateException, IOException {
 			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(getStore(), new TrustSelfSignedStrategy()).useProtocol("TLS").build();
-			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext).setMaxConnPerRoute(httpMaxRoute).build();
+			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext)
+					.setMaxConnPerRoute(httpMaxRoute).build();
 
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
-			restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this required?
+			restTemplate.setMessageConverters(Arrays.asList(new MappingJackson2HttpMessageConverter())); // Why is this
+																											// required?
 			return restTemplate;
 		}
 
