@@ -15,6 +15,9 @@
  **/
 package org.venice.piazza.idam.data;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
@@ -38,7 +41,6 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 
-import model.security.authz.ProfileTemplate;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 
@@ -216,13 +218,15 @@ public class MongoAccessor {
 	}
 
 	/**
-	 * Returns the current Throttles information for the specified user
+	 * Returns the current Throttles information for the specified user.
 	 * 
 	 * @param username
 	 *            The user
+	 * @param createIfNull
+	 *            If true, the user throttle information will be added to the database if it doesn't exist already.
 	 * @return The throttle information, containing counts for invocations of each Throttle
 	 */
-	public UserThrottles getCurrentThrottlesForUser(String username) throws MongoException {
+	public UserThrottles getCurrentThrottlesForUser(String username, boolean createIfNull) throws MongoException {
 		BasicDBObject query = new BasicDBObject("username", username);
 		UserThrottles userThrottles;
 
@@ -231,6 +235,14 @@ public class MongoAccessor {
 		} catch (MongoTimeoutException mte) {
 			LOGGER.error(INSTANCE_NOT_AVAILABLE_ERROR, mte);
 			throw new MongoException(INSTANCE_NOT_AVAILABLE_ERROR);
+		}
+
+		// If the User Throttles object doesn't exist, then create a default one and set the initial values.
+		if ((userThrottles == null) && (createIfNull)) {
+			// Get the set of default throttles
+			userThrottles = new UserThrottles(username);
+			// Commit to the database
+			insertUserThrottles(userThrottles);
 		}
 
 		return userThrottles;
@@ -246,7 +258,7 @@ public class MongoAccessor {
 	 * @return The number of invocations
 	 */
 	public Integer getInvocationsForUserThrottle(String username, model.security.authz.Throttle.Component component) throws MongoException {
-		return getCurrentThrottlesForUser(username).getThrottles().get(component.toString());
+		return getCurrentThrottlesForUser(username, true).getThrottles().get(component.toString());
 	}
 
 	/**
