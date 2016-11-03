@@ -36,7 +36,7 @@ public class AuthorizationCheck {
 
 	@Override
 	public String toString() {
-		return String.format("User %s requesting Action %s", username, action.toString());
+		return String.format("User %s requesting Action %s", username, action != null ? action.toString() : "null");
 	}
 
 	public String getUsername() {

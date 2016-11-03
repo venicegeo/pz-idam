@@ -61,7 +61,14 @@ public class EndpointAuthorizer implements Authorizer {
 		}
 		// Get the appropriate Permission from the Profile Template that matches the Permission
 		String keyName = authorizationCheck.getAction().getKeyName();
-		Boolean canPerformAction = profileTemplate.getPermissions().get(keyName);
+		// Ensure the key exists
+		if (profileTemplate.getPermissions().containsKey(keyName) == false) {
+			pzLogger.log(String.format("%s denied by Endpoint Authorizer. Method and URI name does not contain a Permission.",
+					authorizationCheck.toString()), PiazzaLogger.INFO);
+			return new AuthResponse(false,
+					String.format("The %s endpoint does not have a defined Permission.", authorizationCheck.getAction().toString()));
+		}
+		boolean canPerformAction = profileTemplate.getPermissions().get(keyName);
 		if (canPerformAction) {
 			pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()), PiazzaLogger.INFO);
 			return new AuthResponse(true);

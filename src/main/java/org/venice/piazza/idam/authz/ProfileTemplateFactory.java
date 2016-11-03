@@ -57,13 +57,13 @@ public class ProfileTemplateFactory {
 		InputStream templateStream = null;
 		String templateString = null;
 		try {
-			templateStream = classLoader.getResourceAsStream(String.format("%s%s%s", "profiles", File.separator, role));
+			templateStream = classLoader.getResourceAsStream(String.format("%s%s%s.json", "profiles", File.separator, role));
 			templateString = IOUtils.toString(templateStream);
 		} finally {
 			try {
 				templateStream.close();
 			} catch (Exception exception) {
-				LOGGER.error("Error closing GeoServer Template Stream.", exception);
+				LOGGER.error("Error closing Template Stream.", exception);
 			}
 		}
 		// Read the String into the Template object
