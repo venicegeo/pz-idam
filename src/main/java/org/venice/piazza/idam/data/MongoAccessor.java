@@ -277,7 +277,7 @@ public class MongoAccessor {
 	public void incrementUserThrottles(String username, model.security.authz.Throttle.Component component) throws MongoException {
 		Integer currentInvocations = getInvocationsForUserThrottle(username, component);
 		Builder update = new Builder();
-		update.set(String.format("throttles.%s", component.toString()), currentInvocations++);
+		update.set(String.format("throttles.%s", component.toString()), ++currentInvocations);
 		Query query = DBQuery.is("username", username);
 		getUserThrottlesCollection().update(query, update);
 	}

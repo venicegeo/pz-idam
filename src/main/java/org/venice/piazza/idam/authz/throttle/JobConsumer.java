@@ -16,7 +16,9 @@
 package org.venice.piazza.idam.authz.throttle;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PostConstruct;
@@ -36,6 +38,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
 
 import messaging.job.KafkaClientFactory;
+import model.job.Job;
+import model.job.type.AbortJob;
+import model.job.type.AccessJob;
+import model.job.type.ExecuteServiceJob;
+import model.job.type.IngestJob;
+import model.job.type.RepeatJob;
 import model.request.PiazzaJobRequest;
 import util.PiazzaLogger;
 
@@ -60,7 +68,7 @@ public class JobConsumer {
 	@Value("#{'${kafka.group}' + '-' + '${SPACE}'}")
 	private String kafkaGroup;
 
-	private String REQUEST_JOB_TOPIC_NAME;
+	List<String> topics = new ArrayList<>();
 	private ObjectMapper mapper = new ObjectMapper();
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private static final Logger LOGGER = LoggerFactory.getLogger(JobConsumer.class);
@@ -70,7 +78,11 @@ public class JobConsumer {
 	 */
 	@PostConstruct
 	public void initialize() {
-		REQUEST_JOB_TOPIC_NAME = String.format("%s-%s", "Request-Job", space);
+		// Get all the Job Type topics that Piazza can fire. This consumer will record each of those actions.
+		List<Class<?>> jobTypes = Arrays.asList(AbortJob.class, IngestJob.class, AccessJob.class, ExecuteServiceJob.class, RepeatJob.class);
+		for (Class<?> jobType : jobTypes) {
+			topics.add(String.format("%s-%s", jobType.getSimpleName(), space));
+		}
 
 		// Start polling for Kafka Jobs on the Group Consumer.
 		// Occurs on a separate Thread to not block Spring.
@@ -87,7 +99,7 @@ public class JobConsumer {
 			String kafkaHost = kafkaAddress.split(":")[0];
 			String kafkaPort = kafkaAddress.split(":")[1];
 			Consumer<String, String> consumer = KafkaClientFactory.getConsumer(kafkaHost, kafkaPort, kafkaGroup);
-			consumer.subscribe(Arrays.asList(REQUEST_JOB_TOPIC_NAME));
+			consumer.subscribe(topics);
 
 			// Poll
 			while (!closed.get()) {
@@ -96,8 +108,10 @@ public class JobConsumer {
 				for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
 					// Record the Job Type and the user requesting that Job
 					try {
-						PiazzaJobRequest jobRequest = mapper.readValue(consumerRecord.value(), PiazzaJobRequest.class);
-						processThrottle(jobRequest);
+						Job job = mapper.readValue(consumerRecord.value(), Job.class);
+						processThrottle(job);
+						System.out.println("Throttle processed.");
+						LOGGER.info("Processed");
 					} catch (IOException exception) {
 						String error = String.format(
 								"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
@@ -128,8 +142,8 @@ public class JobConsumer {
 	 * @param jobRequest
 	 *            The job request
 	 */
-	private void processThrottle(PiazzaJobRequest jobRequest) {
-		String username = jobRequest.createdBy;
+	private void processThrottle(Job job) {
+		String username = job.getCreatedBy();
 		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.job;
 		// Update persistence
 		try {

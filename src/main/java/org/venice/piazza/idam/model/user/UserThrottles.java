@@ -18,6 +18,10 @@ package org.venice.piazza.idam.model.user;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import model.security.authz.Throttle;
 import model.security.authz.Throttle.Component;
 
@@ -29,6 +33,8 @@ import model.security.authz.Throttle.Component;
  * @author Patrick.Doody
  *
  */
+@JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserThrottles {
 	public String username;
 	/**
