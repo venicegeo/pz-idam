@@ -38,6 +38,10 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxApiUrlAtnCert;
 	@Value("${vcap.services.geoaxis.credentials.api.url.atnbasic}")
 	private String gxApiUrlAtnBasic;
+	@Value("${vcap.services.geoaxis.basic.mechanism}")
+	private String gxBasicMechanism;
+	@Value("${vcap.services.geoaxis.basic.hostidentifier}")
+	private String gxBasicHostIdentifier;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -47,8 +51,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
-		request.setMechanism("GxDisAus");
-		request.setHostIdentifier("//OAMServlet/disaususerprotected");
+		request.setMechanism(gxBasicMechanism);
+		request.setHostIdentifier(gxBasicHostIdentifier);
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
