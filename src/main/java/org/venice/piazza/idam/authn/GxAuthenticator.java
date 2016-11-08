@@ -38,9 +38,9 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxApiUrlAtnCert;
 	@Value("${vcap.services.geoaxis.credentials.api.url.atnbasic}")
 	private String gxApiUrlAtnBasic;
-	@Value("${vcap.services.geoaxis.basic.mechanism}")
+	@Value("${vcap.services.geoaxis.credentials.basic.mechanism}")
 	private String gxBasicMechanism;
-	@Value("${vcap.services.geoaxis.basic.hostidentifier}")
+	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
 	private String gxBasicHostIdentifier;
 
 	@Autowired
