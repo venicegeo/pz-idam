@@ -47,7 +47,7 @@ public class GxAuthTests {
 	private RestTemplate restTemplate;
 	@Mock
 	private MongoAccessor mongoAccessor;
-	
+
 	@InjectMocks
 	private GxAuthenticator gxAuthenticator;
 
@@ -64,6 +64,8 @@ public class GxAuthTests {
 
 		// Mock Gx Service Call
 		ReflectionTestUtils.setField(gxAuthenticator, "gxApiUrlAtnBasic", "https://geoaxis.api.com/atnrest/basic");
+		ReflectionTestUtils.setField(gxAuthenticator, "gxBasicMechanism", "GxDisAus");
+		ReflectionTestUtils.setField(gxAuthenticator, "gxBasicHostIdentifier", "//OAMServlet/disaususerprotected");
 
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername("bsmith");
