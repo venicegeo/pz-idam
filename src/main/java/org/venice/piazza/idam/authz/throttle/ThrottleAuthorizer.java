@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.data.MongoAccessor;
@@ -119,5 +120,13 @@ public class ThrottleAuthorizer implements Authorizer {
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Every interval, clear the existing throttles from the system. Currently will run every day at 3am.
+	 */
+	@Scheduled(cron = "0 0 3 * * ?")
+	private void clearThrottles() {
+		accessor.clearThrottles();
 	}
 }

@@ -286,6 +286,6 @@ public class MongoAccessor {
 	 * Clears all throttle invocations in the Throttle table.
 	 */
 	public void clearThrottles() {
-		// TODO !
+		getUserThrottlesCollection().drop();
 	}
 }

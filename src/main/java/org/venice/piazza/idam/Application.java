@@ -42,6 +42,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
@@ -53,6 +55,8 @@ import org.venice.piazza.idam.authn.GxAuthenticator;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 
 @SpringBootApplication
+@EnableAsync
+@EnableScheduling
 @ComponentScan({ "org.venice.piazza.idam, util" })
 public class Application extends SpringBootServletInitializer {
 
