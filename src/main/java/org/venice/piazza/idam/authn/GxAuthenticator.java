@@ -27,6 +27,7 @@ import org.venice.piazza.idam.model.PrincipalItem;
 
 import model.response.AuthenticationResponse;
 
+import org.venice.piazza.idam.data.MongoAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 
@@ -45,6 +46,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private MongoAccessor mongoAccessor;
 
 	@Override
 	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
@@ -56,7 +59,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
-		return new AuthenticationResponse(username, gxResponse.isSuccessful());
+		return new AuthenticationResponse(mongoAccessor.getUserProfileByUsername(username), gxResponse.isSuccessful());
 	}
 
 	@Override
@@ -72,7 +75,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
 			for (PrincipalItem item : listItems) {
 				if ("UID".equalsIgnoreCase(item.getName())) {
-					return new AuthenticationResponse(item.getValue(), gxResponse.isSuccessful());
+					return new AuthenticationResponse(mongoAccessor.getUserProfileByUsername(item.getValue()), gxResponse.isSuccessful());
 				}
 			}
 		}

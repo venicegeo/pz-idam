@@ -19,6 +19,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.refEq;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 
@@ -31,16 +32,21 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.GxAuthenticator;
+import org.venice.piazza.idam.data.MongoAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
 import org.venice.piazza.idam.model.Principal;
 import org.venice.piazza.idam.model.PrincipalItem;
 
+import model.security.authz.UserProfile;
+
 public class GxAuthTests {
 
 	@Mock
 	private RestTemplate restTemplate;
+	@Mock
+	private MongoAccessor mongoAccessor;
 
 	@InjectMocks
 	private GxAuthenticator gxAuthenticator;
@@ -70,8 +76,8 @@ public class GxAuthTests {
 		GxAuthNResponse gxResponse = new GxAuthNResponse();
 		gxResponse.setSuccessful(false);
 
-		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/basic"),
-				refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/basic"), refEq(request),
+				eq(GxAuthNResponse.class));
 
 		// Test
 		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith", "mypass").getAuthenticated();
@@ -102,26 +108,29 @@ public class GxAuthTests {
 		gxResponse.setPrincipals(principal);
 
 		// Test
-		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"),
-				refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
+				eq(GxAuthNResponse.class));
 		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
-		String username = gxAuthenticator.getAuthenticationDecision(testPEM).getUsername();
+		UserProfile profile = gxAuthenticator.getAuthenticationDecision(testPEM).getProfile();
 
 		// Verify
 		assertFalse(isAuthenticated);
-		assertNull(username);
+		assertNull(profile);
 
 		// (2) Mock Response - UID returned
 		PrincipalItem principalItem = new PrincipalItem();
 		principalItem.setName("UID");
 		principalItem.setValue("testuser");
+		UserProfile mockProfile = new UserProfile();
+		mockProfile.setUsername("testuser");
+		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("UID"))).thenReturn(mockProfile);
 
 		principal.setPrincipal(Arrays.asList(principalItem));
 		gxResponse.setPrincipals(principal);
 
 		// Test
-		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"),
-				refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
+				eq(GxAuthNResponse.class));
 		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
 
 		// Verify
@@ -136,13 +145,13 @@ public class GxAuthTests {
 		gxResponse.setPrincipals(principal);
 
 		// Test
-		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"),
-				refEq(request), eq(GxAuthNResponse.class));
+		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
+				eq(GxAuthNResponse.class));
 		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
-		username = gxAuthenticator.getAuthenticationDecision(testPEM).getUsername();
+		profile = gxAuthenticator.getAuthenticationDecision(testPEM).getProfile();
 
 		// Verify
 		assertFalse(isAuthenticated);
-		assertNull(username);
+		assertNull(profile);
 	}
 }

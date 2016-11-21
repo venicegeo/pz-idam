@@ -42,92 +42,92 @@ public class MongoAccessorTests {
 
 	@Mock
 	private PiazzaLogger logger;
-	
+
 	@Mock
 	private DB mongoDatabase;
-	
+
 	@Mock
 	private DBCollection dbCollection;
-	
+
 	@InjectMocks
 	private MongoAccessor mongoAccessor;
-	
+
 	/**
 	 * Initialize mock objects.
 	 */
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		
+
 		ReflectionTestUtils.setField(mongoAccessor, "mongoHost", "test");
 		ReflectionTestUtils.setField(mongoAccessor, "mongoDBName", "test");
-		ReflectionTestUtils.setField(mongoAccessor, "mongoCollectionName", "collectionname");
+		ReflectionTestUtils.setField(mongoAccessor, "API_KEY_COLLECTION_NAME", "collectionname");
 	}
-	
+
 	@Test
 	public void testUpdate() {
 		BasicDBObject newObj = new BasicDBObject();
 		newObj.put("username", "myuser");
 		newObj.put("uuid", "myuuid");
 
-		BasicDBObject toUpdate = new BasicDBObject().append("username",  "myuser");
-				
+		BasicDBObject toUpdate = new BasicDBObject().append("username", "myuser");
+
 		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
 		when(dbCollection.update(refEq(toUpdate), refEq(newObj))).thenReturn(null);
-				
-		mongoAccessor.update("myuser", "myuuid");
+
+		mongoAccessor.updateApiKey("myuser", "myuuid");
 	}
-	
+
 	@Test
 	public void testSave() {
-		BasicDBObject toInsert = new BasicDBObject().append("username",  "myuser").append("uuid", "myuuid");	
-		
+		BasicDBObject toInsert = new BasicDBObject().append("username", "myuser").append("uuid", "myuuid");
+
 		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
 		when(dbCollection.insert(refEq(toInsert))).thenReturn(null);
-				
-		mongoAccessor.save("myuser", "myuuid");
+
+		mongoAccessor.createApiKey("myuser", "myuuid");
 	}
-	
+
 	@Test
 	public void testIsAPIKeyValid() {
 		BasicDBObject toFind = new BasicDBObject("uuid", "myuuid");
-		
+
 		DBObject dbObj = Mockito.mock(DBObject.class);
-		
+
 		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
-		
+
 		// (1) API Key is valid
 		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
-		assertTrue(mongoAccessor.isAPIKeyValid("myuuid"));
-		
+		assertTrue(mongoAccessor.isApiKeyValid("myuuid"));
+
 		// (2) API Key is invalid
 		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
-		assertFalse(mongoAccessor.isAPIKeyValid("myuuid"));
+		assertFalse(mongoAccessor.isApiKeyValid("myuuid"));
 	}
-	
+
 	@Test
 	public void testGetUsername() {
 		BasicDBObject toFind = new BasicDBObject("uuid", "myuuid");
 		DBObject dbObj = Mockito.mock(DBObject.class);
 
 		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
-		
+
 		// (1) Username is valid
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);		
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
 		when(dbObj.containsField("username")).thenReturn(true);
 		when(dbObj.get("username")).thenReturn("bsmith");
 		assertTrue(mongoAccessor.getUsername("myuuid").equals("bsmith"));
-		
+
 		// (2) Username is invalid; record is present
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);		
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
 		when(dbObj.containsField("username")).thenReturn(false);
 		assertNull(mongoAccessor.getUsername("myuuid"));
-		
+
 		// (3) Username is invalid; record is missing
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);		
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
 		assertNull(mongoAccessor.getUsername("myuuid"));
 	}
-	
+
 	@Test
 	public void testGetUuid() {
 		BasicDBObject toFind = new BasicDBObject("username", "myuser");
@@ -136,18 +136,18 @@ public class MongoAccessorTests {
 		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
 
 		// (1) UUID is valid
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);		
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
 		when(dbObj.containsField("uuid")).thenReturn(true);
 		when(dbObj.get("uuid")).thenReturn("longuuidstring");
-		assertTrue(mongoAccessor.getUuid("myuser").equals("longuuidstring"));
-		
+		assertTrue(mongoAccessor.getApiKey("myuser").equals("longuuidstring"));
+
 		// (2) UUID is invalid, record is present
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);		
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
 		when(dbObj.containsField("uuid")).thenReturn(false);
-		assertNull(mongoAccessor.getUuid("myuser"));
-		
+		assertNull(mongoAccessor.getApiKey("myuser"));
+
 		// (3) UUID is invalid, record is missing
-		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);		
-		assertNull(mongoAccessor.getUuid("myuser"));
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
+		assertNull(mongoAccessor.getApiKey("myuser"));
 	}
 }
