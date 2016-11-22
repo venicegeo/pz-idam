@@ -38,6 +38,7 @@ import model.response.AuthenticationResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UUIDResponse;
+import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 import util.UUIDFactory;
 
@@ -76,8 +77,16 @@ public class AuthenticationController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				return new ResponseEntity<PiazzaResponse>(
-						new AuthenticationResponse(mongoAccessor.getUserProfileByApiKey(uuid), mongoAccessor.isApiKeyValid(uuid)),
+				// Get the UserProfile information to return.
+				// TODO: This line here is a hack, in case the UserProfile is null. We still need to return a UserName,
+				// so create one here.
+				UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
+				if (userProfile == null) {
+					userProfile = new UserProfile();
+					userProfile.setUsername(mongoAccessor.getUsername(uuid));
+				}
+				// TODO: Where do we get the UserProfile from? GA? Piazza?
+				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(userProfile, mongoAccessor.isApiKeyValid(uuid)),
 						HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
