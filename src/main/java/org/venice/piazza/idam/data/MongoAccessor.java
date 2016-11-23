@@ -167,7 +167,10 @@ public class MongoAccessor {
 
 		try {
 			if ((userProfile = getUserProfileCollection().findOne(query)) == null) {
-				return null;
+				// TODO: Current hack, until we commit the UserProfile to Mongo during /key creation.
+				userProfile = new UserProfile();
+				userProfile.setUsername(username);
+				return userProfile;
 			}
 		} catch (MongoTimeoutException mte) {
 			LOGGER.error(INSTANCE_NOT_AVAILABLE_ERROR, mte);

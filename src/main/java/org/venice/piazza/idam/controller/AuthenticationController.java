@@ -77,15 +77,7 @@ public class AuthenticationController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				// Get the UserProfile information to return.
-				// TODO: This line here is a hack, in case the UserProfile is null. We still need to return a UserName,
-				// so create one here.
 				UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
-				if (userProfile == null) {
-					userProfile = new UserProfile();
-					userProfile.setUsername(mongoAccessor.getUsername(uuid));
-				}
-				// TODO: Where do we get the UserProfile from? GA? Piazza?
 				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(userProfile, mongoAccessor.isApiKeyValid(uuid)),
 						HttpStatus.OK);
 			} else {
