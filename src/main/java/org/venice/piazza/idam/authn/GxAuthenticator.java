@@ -22,14 +22,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
-import org.venice.piazza.idam.model.PrincipalItem;
-
-import model.response.AuthenticationResponse;
-
 import org.venice.piazza.idam.data.MongoAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
+import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
+import org.venice.piazza.idam.model.PrincipalItem;
+
+import model.logger.AuditElement;
+import model.logger.Severity;
+import model.response.AuthenticationResponse;
+import model.security.authz.UserProfile;
+import util.PiazzaLogger;
 
 @Component
 @Profile({ "geoaxis" })
@@ -43,6 +46,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxBasicMechanism;
 	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
 	private String gxBasicHostIdentifier;
+	@Autowired
+	private PiazzaLogger logger;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -51,6 +56,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Override
 	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
+		logger.log(String.format("Performing credential check for Username %s to GeoAxis.", username), Severity.INFORMATIONAL,
+				new AuditElement(username, "loginAttempt", ""));
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
@@ -59,11 +66,18 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
+		logger.log(String.format("GeoAxis response for Username %s has returned Authenticated %s", username, gxResponse.isSuccessful()),
+				Severity.INFORMATIONAL,
+				new AuditElement(username, gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
+
 		return new AuthenticationResponse(mongoAccessor.getUserProfileByUsername(username), gxResponse.isSuccessful());
 	}
 
 	@Override
 	public AuthenticationResponse getAuthenticationDecision(String pem) {
+		logger.log(String.format("Performing cert check for Cert %s", pem), Severity.INFORMATIONAL,
+				new AuditElement(pem, "loginCertAttempt", ""));
+
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
 		request.setPemCert(getFormattedPem(pem));
 		request.setMechanism("GxCert");
@@ -71,11 +85,19 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
 
+		if (gxResponse.isSuccessful() == false) {
+			logger.log(String.format("GeoAxis response for Cert %s has failed authentication.", pem), Severity.INFORMATIONAL,
+					new AuditElement(pem, "userFailedCertAuthentication", ""));
+		}
+
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
 			for (PrincipalItem item : listItems) {
 				if ("UID".equalsIgnoreCase(item.getName())) {
-					return new AuthenticationResponse(mongoAccessor.getUserProfileByUsername(item.getValue()), gxResponse.isSuccessful());
+					UserProfile profile = mongoAccessor.getUserProfileByUsername(item.getValue());
+					logger.log(String.format("GeoAxis response for Cert %s has passed authentication for Username %s", pem,
+							profile.getUsername()), Severity.INFORMATIONAL);
+					return new AuthenticationResponse(profile, gxResponse.isSuccessful());
 				}
 			}
 		}

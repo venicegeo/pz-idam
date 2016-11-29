@@ -26,6 +26,7 @@ import org.venice.piazza.idam.authz.ProfileTemplateFactory;
 import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
+import model.logger.Severity;
 import model.security.authz.ProfileTemplate;
 import util.PiazzaLogger;
 
@@ -56,7 +57,7 @@ public class EndpointAuthorizer implements Authorizer {
 			String message = String.format("Error getting Profile Template from provider for %s Cannot grant access as a result. Error: %s",
 					authorizationCheck.toString(), exception.getMessage());
 			LOGGER.error(message, exception);
-			pzLogger.log(message, PiazzaLogger.ERROR);
+			pzLogger.log(message, Severity.ERROR);
 			return new AuthResponse(false, message);
 		}
 		// Get the appropriate Permission from the Profile Template that matches the Permission
@@ -64,16 +65,16 @@ public class EndpointAuthorizer implements Authorizer {
 		// Ensure the key exists
 		if (profileTemplate.getPermissions().containsKey(keyName) == false) {
 			pzLogger.log(String.format("%s denied by Endpoint Authorizer. Method and URI name does not contain a Permission.",
-					authorizationCheck.toString()), PiazzaLogger.INFO);
+					authorizationCheck.toString()), Severity.INFORMATIONAL);
 			return new AuthResponse(false,
 					String.format("The %s endpoint does not have a defined Permission.", authorizationCheck.getAction().toString()));
 		}
 		boolean canPerformAction = profileTemplate.getPermissions().get(keyName);
 		if (canPerformAction) {
-			pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()), PiazzaLogger.INFO);
+			pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()), Severity.INFORMATIONAL);
 			return new AuthResponse(true);
 		} else {
-			pzLogger.log(String.format("%s denied by Endpoint Authorizer.", authorizationCheck.toString()), PiazzaLogger.INFO);
+			pzLogger.log(String.format("%s denied by Endpoint Authorizer.", authorizationCheck.toString()), Severity.INFORMATIONAL);
 			return new AuthResponse(false, String.format("The user does not have the ability to access the %s endpoint.",
 					authorizationCheck.getAction().toString()));
 		}

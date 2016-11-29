@@ -38,6 +38,8 @@ import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
 
+import model.logger.AuditElement;
+import model.logger.Severity;
 import util.PiazzaLogger;
 
 /**
@@ -80,27 +82,34 @@ public class AuthorizationController {
 	@RequestMapping(value = "/authorization", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
 		try {
+			logger.log("Checking Authorization for Action.", Severity.INFORMATIONAL,
+					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckForAction", authorizationCheck.toString()));
+
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
 				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
 				if (response.getAuthorized().booleanValue() == false) {
+					logger.log("Failed authorization check.", Severity.INFORMATIONAL,
+							new AuditElement(authorizationCheck.getUsername(), "authorizationCheckFailed", authorizationCheck.toString()));
 					throw new AuthorizationException("Failed to Authorize", response);
 				}
 			}
 
 			// Return successful response.
+			logger.log("Passed authorization check.", Severity.INFORMATIONAL,
+					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckPassed", authorizationCheck.toString()));
 			return new ResponseEntity<AuthResponse>(new AuthResponse(true), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
-			logger.log(error, PiazzaLogger.ERROR);
+			logger.log(error, Severity.ERROR);
 			// Return Error
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
 			String error = String.format("Error checking authorization: %s: %s", authorizationCheck.toString(), exception.getMessage());
 			LOGGER.error(error, exception);
-			logger.log(error, PiazzaLogger.ERROR);
+			logger.log(error, Severity.ERROR);
 			// Return Error
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
 		}

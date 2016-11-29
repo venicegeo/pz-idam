@@ -105,13 +105,17 @@ public class ControllerTests {
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse) response.getBody()).message.equals("UUID is null!"));
+		assertTrue(((ErrorResponse) response.getBody()).message.contains("UUID is null"));
 
 		// (2) Mock uuid is present in request, but missing
 		Map<String, String> body = new HashMap<String, String>();
 		body.put("uuid", "1234");
 		when(mongoAccessor.getUsername("1234")).thenReturn(null);
 		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(false);
+		
+		UserProfile mockProfile = new UserProfile();
+		mockProfile.setUsername("bsmith");
+		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
 
 		// Test
 		response = authenticationController.authenticateUserByUUID(body);
@@ -121,8 +125,6 @@ public class ControllerTests {
 		assertFalse(((AuthenticationResponse) (response.getBody())).authenticated);
 
 		// (3) Mock uuid is present in request, and valid
-		UserProfile mockProfile = new UserProfile();
-		mockProfile.setUsername("bsmith");
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
 		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(true);
 
@@ -136,7 +138,7 @@ public class ControllerTests {
 
 		// (4) Mock Exception thrown
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenThrow(new RuntimeException("My Bad"));
-		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.anyString());
+		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.any());
 
 		// Test
 		response = authenticationController.authenticateUserByUUID(body);
@@ -217,7 +219,7 @@ public class ControllerTests {
 		// (6) Mock Exception
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
 		//when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
-		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.anyString());
+		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.any());
 
 		// Test
 		response = authenticationController.retrieveUUID();
