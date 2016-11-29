@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.data.MongoAccessor;
 
+import model.logger.AuditElement;
+import model.logger.Severity;
 import model.response.AuthenticationResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
@@ -78,15 +80,18 @@ public class AuthenticationController {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
 				UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
+				pzLogger.log("Verified API Key.", Severity.INFORMATIONAL,
+						new AuditElement(userProfile.getUsername(), "verifiedApiKey", uuid));
 				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(userProfile, mongoAccessor.isApiKeyValid(uuid)),
 						HttpStatus.OK);
 			} else {
-				return new ResponseEntity<>(new ErrorResponse("UUID is null!", IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+				pzLogger.log("Received a null API Key during verification.", Severity.INFORMATIONAL);
+				return new ResponseEntity<>(new ErrorResponse("UUID is null.", IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);
-			pzLogger.log(error, PiazzaLogger.ERROR);
+			pzLogger.log(error, Severity.ERROR);
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -140,17 +145,20 @@ public class AuthenticationController {
 							mongoAccessor.createApiKey(username, uuid);
 						}
 
+						pzLogger.log("Successfully verified Key.", Severity.INFORMATIONAL,
+								new AuditElement(username, "generateApiKey", uuid));
 						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);
 					}
 				}
 			}
 
-			return new ResponseEntity<>(new ErrorResponse("Authentication failed for user " + username, IDAM_COMPONENT_NAME),
-					HttpStatus.UNAUTHORIZED);
+			String error = "Authentication failed for user " + username;
+			pzLogger.log(error, Severity.INFORMATIONAL, new AuditElement(username, "failedToGenerateKey", ""));
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);
-			pzLogger.log(error, PiazzaLogger.ERROR);
+			pzLogger.log(error, Severity.ERROR);
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

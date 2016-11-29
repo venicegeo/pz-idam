@@ -44,7 +44,7 @@ import model.job.type.AccessJob;
 import model.job.type.ExecuteServiceJob;
 import model.job.type.IngestJob;
 import model.job.type.RepeatJob;
-import model.request.PiazzaJobRequest;
+import model.logger.Severity;
 import util.PiazzaLogger;
 
 /**
@@ -117,7 +117,7 @@ public class JobConsumer {
 								"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
 								consumerRecord.key(), exception.getMessage());
 						LOGGER.error(error, exception);
-						pzLogger.log(error, PiazzaLogger.ERROR);
+						pzLogger.log(error, Severity.ERROR);
 					}
 				}
 			}
@@ -125,7 +125,7 @@ public class JobConsumer {
 		} catch (WakeupException exception) {
 			String error = String.format("Polling Thread forcefully closed: %s", exception.getMessage());
 			LOGGER.error(error, exception);
-			pzLogger.log(error, PiazzaLogger.FATAL);
+			pzLogger.log(error, Severity.ERROR);
 		}
 	}
 
@@ -153,7 +153,7 @@ public class JobConsumer {
 					"Error updating Throttle for Component %s for User %s : %s. The users Throttles could not be updated.", component,
 					username, exception.getMessage());
 			LOGGER.error(error, exception);
-			pzLogger.log(error, PiazzaLogger.ERROR);
+			pzLogger.log(error, Severity.ERROR);
 		}
 	}
 }

@@ -32,6 +32,7 @@ import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
 import com.mongodb.MongoException;
 
+import model.logger.Severity;
 import model.security.authz.Permission;
 import util.PiazzaLogger;
 
@@ -79,7 +80,7 @@ public class ThrottleAuthorizer implements Authorizer {
 						"Error getting number of invocations for Auth Check %s. %s. Throttle authorization checks may not be functioning correctly.",
 						authorizationCheck.toString(), mongoException.getMessage());
 				LOGGER.error(error, mongoException);
-				pzLogger.log(error, PiazzaLogger.ERROR);
+				pzLogger.log(error, Severity.ERROR);
 				// Currently, do not deny this request. The database is not properly working and we don't want to
 				// blacklist everything if the database can't be reached.
 			}

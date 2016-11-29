@@ -40,6 +40,7 @@ import org.venice.piazza.idam.model.Principal;
 import org.venice.piazza.idam.model.PrincipalItem;
 
 import model.security.authz.UserProfile;
+import util.PiazzaLogger;
 
 public class GxAuthTests {
 
@@ -47,6 +48,8 @@ public class GxAuthTests {
 	private RestTemplate restTemplate;
 	@Mock
 	private MongoAccessor mongoAccessor;
+	@Mock
+	private PiazzaLogger logger;
 
 	@InjectMocks
 	private GxAuthenticator gxAuthenticator;
@@ -124,6 +127,7 @@ public class GxAuthTests {
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("testuser");
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("UID"))).thenReturn(mockProfile);
+		when(mongoAccessor.getUserProfileByUsername(Mockito.any())).thenReturn(mockProfile);
 
 		principal.setPrincipal(Arrays.asList(principalItem));
 		gxResponse.setPrincipals(principal);

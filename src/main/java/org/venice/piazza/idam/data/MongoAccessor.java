@@ -38,6 +38,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 
+import model.logger.Severity;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 
@@ -73,7 +74,7 @@ public class MongoAccessor {
 		} catch (Exception exception) {
 			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
 			LOGGER.error(error, exception);
-			pzLogger.log(error, PiazzaLogger.ERROR);
+			pzLogger.log(error, Severity.ERROR);
 		}
 	}
 
