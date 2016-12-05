@@ -15,13 +15,16 @@
  **/
 package org.venice.piazza.idam.model;
 
+import java.io.Serializable;
+
 /**
  * Represents the Response object for an Authorization check endpoint.
  * 
  * @author Patrick.Doody
  *
  */
-public class AuthResponse {
+public class AuthResponse implements Serializable {
+	private static final long serialVersionUID = 1L;
 	public Boolean authorized;
 	public Object details;
 
