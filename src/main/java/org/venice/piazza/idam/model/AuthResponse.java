@@ -26,7 +26,7 @@ import java.io.Serializable;
 public class AuthResponse implements Serializable {
 	private static final long serialVersionUID = 1L;
 	public Boolean authorized;
-	public Object details;
+	public String details;
 
 	public AuthResponse() {
 	}
@@ -35,7 +35,7 @@ public class AuthResponse implements Serializable {
 		this.authorized = authorized;
 	}
 
-	public AuthResponse(Boolean authorized, Object details) {
+	public AuthResponse(Boolean authorized, String details) {
 		this(authorized);
 		this.details = details;
 	}
