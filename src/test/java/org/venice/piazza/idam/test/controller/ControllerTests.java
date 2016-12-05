@@ -25,15 +25,16 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.controller.AdminController;
 import org.venice.piazza.idam.controller.AuthenticationController;
 import org.venice.piazza.idam.data.MongoAccessor;
@@ -65,6 +66,9 @@ public class ControllerTests {
 
 	@Mock
 	private PiazzaLogger logger;
+
+	@Mock
+	private PiazzaAuthenticator piazzaAuthenticator;
 
 	@InjectMocks
 	private AdminController adminController;
@@ -112,7 +116,7 @@ public class ControllerTests {
 		body.put("uuid", "1234");
 		when(mongoAccessor.getUsername("1234")).thenReturn(null);
 		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(false);
-		
+
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("bsmith");
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
@@ -149,7 +153,6 @@ public class ControllerTests {
 	}
 
 	@Test
-	@Ignore
 	public void testRetrieveUUID() {
 
 		// (1) Mock - Header is missing
@@ -166,18 +169,18 @@ public class ControllerTests {
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("testuser");
-		//when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass"))
-		//		.thenReturn(new AuthenticationResponse(mockProfile, false));
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
+				.thenReturn(new AuthenticationResponse(mockProfile, false));
 
 		// Test
 		response = authenticationController.retrieveUUID();
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse) (response.getBody())).message.contains("Authentication failed for user"));
 
 		// (3) Mock - Header present, BASIC Auth succeeds, new key
-		//when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthenticationResponse(mockProfile, true));
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
+				.thenReturn(new AuthenticationResponse(mockProfile, true));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getApiKey("testuser")).thenReturn(null);
 		Mockito.doNothing().when(mongoAccessor).createApiKey("testuser", "1234");
@@ -203,8 +206,8 @@ public class ControllerTests {
 		// (5) Mock - Header present, PKI Auth succeeds, replacing key with new
 		when(request.getHeader("Authorization"))
 				.thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
-		//when(ldapAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----"))
-		//		.thenReturn(new AuthenticationResponse(mockProfile, true));
+		when(piazzaAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----"))
+				.thenReturn(new AuthenticationResponse(mockProfile, true));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getApiKey("testuser")).thenReturn("4321");
 		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");
@@ -218,7 +221,7 @@ public class ControllerTests {
 
 		// (6) Mock Exception
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
-		//when(ldapAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenThrow(new RuntimeException("My Bad"));
 		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.any());
 
 		// Test
