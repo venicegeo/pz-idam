@@ -15,11 +15,11 @@
  **/
 package org.venice.piazza.idam.authn;
 
-import model.response.AuthenticationResponse;
+import model.response.AuthResponse;
 
 public interface PiazzaAuthenticator {
 
-	public AuthenticationResponse getAuthenticationDecision(String username, String credential);
+	public AuthResponse getAuthenticationDecision(String username, String credential);
 
-	public AuthenticationResponse getAuthenticationDecision(String pem);
+	public AuthResponse getAuthenticationDecision(String pem);
 }

@@ -30,7 +30,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -39,7 +38,7 @@ import org.venice.piazza.idam.controller.AdminController;
 import org.venice.piazza.idam.controller.AuthenticationController;
 import org.venice.piazza.idam.data.MongoAccessor;
 
-import model.response.AuthenticationResponse;
+import model.response.AuthResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UUIDResponse;
@@ -105,16 +104,15 @@ public class ControllerTests {
 		// (1) Mock uuid is missing
 
 		// Test
-		ResponseEntity<PiazzaResponse> response = authenticationController.authenticateUserByUUID(new HashMap<String, String>());
+		ResponseEntity<AuthResponse> response = authenticationController.authenticateUserByUUID(new HashMap<String, String>());
 
 		// Verify
-		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse) response.getBody()).message.contains("UUID is null"));
+		assertTrue(response.getBody() instanceof AuthResponse);
+		assertTrue(((AuthResponse) response.getBody()).getIsAuthSuccess().booleanValue() == false);
 
 		// (2) Mock uuid is present in request, but missing
 		Map<String, String> body = new HashMap<String, String>();
 		body.put("uuid", "1234");
-		when(mongoAccessor.getUsername("1234")).thenReturn(null);
 		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(false);
 
 		UserProfile mockProfile = new UserProfile();
@@ -125,8 +123,8 @@ public class ControllerTests {
 		response = authenticationController.authenticateUserByUUID(body);
 
 		// Verify
-		assertTrue(response.getBody() instanceof AuthenticationResponse);
-		assertFalse(((AuthenticationResponse) (response.getBody())).authenticated);
+		assertTrue(response.getBody() instanceof AuthResponse);
+		assertTrue(((AuthResponse) response.getBody()).getIsAuthSuccess().booleanValue() == false);
 
 		// (3) Mock uuid is present in request, and valid
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
@@ -136,9 +134,9 @@ public class ControllerTests {
 		response = authenticationController.authenticateUserByUUID(body);
 
 		// Verify
-		assertTrue(response.getBody() instanceof AuthenticationResponse);
-		assertTrue(((AuthenticationResponse) (response.getBody())).authenticated);
-		assertTrue(((AuthenticationResponse) (response.getBody())).getProfile().getUsername().equals("bsmith"));
+		assertTrue(response.getBody() instanceof AuthResponse);
+		assertTrue(((AuthResponse) response.getBody()).getIsAuthSuccess().booleanValue());
+		assertTrue(((AuthResponse) response.getBody()).getUserProfile().getUsername().equals("bsmith"));
 
 		// (4) Mock Exception thrown
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenThrow(new RuntimeException("My Bad"));
@@ -148,8 +146,8 @@ public class ControllerTests {
 		response = authenticationController.authenticateUserByUUID(body);
 
 		// Verify
-		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error authenticating UUID: My Bad"));
+		assertTrue(response.getBody() instanceof AuthResponse);
+		assertTrue(((AuthResponse) response.getBody()).getIsAuthSuccess().booleanValue() == false);
 	}
 
 	@Test
@@ -170,7 +168,7 @@ public class ControllerTests {
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("testuser");
 		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
-				.thenReturn(new AuthenticationResponse(mockProfile, false));
+				.thenReturn(new AuthResponse(false, mockProfile));
 
 		// Test
 		response = authenticationController.retrieveUUID();
@@ -180,7 +178,7 @@ public class ControllerTests {
 
 		// (3) Mock - Header present, BASIC Auth succeeds, new key
 		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
-				.thenReturn(new AuthenticationResponse(mockProfile, true));
+				.thenReturn(new AuthResponse(true, mockProfile));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getApiKey("testuser")).thenReturn(null);
 		Mockito.doNothing().when(mongoAccessor).createApiKey("testuser", "1234");
@@ -207,7 +205,7 @@ public class ControllerTests {
 		when(request.getHeader("Authorization"))
 				.thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
 		when(piazzaAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----"))
-				.thenReturn(new AuthenticationResponse(mockProfile, true));
+				.thenReturn(new AuthResponse(true, mockProfile));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getApiKey("testuser")).thenReturn("4321");
 		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");

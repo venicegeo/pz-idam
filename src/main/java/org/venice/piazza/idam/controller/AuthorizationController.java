@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -34,12 +35,12 @@ import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
 import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
+import model.response.AuthResponse;
 import util.PiazzaLogger;
 
 /**
@@ -72,12 +73,58 @@ public class AuthorizationController {
 	}
 
 	/**
+	 * Authorization check with included Authentication check.
+	 * <p>
+	 * Parameters define the username requesting an action. The path variable is the API Key of the user. This must
+	 * match the username provided in the payload, or an error will be generated.
+	 * </p>
+	 * 
+	 * @param authCheck
+	 *            The model holding the username and the action
+	 * @param apiKey
+	 *            The API Key for the user. Must match the username in the authCheck.
+	 * @return Auth response. This contains the Boolean which determines if the user is able to perform the specified
+	 *         action, and additional information for details of the check.
+	 */
+	@RequestMapping(value = "/authorization/{apiKey}", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck,
+			@PathVariable(required = true) String apiKey) {
+		try {
+			// Check the validity of the API Key
+			if (!mongoAccessor.isApiKeyValid(apiKey)) {
+				throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
+			}
+			// Ensure the API Key matches the Payload
+			if (!mongoAccessor.getUsername(apiKey).equals(authorizationCheck.getUsername())) {
+				throw new AuthorizationException("Failed to Authenticate.",
+						new AuthResponse(false, "API Key identity does not match the authorization check username."));
+			}
+			// Perform Authorization Check
+			return canUserPerformAction(authorizationCheck);
+			// Return Response
+		} catch (AuthorizationException authException) {
+			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
+			LOGGER.error(error, authException);
+			logger.log(error, Severity.ERROR);
+			// Return Error
+			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
+		} catch (Exception exception) {
+			// Logging
+			String error = String.format("Error checking auth: %s: %s", authorizationCheck.toString(), exception.getMessage());
+			LOGGER.error(error, exception);
+			logger.log(error, Severity.ERROR);
+			// Return Error
+			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
 	 * Authorization check. Parameters define the username requesting an action.
 	 * 
 	 * @param authCheck
 	 *            The model holding the username and the action
-	 * @return Authorization response. This contains the Boolean which determines if the user is able to perform the
-	 *         specified action, and additional information for details of the check.
+	 * @return Auth response. This contains the Boolean which determines if the user is able to perform the specified
+	 *         action, and additional information for details of the check.
 	 */
 	@RequestMapping(value = "/authorization", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
@@ -88,7 +135,7 @@ public class AuthorizationController {
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
 				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
-				if (response.getAuthorized().booleanValue() == false) {
+				if (response.getIsAuthSuccess().booleanValue() == false) {
 					logger.log("Failed authorization check.", Severity.INFORMATIONAL,
 							new AuditElement(authorizationCheck.getUsername(), "authorizationCheckFailed", authorizationCheck.toString()));
 					throw new AuthorizationException("Failed to Authorize", response);

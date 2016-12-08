@@ -15,8 +15,9 @@
  **/
 package org.venice.piazza.idam.authz;
 
-import org.venice.piazza.idam.model.AuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationCheck;
+
+import model.response.AuthResponse;
 
 /**
  * Interface that can be implemented by Authorization components that can either authorize or deny a specific action

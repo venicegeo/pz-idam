@@ -15,7 +15,7 @@
  **/
 package org.venice.piazza.idam.model.authz;
 
-import org.venice.piazza.idam.model.AuthResponse;
+import model.response.AuthResponse;
 
 /**
  * An authorization exception.

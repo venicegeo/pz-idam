@@ -36,7 +36,7 @@ import org.venice.piazza.idam.data.MongoAccessor;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
-import model.response.AuthenticationResponse;
+import model.response.AuthResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UUIDResponse;
@@ -72,27 +72,36 @@ public class AuthenticationController {
 	 * @param body
 	 *            A JSON object containing the 'uuid' field.
 	 * 
-	 * @return AuthenticationResponse object containing the verification boolean of true or false
+	 * @return AuthResponse object containing the verification boolean of true or false
 	 */
 	@RequestMapping(value = "/v2/verification", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PiazzaResponse> authenticateUserByUUID(@RequestBody Map<String, String> body) {
+	public ResponseEntity<AuthResponse> authenticateUserByUUID(@RequestBody Map<String, String> body) {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
-				pzLogger.log("Verified API Key.", Severity.INFORMATIONAL,
-						new AuditElement(userProfile.getUsername(), "verifiedApiKey", uuid));
-				return new ResponseEntity<PiazzaResponse>(new AuthenticationResponse(userProfile, mongoAccessor.isApiKeyValid(uuid)),
-						HttpStatus.OK);
+				if (mongoAccessor.isApiKeyValid(uuid)) {
+					// Look up the user profile
+					UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
+					pzLogger.log("Verified API Key.", Severity.INFORMATIONAL,
+							new AuditElement(userProfile.getUsername(), "verifiedApiKey", ""));
+					// Send back the success
+					return new ResponseEntity<>(new AuthResponse(true, userProfile), HttpStatus.OK);
+				} else {
+					// Record the error
+					pzLogger.log("Unable to verify API Key.", Severity.INFORMATIONAL,
+							new AuditElement("idam", "failedToVerifyApiKey", uuid));
+					return new ResponseEntity<>(new AuthResponse(false), HttpStatus.UNAUTHORIZED);
+				}
+
 			} else {
 				pzLogger.log("Received a null API Key during verification.", Severity.INFORMATIONAL);
-				return new ResponseEntity<>(new ErrorResponse("UUID is null.", IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+				return new ResponseEntity<>(new AuthResponse(false, "API Key is null."), HttpStatus.BAD_REQUEST);
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error authenticating UUID: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -120,9 +129,9 @@ public class AuthenticationController {
 
 					// PKI Auth
 					if (decodedAuthNInfo.split(":").length == 1) {
-						AuthenticationResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-						if (authResponse.getAuthenticated()) {
-							username = authResponse.getProfile().getUsername();
+						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
+						if (authResponse.getIsAuthSuccess()) {
+							username = authResponse.getUserProfile().getUsername();
 							uuid = uuidFactory.getUUID();
 						}
 					}
@@ -133,7 +142,7 @@ public class AuthenticationController {
 						username = decodedUserPassParts[0];
 						String credential = decodedUserPassParts[1];
 
-						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getAuthenticated()) {
+						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getIsAuthSuccess()) {
 							uuid = uuidFactory.getUUID();
 						}
 					}
