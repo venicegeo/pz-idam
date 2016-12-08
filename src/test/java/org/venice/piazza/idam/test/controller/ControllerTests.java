@@ -15,7 +15,6 @@
  **/
 package org.venice.piazza.idam.test.controller;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -35,7 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.controller.AdminController;
-import org.venice.piazza.idam.controller.AuthenticationController;
+import org.venice.piazza.idam.controller.AuthController;
 import org.venice.piazza.idam.data.MongoAccessor;
 
 import model.response.AuthResponse;
@@ -73,7 +72,7 @@ public class ControllerTests {
 	private AdminController adminController;
 
 	@InjectMocks
-	private AuthenticationController authenticationController;
+	private AuthController authenticationController;
 
 	/**
 	 * Initialize mock objects.
