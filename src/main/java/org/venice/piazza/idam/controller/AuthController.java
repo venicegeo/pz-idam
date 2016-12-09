@@ -185,7 +185,7 @@ public class AuthController {
 	}
 
 	/**
-	 * Retrieves a UUID based on the provided username and credential
+	 * Retrieves an API Key based on the provided username and credential for GeoAxis.
 	 * 
 	 * @param body
 	 *            A JSON object containing the 'username' and 'credential' fields.
@@ -193,7 +193,7 @@ public class AuthController {
 	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
 	 */
 	@RequestMapping(value = "/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PiazzaResponse> retrieveUUID() {
+	public ResponseEntity<PiazzaResponse> generateApiKey() {
 		try {
 			String headerValue = request.getHeader("Authorization");
 			String username = null;

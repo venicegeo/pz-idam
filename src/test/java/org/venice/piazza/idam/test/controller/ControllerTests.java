@@ -156,7 +156,7 @@ public class ControllerTests {
 		when(request.getHeader("Authorization")).thenReturn(null);
 
 		// Test
-		ResponseEntity<PiazzaResponse> response = authenticationController.retrieveUUID();
+		ResponseEntity<PiazzaResponse> response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
@@ -170,7 +170,7 @@ public class ControllerTests {
 				.thenReturn(new AuthResponse(false, mockProfile));
 
 		// Test
-		response = authenticationController.retrieveUUID();
+		response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
@@ -183,7 +183,7 @@ public class ControllerTests {
 		Mockito.doNothing().when(mongoAccessor).createApiKey("testuser", "1234");
 
 		// Test
-		response = authenticationController.retrieveUUID();
+		response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof UUIDResponse);
@@ -194,7 +194,7 @@ public class ControllerTests {
 		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");
 
 		// Test
-		response = authenticationController.retrieveUUID();
+		response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof UUIDResponse);
@@ -210,7 +210,7 @@ public class ControllerTests {
 		Mockito.doNothing().when(mongoAccessor).updateApiKey("testuser", "1234");
 
 		// Test
-		response = authenticationController.retrieveUUID();
+		response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof UUIDResponse);
@@ -222,7 +222,7 @@ public class ControllerTests {
 		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.any());
 
 		// Test
-		response = authenticationController.retrieveUUID();
+		response = authenticationController.generateApiKey();
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
