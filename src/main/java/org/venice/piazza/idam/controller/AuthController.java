@@ -137,6 +137,7 @@ public class AuthController {
 	@RequestMapping(value = "/authz", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<AuthResponse> authenticateAndAuthorize(@RequestBody AuthorizationCheck authorizationCheck) {
 		try {
+			// Log the check
 			pzLogger.log("Checking Authorization for Action.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckForAction", authorizationCheck.toString()));
 
@@ -145,11 +146,23 @@ public class AuthController {
 			if (authorizationCheck.getApiKey() != null) {
 				if (!mongoAccessor.isApiKeyValid(authorizationCheck.getApiKey())) {
 					throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
+				} else {
+					// If the API Key was specified, but the user name was not, then populate the username so that the
+					// Authorizers below can function.
+					if (authorizationCheck.getUsername() == null) {
+						authorizationCheck.setUsername(mongoAccessor.getUsername(authorizationCheck.getApiKey()));
+					}
 				}
 				// Ensure the API Key matches the Payload
 				if (!mongoAccessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
 					throw new AuthorizationException("Failed to Authenticate.",
 							new AuthResponse(false, "API Key identity does not match the authorization check username."));
+				}
+			} else {
+				// If the user specifies neither an API Key or a Username, then the request parameters are insufficient.
+				if (authorizationCheck.getUsername() == null) {
+					throw new AuthorizationException("Incomplete request details",
+							new AuthResponse(false, "API Key or Username not specified."));
 				}
 			}
 
