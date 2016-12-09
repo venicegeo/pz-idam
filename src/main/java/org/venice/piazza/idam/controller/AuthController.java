@@ -97,7 +97,7 @@ public class AuthController {
 	 * @return AuthResponse object containing the verification boolean of true or false
 	 */
 	@RequestMapping(value = "/authn", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<AuthResponse> authenticateUserByUUID(@RequestBody Map<String, String> body) {
+	public ResponseEntity<AuthResponse> authenticateApiKey(@RequestBody Map<String, String> body) {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
@@ -128,52 +128,6 @@ public class AuthController {
 	}
 
 	/**
-	 * Full Auth check. Authorization check with included Authentication check.
-	 * <p>
-	 * Parameters define the username requesting an action. The path variable is the API Key of the user. This must
-	 * match the username provided in the payload, or an error will be generated.
-	 * </p>
-	 * 
-	 * @param authCheck
-	 *            The model holding the username and the action
-	 * @param apiKey
-	 *            The API Key for the user. Must match the username in the authCheck.
-	 * @return Auth response. This contains the Boolean which determines if the user is able to perform the specified
-	 *         action, and additional information for details of the check.
-	 */
-	@RequestMapping(value = "/fullauth/{apiKey}", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck,
-			@PathVariable(required = true) String apiKey) {
-		try {
-			// Check the validity of the API Key
-			if (!mongoAccessor.isApiKeyValid(apiKey)) {
-				throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
-			}
-			// Ensure the API Key matches the Payload
-			if (!mongoAccessor.getUsername(apiKey).equals(authorizationCheck.getUsername())) {
-				throw new AuthorizationException("Failed to Authenticate.",
-						new AuthResponse(false, "API Key identity does not match the authorization check username."));
-			}
-			// Perform Authorization Check
-			return canUserPerformAction(authorizationCheck);
-			// Return Response
-		} catch (AuthorizationException authException) {
-			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
-			LOGGER.error(error, authException);
-			pzLogger.log(error, Severity.ERROR);
-			// Return Error
-			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
-		} catch (Exception exception) {
-			// Logging
-			String error = String.format("Error checking auth: %s: %s", authorizationCheck.toString(), exception.getMessage());
-			LOGGER.error(error, exception);
-			pzLogger.log(error, Severity.ERROR);
-			// Return Error
-			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	/**
 	 * Authorization check. Parameters define the username requesting an action.
 	 * 
 	 * @param authCheck
@@ -182,10 +136,23 @@ public class AuthController {
 	 *         action, and additional information for details of the check.
 	 */
 	@RequestMapping(value = "/authz", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<AuthResponse> canUserPerformAction(@RequestBody AuthorizationCheck authorizationCheck) {
+	public ResponseEntity<AuthResponse> authenticateAndAuthorize(@RequestBody AuthorizationCheck authorizationCheck) {
 		try {
 			pzLogger.log("Checking Authorization for Action.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckForAction", authorizationCheck.toString()));
+
+			// If the API Key is specified, then also perform authentication before doing the authorization check.
+			// Check the validity of the API Key
+			if (authorizationCheck.getApiKey() != null) {
+				if (!mongoAccessor.isApiKeyValid(authorizationCheck.getApiKey())) {
+					throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
+				}
+				// Ensure the API Key matches the Payload
+				if (!mongoAccessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
+					throw new AuthorizationException("Failed to Authenticate.",
+							new AuthResponse(false, "API Key identity does not match the authorization check username."));
+				}
+			}
 
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {

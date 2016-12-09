@@ -103,7 +103,7 @@ public class ControllerTests {
 		// (1) Mock uuid is missing
 
 		// Test
-		ResponseEntity<AuthResponse> response = authenticationController.authenticateUserByUUID(new HashMap<String, String>());
+		ResponseEntity<AuthResponse> response = authenticationController.authenticateApiKey(new HashMap<String, String>());
 
 		// Verify
 		assertTrue(response.getBody() instanceof AuthResponse);
@@ -119,7 +119,7 @@ public class ControllerTests {
 		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("1234"))).thenReturn(mockProfile);
 
 		// Test
-		response = authenticationController.authenticateUserByUUID(body);
+		response = authenticationController.authenticateApiKey(body);
 
 		// Verify
 		assertTrue(response.getBody() instanceof AuthResponse);
@@ -130,7 +130,7 @@ public class ControllerTests {
 		when(mongoAccessor.isApiKeyValid("1234")).thenReturn(true);
 
 		// Test
-		response = authenticationController.authenticateUserByUUID(body);
+		response = authenticationController.authenticateApiKey(body);
 
 		// Verify
 		assertTrue(response.getBody() instanceof AuthResponse);
@@ -142,7 +142,7 @@ public class ControllerTests {
 		Mockito.doNothing().when(logger).log(Mockito.anyString(), Mockito.any());
 
 		// Test
-		response = authenticationController.authenticateUserByUUID(body);
+		response = authenticationController.authenticateApiKey(body);
 
 		// Verify
 		assertTrue(response.getBody() instanceof AuthResponse);

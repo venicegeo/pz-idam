@@ -15,6 +15,11 @@
  **/
 package org.venice.piazza.idam.model.authz;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+import io.swagger.annotations.ApiModelProperty;
 import model.security.authz.Permission;
 
 /**
@@ -23,9 +28,15 @@ import model.security.authz.Permission;
  * @author Patrick.Doody
  *
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(Include.NON_NULL)
 public class AuthorizationCheck {
+	@ApiModelProperty(value = "The name of the user.", required = true)
 	public String username;
+	@ApiModelProperty(value = "Describes the action the user wishes to take.", required = true)
 	public Permission action;
+	@ApiModelProperty(value = "The API Key for the user. If this is included, then authentication will be conducted on this API Key before authorization on the Permission takes place.", required = false)
+	public String apiKey;
 
 	/**
 	 * Default constructor
@@ -53,5 +64,13 @@ public class AuthorizationCheck {
 
 	public void setAction(Permission action) {
 		this.action = action;
+	}
+
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
 	}
 }
