@@ -23,10 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.ProfileTemplateFactory;
-import org.venice.piazza.idam.model.AuthResponse;
-import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
 import model.logger.Severity;
+import model.response.AuthResponse;
+import model.security.authz.AuthorizationCheck;
 import model.security.authz.ProfileTemplate;
 import util.PiazzaLogger;
 
@@ -46,37 +46,33 @@ public class EndpointAuthorizer implements Authorizer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(EndpointAuthorizer.class);
 
-	@Override
+	/**
+	 * TODO: This is a placeholder. We will eventually delegate this call to GeoAxis. No need to use Piazza code for
+	 * this, for now.
+	 */
 	public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) {
-		// Get the Profile Template for the user requesting the action. This Template contains endpoint information.
-		String username = authorizationCheck.getUsername();
-		ProfileTemplate profileTemplate;
-		try {
-			profileTemplate = profileTemplateFactory.getProfileTemplateForUser(username);
-		} catch (IOException exception) {
-			String message = String.format("Error getting Profile Template from provider for %s Cannot grant access as a result. Error: %s",
-					authorizationCheck.toString(), exception.getMessage());
-			LOGGER.error(message, exception);
-			pzLogger.log(message, Severity.ERROR);
-			return new AuthResponse(false, message);
-		}
-		// Get the appropriate Permission from the Profile Template that matches the Permission
-		String keyName = authorizationCheck.getAction().getKeyName();
-		// Ensure the key exists
-		if (profileTemplate.getPermissions().containsKey(keyName) == false) {
-			pzLogger.log(String.format("%s denied by Endpoint Authorizer. Method and URI name does not contain a Permission.",
-					authorizationCheck.toString()), Severity.INFORMATIONAL);
-			return new AuthResponse(false,
-					String.format("The %s endpoint does not have a defined Permission.", authorizationCheck.getAction().toString()));
-		}
-		boolean canPerformAction = profileTemplate.getPermissions().get(keyName);
-		if (canPerformAction) {
-			pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()), Severity.INFORMATIONAL);
-			return new AuthResponse(true);
-		} else {
-			pzLogger.log(String.format("%s denied by Endpoint Authorizer.", authorizationCheck.toString()), Severity.INFORMATIONAL);
-			return new AuthResponse(false, String.format("The user does not have the ability to access the %s endpoint.",
-					authorizationCheck.getAction().toString()));
-		}
+		return new AuthResponse(true);
 	}
+
+	/*
+	 * @Override public AuthResponse canUserPerformAction(AuthorizationCheck authorizationCheck) { // Get the Profile
+	 * Template for the user requesting the action. This Template contains endpoint information. String username =
+	 * authorizationCheck.getUsername(); ProfileTemplate profileTemplate; try { profileTemplate =
+	 * profileTemplateFactory.getProfileTemplateForUser(username); } catch (IOException exception) { String message =
+	 * String.format("Error getting Profile Template from provider for %s Cannot grant access as a result. Error: %s",
+	 * authorizationCheck.toString(), exception.getMessage()); LOGGER.error(message, exception); pzLogger.log(message,
+	 * Severity.ERROR); return new AuthResponse(false, message); } // Get the appropriate Permission from the Profile
+	 * Template that matches the Permission String keyName = authorizationCheck.getAction().getKeyName(); // Ensure the
+	 * key exists if (profileTemplate.getPermissions().containsKey(keyName) == false) {
+	 * pzLogger.log(String.format("%s denied by Endpoint Authorizer. Method and URI name does not contain a Permission."
+	 * , authorizationCheck.toString()), Severity.INFORMATIONAL); return new AuthResponse(false,
+	 * String.format("The %s endpoint does not have a defined Permission.", authorizationCheck.getAction().toString()));
+	 * } boolean canPerformAction = profileTemplate.getPermissions().get(keyName); if (canPerformAction) {
+	 * pzLogger.log(String.format("%s granted by Endpoint Authorizer.", authorizationCheck.toString()),
+	 * Severity.INFORMATIONAL); return new AuthResponse(true); } else {
+	 * pzLogger.log(String.format("%s denied by Endpoint Authorizer.", authorizationCheck.toString()),
+	 * Severity.INFORMATIONAL); return new AuthResponse(false,
+	 * String.format("The user does not have the ability to access the %s endpoint.",
+	 * authorizationCheck.getAction().toString())); } }
+	 */
 }

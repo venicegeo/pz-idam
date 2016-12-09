@@ -30,10 +30,16 @@ import org.venice.piazza.idam.model.PrincipalItem;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
-import model.response.AuthenticationResponse;
+import model.response.AuthResponse;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 
+/**
+ * AuthN requests to GeoAxis to verify user identity via user name/password or PKI cert.
+ * 
+ * @author Russel.Orf
+ *
+ */
 @Component
 @Profile({ "geoaxis" })
 public class GxAuthenticator implements PiazzaAuthenticator {
@@ -55,7 +61,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private MongoAccessor mongoAccessor;
 
 	@Override
-	public AuthenticationResponse getAuthenticationDecision(String username, String credential) {
+	public AuthResponse getAuthenticationDecision(String username, String credential) {
 		logger.log(String.format("Performing credential check for Username %s to GeoAxis.", username), Severity.INFORMATIONAL,
 				new AuditElement(username, "loginAttempt", ""));
 		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
@@ -70,11 +76,11 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				Severity.INFORMATIONAL,
 				new AuditElement(username, gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
 
-		return new AuthenticationResponse(mongoAccessor.getUserProfileByUsername(username), gxResponse.isSuccessful());
+		return new AuthResponse(gxResponse.isSuccessful(), mongoAccessor.getUserProfileByUsername(username));
 	}
 
 	@Override
-	public AuthenticationResponse getAuthenticationDecision(String pem) {
+	public AuthResponse getAuthenticationDecision(String pem) {
 		logger.log(String.format("Performing cert check for Cert %s", pem), Severity.INFORMATIONAL,
 				new AuditElement(pem, "loginCertAttempt", ""));
 
@@ -97,11 +103,11 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 					UserProfile profile = mongoAccessor.getUserProfileByUsername(item.getValue());
 					logger.log(String.format("GeoAxis response for Cert %s has passed authentication for Username %s", pem,
 							profile.getUsername()), Severity.INFORMATIONAL);
-					return new AuthenticationResponse(profile, gxResponse.isSuccessful());
+					return new AuthResponse(gxResponse.isSuccessful(), profile);
 				}
 			}
 		}
-		return new AuthenticationResponse(null, false);
+		return new AuthResponse(false);
 	}
 
 	private String getFormattedPem(String pem) {

@@ -83,7 +83,7 @@ public class GxAuthTests {
 				eq(GxAuthNResponse.class));
 
 		// Test
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith", "mypass").getAuthenticated();
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision("bsmith", "mypass").getIsAuthSuccess();
 
 		// Verify
 		assertFalse(isAuthenticated);
@@ -113,8 +113,8 @@ public class GxAuthTests {
 		// Test
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
 				eq(GxAuthNResponse.class));
-		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
-		UserProfile profile = gxAuthenticator.getAuthenticationDecision(testPEM).getProfile();
+		boolean isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getIsAuthSuccess();
+		UserProfile profile = gxAuthenticator.getAuthenticationDecision(testPEM).getUserProfile();
 
 		// Verify
 		assertFalse(isAuthenticated);
@@ -135,7 +135,7 @@ public class GxAuthTests {
 		// Test
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
 				eq(GxAuthNResponse.class));
-		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
+		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getIsAuthSuccess();
 
 		// Verify
 		assertFalse(isAuthenticated);
@@ -151,8 +151,8 @@ public class GxAuthTests {
 		// Test
 		Mockito.doReturn(gxResponse).when(restTemplate).postForObject(eq("https://geoaxis.api.com/atnrest/cert"), refEq(request),
 				eq(GxAuthNResponse.class));
-		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getAuthenticated();
-		profile = gxAuthenticator.getAuthenticationDecision(testPEM).getProfile();
+		isAuthenticated = gxAuthenticator.getAuthenticationDecision(testPEM).getIsAuthSuccess();
+		profile = gxAuthenticator.getAuthenticationDecision(testPEM).getUserProfile();
 
 		// Verify
 		assertFalse(isAuthenticated);

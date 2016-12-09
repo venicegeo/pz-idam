@@ -27,12 +27,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.AuthResponse;
-import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
 import com.mongodb.MongoException;
 
 import model.logger.Severity;
+import model.response.AuthResponse;
+import model.security.authz.AuthorizationCheck;
 import model.security.authz.Permission;
 import util.PiazzaLogger;
 
@@ -100,7 +100,8 @@ public class ThrottleAuthorizer implements Authorizer {
 	 */
 	private boolean isThrottleInvocationsExceeded(Integer invocations, String username) {
 		// TODO: Tie in some group management, roles, access, rules. Lots of stuff.
-		if (invocations > 1000) {
+		// This will be handled by GeoAxis.
+		if (invocations > 100000) {
 			return true;
 		} else {
 			return false;
