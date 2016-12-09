@@ -27,12 +27,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
 import com.mongodb.MongoException;
 
 import model.logger.Severity;
 import model.response.AuthResponse;
+import model.security.authz.AuthorizationCheck;
 import model.security.authz.Permission;
 import util.PiazzaLogger;
 

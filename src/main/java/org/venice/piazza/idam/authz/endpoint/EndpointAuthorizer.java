@@ -23,10 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.ProfileTemplateFactory;
-import org.venice.piazza.idam.model.authz.AuthorizationCheck;
 
 import model.logger.Severity;
 import model.response.AuthResponse;
+import model.security.authz.AuthorizationCheck;
 import model.security.authz.ProfileTemplate;
 import util.PiazzaLogger;
 
