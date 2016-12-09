@@ -179,7 +179,8 @@ public class AuthController {
 			// Return successful response.
 			pzLogger.log("Passed authorization check.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckPassed", authorizationCheck.toString()));
-			return new ResponseEntity<AuthResponse>(new AuthResponse(true), HttpStatus.OK);
+			return new ResponseEntity<AuthResponse>(
+					new AuthResponse(true, mongoAccessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
