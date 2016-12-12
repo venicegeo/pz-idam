@@ -81,7 +81,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Override
 	public AuthResponse getAuthenticationDecision(String pem) {
-		logger.log(String.format("Performing cert check for PKI Cert to GeoAxis"), Severity.INFORMATIONAL,
+		logger.log("Performing cert check for PKI Cert to GeoAxis", Severity.INFORMATIONAL,
 				new AuditElement("idam", "loginCertAttempt", ""));
 
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
@@ -92,7 +92,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
 
 		if (gxResponse.isSuccessful() == false) {
-			logger.log(String.format("GeoAxis response for PKI Cert has failed authentication."), Severity.INFORMATIONAL,
+			logger.log("GeoAxis response for PKI Cert has failed authentication.", Severity.INFORMATIONAL,
 					new AuditElement("idam", "userFailedCertAuthentication", ""));
 		}
 
