@@ -81,8 +81,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 	@Override
 	public AuthResponse getAuthenticationDecision(String pem) {
-		logger.log(String.format("Performing cert check for Cert %s", pem), Severity.INFORMATIONAL,
-				new AuditElement(pem, "loginCertAttempt", ""));
+		logger.log(String.format("Performing cert check for PKI Cert to GeoAxis"), Severity.INFORMATIONAL,
+				new AuditElement("idam", "loginCertAttempt", ""));
 
 		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
 		request.setPemCert(getFormattedPem(pem));
@@ -92,8 +92,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
 
 		if (gxResponse.isSuccessful() == false) {
-			logger.log(String.format("GeoAxis response for Cert %s has failed authentication.", pem), Severity.INFORMATIONAL,
-					new AuditElement(pem, "userFailedCertAuthentication", ""));
+			logger.log(String.format("GeoAxis response for PKI Cert has failed authentication."), Severity.INFORMATIONAL,
+					new AuditElement("idam", "userFailedCertAuthentication", ""));
 		}
 
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
@@ -101,8 +101,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			for (PrincipalItem item : listItems) {
 				if ("UID".equalsIgnoreCase(item.getName())) {
 					UserProfile profile = mongoAccessor.getUserProfileByUsername(item.getValue());
-					logger.log(String.format("GeoAxis response for Cert %s has passed authentication for Username %s", pem,
-							profile.getUsername()), Severity.INFORMATIONAL);
+					logger.log(String.format("GeoAxis response for PKI Cert has passed authentication, Username %s", profile.getUsername()),
+							Severity.INFORMATIONAL);
 					return new AuthResponse(gxResponse.isSuccessful(), profile);
 				}
 			}

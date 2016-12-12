@@ -247,7 +247,7 @@ public class AuthController {
 						}
 
 						pzLogger.log("Successfully verified Key.", Severity.INFORMATIONAL,
-								new AuditElement(username, "generateApiKey", uuid));
+								new AuditElement(username, "generateApiKey", ""));
 						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);
 					}
 				}
