@@ -33,6 +33,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
+import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
+import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
 import org.venice.piazza.idam.controller.AdminController;
 import org.venice.piazza.idam.controller.AuthController;
 import org.venice.piazza.idam.data.MongoAccessor;
@@ -41,36 +43,34 @@ import model.response.AuthResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UUIDResponse;
+import model.security.authz.AuthorizationCheck;
+import model.security.authz.Permission;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 import util.UUIDFactory;
 
 public class ControllerTests {
-
 	@Mock
 	private Environment env;
-
 	@Mock
 	private RestTemplate restTemplate;
-
 	@Mock
 	private MongoAccessor mongoAccessor;
-
 	@Mock
 	private UUIDFactory uuidFactory;
-
 	@Mock
 	private HttpServletRequest request;
-
 	@Mock
 	private PiazzaLogger logger;
-
 	@Mock
 	private PiazzaAuthenticator piazzaAuthenticator;
+	@Mock
+	private ThrottleAuthorizer throttleAuthorizer;
+	@Mock
+	private EndpointAuthorizer endpointAuthorizer;
 
 	@InjectMocks
 	private AdminController adminController;
-
 	@InjectMocks
 	private AuthController authenticationController;
 
@@ -166,8 +166,7 @@ public class ControllerTests {
 		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("testuser");
-		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
-				.thenReturn(new AuthResponse(false, mockProfile));
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthResponse(false, mockProfile));
 
 		// Test
 		response = authenticationController.generateApiKey();
@@ -176,8 +175,7 @@ public class ControllerTests {
 		assertTrue(response.getBody() instanceof ErrorResponse);
 
 		// (3) Mock - Header present, BASIC Auth succeeds, new key
-		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass"))
-				.thenReturn(new AuthResponse(true, mockProfile));
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthResponse(true, mockProfile));
 		when(uuidFactory.getUUID()).thenReturn("1234");
 		when(mongoAccessor.getApiKey("testuser")).thenReturn(null);
 		Mockito.doNothing().when(mongoAccessor).createApiKey("testuser", "1234");
@@ -227,5 +225,53 @@ public class ControllerTests {
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
 		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error retrieving API Key: My Bad"));
+	}
+
+	@Test
+	public void testAuthorizationEndpoint() {
+		// Initialize Authorizers
+		authenticationController.initializeAuthorizers();
+
+		// 1 - Test Invalid Input: Missing username.
+		AuthorizationCheck authorizationCheck = new AuthorizationCheck(null, new Permission("GET", "data"));
+		ResponseEntity<AuthResponse> response = authenticationController.authenticateAndAuthorize(authorizationCheck);
+		// Ensure a proper error
+		assertTrue(response.getBody().getIsAuthSuccess().equals(false));
+
+		// 2 - Test Invalid Input: API Key and username don't match.
+		authorizationCheck = new AuthorizationCheck("testerA", new Permission("GET", "data"));
+		authorizationCheck.setApiKey("testerBApiKey");
+		when(mongoAccessor.getUsername("testerBApiKey")).thenReturn("testerB");
+		response = authenticationController.authenticateAndAuthorize(authorizationCheck);
+		// Ensure a proper error
+		assertTrue(response.getBody().getIsAuthSuccess().equals(false));
+
+		// 3 - Test Invalid Input: API Key is provided by invalid
+		when(mongoAccessor.isApiKeyValid("testerBApiKey")).thenReturn(false);
+		response = authenticationController.authenticateAndAuthorize(authorizationCheck);
+		// Ensure a proper error
+		assertTrue(response.getBody().getIsAuthSuccess().equals(false));
+
+		// 4 - Test Success: Authorizers pass.
+		when(throttleAuthorizer.canUserPerformAction(Mockito.any())).thenReturn(new AuthResponse(true));
+		when(endpointAuthorizer.canUserPerformAction(Mockito.any())).thenReturn(new AuthResponse(true));
+		authorizationCheck = new AuthorizationCheck(null, new Permission("GET", "data"));
+		authorizationCheck.setApiKey("testerApiKey");
+		when(mongoAccessor.isApiKeyValid("testerApiKey")).thenReturn(true);
+		when(mongoAccessor.getUsername("testerApiKey")).thenReturn("testerA");
+		response = authenticationController.authenticateAndAuthorize(authorizationCheck);
+		// Ensure success
+		assertTrue(response.getBody().getIsAuthSuccess().equals(true));
+
+		// 5 - Test Success: Authorizers fail, and user is not authenticated
+		when(throttleAuthorizer.canUserPerformAction(Mockito.any())).thenReturn(new AuthResponse(false, "Bad Stuff"));
+		response = authenticationController.authenticateAndAuthorize(authorizationCheck);
+		// Ensure successful denial of Authorization
+		assertTrue(response.getBody().getIsAuthSuccess().equals(false));
+
+		// 6 - Test General Exception
+		response = authenticationController.authenticateAndAuthorize(null);
+		// Ensure proper handling of error as a denied Authorization
+		assertTrue(response.getBody().getIsAuthSuccess().equals(false));
 	}
 }

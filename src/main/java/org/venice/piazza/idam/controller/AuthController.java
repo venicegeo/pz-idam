@@ -82,7 +82,8 @@ public class AuthController {
 	 * Collects all of the Authorizers into a list that can be iterated through for a specific authorization check.
 	 */
 	@PostConstruct
-	private void initializeAuthorizers() {
+	public void initializeAuthorizers() {
+		authorizers.clear();
 		authorizers.add(endpointAuthorizer);
 		authorizers.add(throttleAuthorizer);
 	}
@@ -189,7 +190,8 @@ public class AuthController {
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
-			String error = String.format("Error checking authorization: %s: %s", authorizationCheck.toString(), exception.getMessage());
+			String error = String.format("Error checking authorization: %s: %s",
+					authorizationCheck != null ? authorizationCheck.toString() : "Null Payload Sent.", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
