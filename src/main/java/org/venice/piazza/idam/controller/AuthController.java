@@ -198,7 +198,7 @@ public class AuthController {
 	}
 
 	/**
-	 * Retrieves an API Key based on the provided username and credential for GeoAxis.
+	 * Generates a new API Key based on the provided username and credential for GeoAxis.
 	 * 
 	 * @param body
 	 *            A JSON object containing the 'username' and 'credential' fields.
@@ -257,9 +257,82 @@ public class AuthController {
 			pzLogger.log(error, Severity.INFORMATIONAL, new AuditElement(username, "failedToGenerateKey", ""));
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
-			String error = String.format("Error retrieving UUID: %s", exception.getMessage());
+			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Generates a new API Key based on the provided username and credential for GeoAxis.
+	 * 
+	 * @param body
+	 *            A JSON object containing the 'username' and 'credential' fields.
+	 * 
+	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
+	 */
+	@RequestMapping(value = "/v2/key", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> generateApiKeyV2() {
+		return generateApiKey();
+	}
+
+	/**
+	 * Gets an existing key for the user. Does not generate one if it does not exist.
+	 * 
+	 * @param body
+	 *            A JSON object containing the 'username' and 'credential' fields.
+	 * 
+	 * @return String UUID generated from the UUIDFactory in pz-jobcommon
+	 */
+	@RequestMapping(value = "/v2/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> getExistingApiKey() {
+		try {
+			// Decode credentials. We need to get the username of this account.
+			String authHeader = request.getHeader("Authorization");
+			String username = null;
+
+			// Ensure the Authorization Header is present
+			if (authHeader != null) {
+				String[] headerParts = authHeader.split(" ");
+				// Ensure Valid Auth
+				if (headerParts.length == 2) {
+					String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+					// PKI Auth - authenticate and get username
+					if (decodedAuthNInfo.split(":").length == 1) {
+						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
+						if (authResponse.getIsAuthSuccess()) {
+							username = authResponse.getUserProfile().getUsername();
+						}
+					}
+					// BASIC Auth - authenticate and get username
+					else if (decodedAuthNInfo.split(":").length == 2) {
+						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
+						if (piazzaAuthenticator.getAuthenticationDecision(decodedUserPassParts[0], decodedUserPassParts[1])
+								.getIsAuthSuccess()) {
+							username = decodedUserPassParts[0];
+						}
+					}
+					// Username found and authenticated. Get the API Key.
+					if (username != null) {
+						String apiKey = mongoAccessor.getApiKey(username);
+						pzLogger.log(String.format("Successfully retrieved API Key for user %s.", username), Severity.INFORMATIONAL,
+								new AuditElement(username, "getExistingApiKey", ""));
+						return new ResponseEntity<>(new UUIDResponse(apiKey), HttpStatus.OK);
+					}
+				}
+			}
+			// If the username was not found and authenticated from the auth header, then no API Key can be returned.
+			// Return an error.
+			String error = "Could not get existing API Key.";
+			pzLogger.log(error, Severity.INFORMATIONAL, new AuditElement(username, "failedToGetExistingKey", ""));
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
+		} catch (Exception exception) {
+			// Log
+			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
+			LOGGER.error(error, exception);
+			pzLogger.log(error, Severity.ERROR);
+			// Return Error
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
