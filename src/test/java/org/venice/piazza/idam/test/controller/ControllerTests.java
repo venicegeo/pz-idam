@@ -228,6 +228,44 @@ public class ControllerTests {
 	}
 
 	@Test
+	public void testGetExistingApiKey() {
+		// (1) Mock - Header is missing
+		when(request.getHeader("Authorization")).thenReturn(null);
+		ResponseEntity<PiazzaResponse> response = authenticationController.getExistingApiKey();
+		assertTrue(response.getBody() instanceof ErrorResponse);
+
+		// (2) Mock - Header present, Auth fails. Username/Password
+		when(request.getHeader("Authorization")).thenReturn("Basic dGVzdHVzZXI6dGVzdHBhc3M=");
+		UserProfile mockProfile = new UserProfile();
+		mockProfile.setUsername("testuser");
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthResponse(false, mockProfile));
+		response = authenticationController.getExistingApiKey();
+		assertTrue(response.getBody() instanceof ErrorResponse);
+
+		// (3) Mock - Header present, Username/Password works, return Existing Key
+		when(piazzaAuthenticator.getAuthenticationDecision("testuser", "testpass")).thenReturn(new AuthResponse(true, mockProfile));
+		when(mongoAccessor.getApiKey("testuser")).thenReturn("1234");
+		response = authenticationController.getExistingApiKey();
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse) (response.getBody())).getUuid().equals("1234"));
+
+		// (4) Mock - Header present, PKI Auth succeeds, replacing key with new
+		when(request.getHeader("Authorization"))
+				.thenReturn("Basic LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tIHBlbVRlc3QgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLTo=");
+		when(piazzaAuthenticator.getAuthenticationDecision("-----BEGIN CERTIFICATE----- pemTest -----END CERTIFICATE-----"))
+				.thenReturn(new AuthResponse(true, mockProfile));
+		when(mongoAccessor.getApiKey("testuser")).thenReturn("1234");
+		response = authenticationController.getExistingApiKey();
+		assertTrue(response.getBody() instanceof UUIDResponse);
+		assertTrue(((UUIDResponse) (response.getBody())).getUuid().equals("1234"));
+
+		// (5) Exception Handling
+		when(request.getHeader("Authorization")).thenReturn("bogusheader");
+		response = authenticationController.getExistingApiKey();
+		assertTrue(response.getBody() instanceof ErrorResponse);
+	}
+
+	@Test
 	public void testAuthorizationEndpoint() {
 		// Initialize Authorizers
 		authenticationController.initializeAuthorizers();
