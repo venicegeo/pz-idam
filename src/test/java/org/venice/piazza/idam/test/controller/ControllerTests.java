@@ -226,6 +226,6 @@ public class ControllerTests {
 
 		// Verify
 		assertTrue(response.getBody() instanceof ErrorResponse);
-		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error retrieving UUID: My Bad"));
+		assertTrue(((ErrorResponse) (response.getBody())).message.equals("Error retrieving API Key: My Bad"));
 	}
 }
