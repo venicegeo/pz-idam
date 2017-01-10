@@ -235,19 +235,22 @@ public class AuthController {
 						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
 						username = decodedUserPassParts[0];
 						String credential = decodedUserPassParts[1];
+						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(username, credential);
 
-						if (piazzaAuthenticator.getAuthenticationDecision(username, credential).getIsAuthSuccess()) {
+						if (authResponse.getIsAuthSuccess()) {
 							uuid = uuidFactory.getUUID();
 						}
 					}
 
 					if (uuid != null && username != null) {
+						// Update the API Key in the UUID Collection
 						if (mongoAccessor.getApiKey(username) != null) {
 							mongoAccessor.updateApiKey(username, uuid);
 						} else {
 							mongoAccessor.createApiKey(username, uuid);
 						}
 
+						// Return the Key
 						pzLogger.log("Successfully verified Key.", Severity.INFORMATIONAL,
 								new AuditElement(username, "generateApiKey", ""));
 						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);

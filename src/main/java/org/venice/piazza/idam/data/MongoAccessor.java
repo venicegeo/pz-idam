@@ -18,6 +18,8 @@ package org.venice.piazza.idam.data;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.joda.time.DateTime;
+import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBQuery.Query;
 import org.mongojack.DBUpdate.Builder;
@@ -40,6 +42,7 @@ import com.mongodb.MongoTimeoutException;
 
 import model.logger.Severity;
 import model.security.authz.UserProfile;
+import model.service.metadata.Service;
 import util.PiazzaLogger;
 
 @Component
@@ -169,6 +172,8 @@ public class MongoAccessor {
 		try {
 			if ((userProfile = getUserProfileCollection().findOne(query)) == null) {
 				// TODO: Current hack, until we commit the UserProfile to Mongo during /key creation.
+				// TODO: In a clean environment (with a freshly deleted UUID table) this code can be removed. It's
+				// remaining for legacy where Keys might exist w/o UserProfiles.
 				userProfile = new UserProfile();
 				userProfile.setUsername(username);
 				return userProfile;
@@ -205,6 +210,53 @@ public class MongoAccessor {
 	private JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
 		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, UserProfile.class, String.class);
+	}
+
+	/**
+	 * Determines if the current Username (with matching Distinguished Name) has a UserProfile in the Piazza database.
+	 * 
+	 * @param username
+	 *            The username
+	 * @param dn
+	 *            The distinguished name
+	 * @return True if the User has a UserProfile in the DB, false if not.
+	 */
+	public boolean hasUserProfile(String username, String dn) {
+		Query query = DBQuery.empty();
+		query.and(DBQuery.is("username", username));
+		query.and(DBQuery.is("distinguishedName", dn));
+		UserProfile userProfile = getUserProfileCollection().findOne(query);
+		if (userProfile == null) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	/**
+	 * Inserts a new User Profile into the database. Auto-populates things such as creation date to the current
+	 * timestamp.
+	 * <p>
+	 * The action of creating a User Profile is performed when the user first generates their API Key for Piazza. The
+	 * User Profile contains static metadata information (not the API Key) related to that user.
+	 * </p>
+	 * 
+	 * @param username
+	 *            The name of the user.
+	 * @param dn
+	 *            The distinguished name of the user
+	 */
+	public UserProfile insertUserProfile(String username, String dn) {
+		// Create Model
+		UserProfile userProfile = new UserProfile();
+		userProfile.setUsername(username);
+		userProfile.setDistinguishedName(dn);
+		userProfile.setCreatedOn(new DateTime());
+		userProfile.setIsActive(true);
+		// Commit
+		getUserProfileCollection().insert(userProfile);
+		// Return
+		return userProfile;
 	}
 
 	/**

@@ -28,6 +28,7 @@ import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
 import org.venice.piazza.idam.model.PrincipalItem;
 
+import exception.InvalidInputException;
 import model.logger.AuditElement;
 import model.logger.Severity;
 import model.response.AuthResponse;
@@ -72,11 +73,17 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
+		// If Authenticated, then get/create the UserProfile for this user
+		UserProfile userProfile = null;
+		if (gxResponse.isSuccessful()) {
+			userProfile = getUserProfile(gxResponse);
+		}
+
 		logger.log(String.format("GeoAxis response for Username %s has returned Authenticated %s", username, gxResponse.isSuccessful()),
 				Severity.INFORMATIONAL,
 				new AuditElement(username, gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
 
-		return new AuthResponse(gxResponse.isSuccessful(), mongoAccessor.getUserProfileByUsername(username));
+		return new AuthResponse(gxResponse.isSuccessful(), userProfile);
 	}
 
 	@Override
@@ -96,18 +103,64 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 					new AuditElement("idam", "userFailedCertAuthentication", ""));
 		}
 
+		// If Authentication was successful, then get/create the User Profile.
+		UserProfile userProfile = null;
+		if (gxResponse.isSuccessful()) {
+			userProfile = getUserProfile(gxResponse);
+		}
+
+		// Return
+		return new AuthResponse(gxResponse.isSuccessful(), userProfile);
+	}
+
+	/**
+	 * Creates a User Profile in the Mongo DB, if one does not already exist. If it exists, this will return the
+	 * existing UserProfile.
+	 * 
+	 * @param gxResponse
+	 *            The GeoAxis response, containing at a minimum the username and DN
+	 * @return The UserProfile object for this User
+	 */
+	private UserProfile getUserProfile(GxAuthNResponse gxResponse) {
+		// Extract the Username and DN from the Response
+		String username = null;
+		String dn = null;
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
 			for (PrincipalItem item : listItems) {
 				if ("UID".equalsIgnoreCase(item.getName())) {
-					UserProfile profile = mongoAccessor.getUserProfileByUsername(item.getValue());
-					logger.log(String.format("GeoAxis response for PKI Cert has passed authentication, Username %s", profile.getUsername()),
-							Severity.INFORMATIONAL);
-					return new AuthResponse(gxResponse.isSuccessful(), profile);
+					username = item.getValue();
+				} else if ("DN".equalsIgnoreCase(item.getName())) {
+					dn = item.getValue();
 				}
 			}
 		}
-		return new AuthResponse(false);
+
+		// Ensure that the username and dn both exist in the response
+		if ((username != null) && (dn != null)) {
+			// Log
+			logger.log(String.format("GeoAxis response has passed authentication, Username %s with DN %s", username, dn),
+					Severity.INFORMATIONAL);
+
+			// Detect if the UserProfile exists
+			UserProfile userProfile = null;
+			if (mongoAccessor.hasUserProfile(username, dn)) {
+				// Get the User Profile
+				userProfile = mongoAccessor.getUserProfileByUsername(username);
+			} else {
+				// Create if it doesn't
+				userProfile = mongoAccessor.insertUserProfile(username, dn);
+			}
+
+			// Return the Profile
+			return userProfile;
+		} else {
+			// Log
+			logger.log(String.format("GeoAxis Response was successful, but failed to get User Profile information for name %s and DN %s.",
+					username, dn), Severity.ERROR);
+			// Parse errors? Payload not present? This is an error. Don't attempt any further creation.
+			return null;
+		}
 	}
 
 	private String getFormattedPem(String pem) {
