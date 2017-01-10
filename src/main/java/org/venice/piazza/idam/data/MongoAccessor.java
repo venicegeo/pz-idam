@@ -252,7 +252,6 @@ public class MongoAccessor {
 		userProfile.setUsername(username);
 		userProfile.setDistinguishedName(dn);
 		userProfile.setCreatedOn(new DateTime());
-		userProfile.setIsActive(true);
 		// Commit
 		getUserProfileCollection().insert(userProfile);
 		// Return
