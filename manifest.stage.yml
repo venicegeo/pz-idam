@@ -12,6 +12,7 @@ applications:
     - pztest-integration
     - geoaxis
     - pz-kafka
+    - pz-elasticsearch
   path: pz-idam.jar
   buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
   env:
