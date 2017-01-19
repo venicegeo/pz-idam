@@ -57,7 +57,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>Sprint06-296-g6366112</version>
+			<version>Sprint06-301-g2ccfb40</version>
 		</dependency>
 
 		<dependency>
@@ -96,6 +96,11 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+		</dependency>
+		
 	</dependencies>
 
 	<properties>
