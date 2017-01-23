@@ -161,7 +161,7 @@ public class AuthController {
 				}
 			} else {
 				// If the user specifies neither an API Key or a Username, then the request parameters are insufficient.
-				if (authorizationCheck.getUsername() == null) {
+				if ((authorizationCheck.getUsername() == null) || (authorizationCheck.getUsername().isEmpty())) {
 					throw new AuthorizationException("Incomplete request details",
 							new AuthResponse(false, "API Key or Username not specified."));
 				}
