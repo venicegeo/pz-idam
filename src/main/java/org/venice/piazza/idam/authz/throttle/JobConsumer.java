@@ -64,7 +64,7 @@ public class JobConsumer {
 	@Value("${SPACE}")
 	private String space;
 	@Value("${vcap.services.pz-kafka.credentials.host}")
-	private String kafkaAddress;
+	private String kafkaHosts;
 	@Value("#{'${kafka.group}' + '-' + '${SPACE}'}")
 	private String kafkaGroup;
 
@@ -96,9 +96,7 @@ public class JobConsumer {
 	public void pollForJobs() {
 		try {
 			// Create the General Group Consumer
-			String kafkaHost = kafkaAddress.split(":")[0];
-			String kafkaPort = kafkaAddress.split(":")[1];
-			Consumer<String, String> consumer = KafkaClientFactory.getConsumer(kafkaHost, kafkaPort, kafkaGroup);
+			Consumer<String, String> consumer = KafkaClientFactory.getConsumer(kafkaHosts, kafkaGroup);
 			consumer.subscribe(topics);
 
 			// Poll
