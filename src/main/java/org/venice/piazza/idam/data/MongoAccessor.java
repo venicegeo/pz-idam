@@ -36,6 +36,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
@@ -57,6 +58,8 @@ public class MongoAccessor {
 	private String USER_PROFILE_COLLECTION_NAME;
 	@Value("${mongo.db.throttle.collection.name}")
 	private String THROTTLE_COLLECTION_NAME;
+	@Value("${mongo.thread.multiplier}")
+	private int mongoThreadMultiplier;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	private static final String USERNAME = "username";
@@ -72,7 +75,9 @@ public class MongoAccessor {
 	@PostConstruct
 	private void initialize() {
 		try {
-			mongoClient = new MongoClient(new MongoClientURI(mongoHost));
+			MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+			mongoClient = new MongoClient(
+					new MongoClientURI(mongoHost, builder.threadsAllowedToBlockForConnectionMultiplier(mongoThreadMultiplier)));
 			mongoDatabase = mongoClient.getDB(mongoDBName); // NOSONAR
 		} catch (Exception exception) {
 			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
