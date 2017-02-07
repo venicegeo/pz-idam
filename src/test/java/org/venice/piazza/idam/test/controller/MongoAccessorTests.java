@@ -59,8 +59,8 @@ public class MongoAccessorTests {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
-		ReflectionTestUtils.setField(mongoAccessor, "mongoHost", "test");
-		ReflectionTestUtils.setField(mongoAccessor, "mongoDBName", "test");
+		ReflectionTestUtils.setField(mongoAccessor, "DATABASE_HOST", "test");
+		ReflectionTestUtils.setField(mongoAccessor, "DATABASE_NAME", "test");
 		ReflectionTestUtils.setField(mongoAccessor, "API_KEY_COLLECTION_NAME", "collectionname");
 	}
 

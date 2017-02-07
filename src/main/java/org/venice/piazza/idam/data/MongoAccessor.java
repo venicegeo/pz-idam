@@ -15,11 +15,12 @@
  **/
 package org.venice.piazza.idam.data;
 
+import java.util.Arrays;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.joda.time.DateTime;
-import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBQuery.Query;
 import org.mongojack.DBUpdate.Builder;
@@ -28,7 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.venice.piazza.idam.model.user.UserThrottles;
 
 import com.mongodb.BasicDBObject;
@@ -37,21 +40,26 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
+import com.mongodb.ServerAddress;
 
-import model.logger.Severity;
 import model.security.authz.UserProfile;
-import model.service.metadata.Service;
 import util.PiazzaLogger;
 
 @Component
 public class MongoAccessor {
-	@Value("${vcap.services.pz-mongodb.credentials.uri}")
-	private String mongoHost;
 	@Value("${vcap.services.pz-mongodb.credentials.database}")
-	private String mongoDBName;
+	private String DATABASE_NAME;
+	@Value("${vcap.services.pz-mongodb.credentials.host}")
+	private String DATABASE_HOST;
+	@Value("${vcap.services.pz-mongodb.credentials.port}")
+	private int DATABASE_PORT;
+	@Value("${vcap.services.pz-mongodb.credentials.username:}")
+	private String DATABASE_USERNAME;
+	@Value("${vcap.services.pz-mongodb.credentials.password:}")
+	private String DATABASE_CREDENTIAL;
 	@Value("${mongo.db.collection.name}")
 	private String API_KEY_COLLECTION_NAME;
 	@Value("${mongo.db.userprofile.collection.name}")
@@ -68,6 +76,8 @@ public class MongoAccessor {
 
 	@Autowired
 	private PiazzaLogger pzLogger;
+	@Autowired
+	private Environment environment;
 
 	private DB mongoDatabase;
 	private MongoClient mongoClient;
@@ -76,13 +86,25 @@ public class MongoAccessor {
 	private void initialize() {
 		try {
 			MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
-			mongoClient = new MongoClient(
-					new MongoClientURI(mongoHost, builder.threadsAllowedToBlockForConnectionMultiplier(mongoThreadMultiplier)));
-			mongoDatabase = mongoClient.getDB(mongoDBName); // NOSONAR
+			// Enable SSL if the `mongossl` Profile is enabled
+			if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("mongossl"))) {
+				builder.sslEnabled(true);
+				builder.sslInvalidHostNameAllowed(true);
+			}
+			// If a username and password are provided, then associate these credentials with the connection
+			if ((!StringUtils.isEmpty(DATABASE_USERNAME)) && (!StringUtils.isEmpty(DATABASE_CREDENTIAL))) {
+				mongoClient = new MongoClient(new ServerAddress(DATABASE_HOST, DATABASE_PORT),
+						Arrays.asList(
+								MongoCredential.createCredential(DATABASE_USERNAME, DATABASE_NAME, DATABASE_CREDENTIAL.toCharArray())),
+						builder.threadsAllowedToBlockForConnectionMultiplier(mongoThreadMultiplier).build());
+			} else {
+				mongoClient = new MongoClient(new ServerAddress(DATABASE_HOST, DATABASE_PORT),
+						builder.threadsAllowedToBlockForConnectionMultiplier(mongoThreadMultiplier).build());
+			}
+
 		} catch (Exception exception) {
-			String error = String.format("Error Contacting Mongo Host %s: %s", mongoHost, exception.getMessage());
-			LOGGER.error(error, exception);
-			pzLogger.log(error, Severity.ERROR);
+			LOGGER.error(String.format("Error connecting to MongoDB Instance. %s", exception.getMessage()), exception);
+
 		}
 	}
 
