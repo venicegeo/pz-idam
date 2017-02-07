@@ -101,7 +101,7 @@ public class MongoAccessor {
 				mongoClient = new MongoClient(new ServerAddress(DATABASE_HOST, DATABASE_PORT),
 						builder.threadsAllowedToBlockForConnectionMultiplier(mongoThreadMultiplier).build());
 			}
-
+			mongoDatabase = mongoClient.getDB(DATABASE_NAME); // NOSONAR
 		} catch (Exception exception) {
 			LOGGER.error(String.format("Error connecting to MongoDB Instance. %s", exception.getMessage()), exception);
 
