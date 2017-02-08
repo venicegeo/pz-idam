@@ -1,19 +1,14 @@
 applications:
 - name: pz-idam
   host: pz-idam
-  memory: 2048M
+  memory: 512M
   instances: 1
   timeout: 80
   services:
-    - ldap
     - pz-mongodb
-    - pz-servicecontroller
-    - beachfront
-    - pztest-integration
-    - geoaxis
     - pz-kafka
     - pz-elasticsearch
-  path: pz-idam.jar
-  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
+  path: 'target/piazza-idam-1.0.0.jar'
+  buildpack: 'java_buildpack_offline_3_12'
   env:
-    SPRING_PROFILES_ACTIVE: geoaxis
+    SPRING_PROFILES_ACTIVE: cloud
