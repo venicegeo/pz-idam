@@ -102,11 +102,13 @@ public class AdminController {
 			// Check for Profile
 			UserProfile userProfile = mongoAccessor.getUserProfileByUsername(username);
 			if (userProfile != null) {
+				// Attach the Throttles
+				UserThrottles throttles = mongoAccessor.getCurrentThrottlesForUser(username, true);
 				// Audit the Retrieval
 				pzLogger.log(String.format("Retrieved Profile for user %s.", username), Severity.INFORMATIONAL,
 						new AuditElement(username, "userProfileCheckSuccess", ""));
 				// Return the Profile
-				return new ResponseEntity<>(new UserProfileResponse(userProfile), HttpStatus.OK);
+				return new ResponseEntity<>(new UserProfileResponse(userProfile, throttles.getThrottles()), HttpStatus.OK);
 			} else {
 				// No Profile Found
 				String error = "No User Profile found from specified Username " + username;
