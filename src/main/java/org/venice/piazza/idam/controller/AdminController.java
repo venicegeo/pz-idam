@@ -16,7 +16,6 @@
 package org.venice.piazza.idam.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +24,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -82,28 +81,19 @@ public class AdminController {
 	}
 
 	/**
-	 * Returns the User Profile information based on either API Key or username.
+	 * Returns the User Profile information by username
 	 * 
-	 * @param credentialMap
-	 *            Map containing either a key for the API Key, or the username.
+	 * @param username
+	 *            The username to fetch the profile for
 	 * @return The User Profile information
 	 */
-	@RequestMapping(value = "/profile", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PiazzaResponse> getUserProfile(@RequestBody Map<String, String> credentialMap) {
+	@RequestMapping(value = "/profile/{username}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> getUserProfile(@PathVariable(value = "username") String username) {
 		try {
-			// Get Input
-			String username = null;
-			if (credentialMap.containsKey("apiKey")) {
-				// Profile From API Key
-				username = mongoAccessor.getUsername(credentialMap.get("apiKey"));
-			} else if (credentialMap.containsKey("username")) {
-				// Profile from UserName
-				username = credentialMap.get("username");
-			}
 			// Validate
 			if ((username == null) || (username.isEmpty())) {
 				// Bad Input
-				String error = "Cannot retrieve Profile. `apiKey` or `username` parameter not specified.";
+				String error = "Cannot retrieve Profile: `username` parameter not specified.";
 				LOGGER.info(error);
 				pzLogger.log(error, Severity.INFORMATIONAL);
 				return new ResponseEntity<>(new ErrorResponse(error, "IDAM"), HttpStatus.BAD_REQUEST);
