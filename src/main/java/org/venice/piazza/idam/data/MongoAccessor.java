@@ -16,6 +16,7 @@
 package org.venice.piazza.idam.data;
 
 import java.util.Arrays;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -294,6 +295,15 @@ public class MongoAccessor {
 	private JacksonDBCollection<UserThrottles, String> getUserThrottlesCollection() {
 		DBCollection collection = mongoDatabase.getCollection(THROTTLE_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, UserThrottles.class, String.class);
+	}
+
+	/**
+	 * Gets all User Throttles from the Database and returns an unsorted list of them.
+	 * 
+	 * @return List of all User Throttles.
+	 */
+	public List<UserThrottles> getAllUserThrottles() {
+		return getUserThrottlesCollection().find().toArray();
 	}
 
 	/**

@@ -15,12 +15,16 @@
  **/
 package org.venice.piazza.idam.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.model.user.UserThrottles;
 
 /**
  * Controller that handles the Admin requests
@@ -29,10 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class AdminController {
-
 	@Autowired
 	private Environment env;
-	
+	@Autowired
+	private MongoAccessor mongoAccessor;
+
 	/**
 	 * Healthcheck required for all Piazza Core Services
 	 * 
@@ -45,6 +50,16 @@ public class AdminController {
 
 	@RequestMapping(value = "/admin/stats", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public String getAdminStats() {
-		return "{ \"profiles\":\"" + String.join(",",  env.getActiveProfiles()) + "\" }";
+		return "{ \"profiles\":\"" + String.join(",", env.getActiveProfiles()) + "\" }";
+	}
+
+	/**
+	 * Returns all User Throttles
+	 * 
+	 * @return User Throttles
+	 */
+	@RequestMapping(value = "/admin/throttles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<UserThrottles> getAllUserThrottles() {
+		return mongoAccessor.getAllUserThrottles();
 	}
 }
