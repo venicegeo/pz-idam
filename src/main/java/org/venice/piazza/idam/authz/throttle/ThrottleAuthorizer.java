@@ -101,7 +101,7 @@ public class ThrottleAuthorizer implements Authorizer {
 	private boolean isThrottleInvocationsExceeded(Integer invocations, String username) {
 		// TODO: Tie in some group management, roles, access, rules. Lots of stuff.
 		// This will be handled by GeoAxis.
-		if (invocations > 100000) {
+		if (invocations > 10000) {
 			return true;
 		} else {
 			return false;
