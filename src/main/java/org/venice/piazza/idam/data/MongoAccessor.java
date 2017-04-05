@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.venice.piazza.idam.model.ApiKey;
 import org.venice.piazza.idam.model.user.UserThrottles;
 
 import com.mongodb.BasicDBObject;
@@ -69,6 +70,8 @@ public class MongoAccessor {
 	private String THROTTLE_COLLECTION_NAME;
 	@Value("${mongo.thread.multiplier}")
 	private int mongoThreadMultiplier;
+	@Value("${key.duration.ms}")
+	private Long KEY_DURATION_MS;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	private static final String USERNAME = "username";
@@ -123,10 +126,11 @@ public class MongoAccessor {
 	 *            The updated API Key
 	 */
 	public void updateApiKey(String username, String uuid) {
-		BasicDBObject newObj = new BasicDBObject();
-		newObj.put(USERNAME, username);
-		newObj.put(UUID, uuid);
-		mongoDatabase.getCollection(API_KEY_COLLECTION_NAME).update(new BasicDBObject().append(USERNAME, username), newObj);
+		// Create the new API Key Model
+		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_DURATION_MS).getMillis());
+		Query query = DBQuery.is("userName", username);
+		// Update the old Key
+		getApiKeyCollection().update(query, apiKey);
 	}
 
 	/**
@@ -138,22 +142,30 @@ public class MongoAccessor {
 	 *            The API Key for the user name
 	 */
 	public void createApiKey(String username, String uuid) {
-		mongoDatabase.getCollection(API_KEY_COLLECTION_NAME).insert(new BasicDBObject().append(USERNAME, username).append(UUID, uuid));
+		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_DURATION_MS).getMillis());
+		getApiKeyCollection().insert(apiKey);
 	}
 
 	/**
-	 * Determines if an API Key is valid in the UUID Collection
+	 * Determines if an API Key is valid in the API Key Collection
 	 * 
 	 * @param uuid
 	 *            The API Key
 	 * @return True if valid. False if not.
 	 */
 	public boolean isApiKeyValid(String uuid) {
-		DBObject obj = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME).findOne(new BasicDBObject(UUID, uuid));
-		if (obj != null) {
-			return true;
+		Query query = DBQuery.is("apiKey", uuid);
+		ApiKey apiKey = getApiKeyCollection().findOne(query);
+		// Check that the key exists.
+		if (apiKey == null) {
+			return false;
 		}
-		return false;
+		// Key exists. Check expiration date to ensure it's valid
+		if (apiKey.getExpiresOn() > System.currentTimeMillis()) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -161,14 +173,16 @@ public class MongoAccessor {
 	 * 
 	 * @param uuid
 	 *            The user's API Key
-	 * @return The username
+	 * @return The username. Null if the API Key is not valid.
 	 */
 	public String getUsername(String uuid) {
-		DBObject obj = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME).findOne(new BasicDBObject(UUID, uuid));
-		if (obj != null && obj.containsField(USERNAME)) {
-			return obj.get(USERNAME).toString();
+		Query query = DBQuery.is("apiKey", uuid);
+		ApiKey apiKey = getApiKeyCollection().findOne(query);
+		if (apiKey != null) {
+			return apiKey.getUserName();
+		} else {
+			return null;
 		}
-		return null;
 	}
 
 	/**
@@ -176,14 +190,26 @@ public class MongoAccessor {
 	 * 
 	 * @param username
 	 *            The username
-	 * @return The API Key
+	 * @return The API Key. Null if no username has a matching API Key entry.
 	 */
 	public String getApiKey(String username) {
-		DBObject obj = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME).findOne(new BasicDBObject(USERNAME, username));
-		if (obj != null && obj.containsField(UUID)) {
-			return obj.get(UUID).toString();
+		Query query = DBQuery.is("userName", username);
+		ApiKey apiKey = getApiKeyCollection().findOne(query);
+		if (apiKey != null) {
+			return apiKey.getApiKey();
+		} else {
+			return null;
 		}
-		return null;
+	}
+
+	/**
+	 * Gets the Mongo Collection for API Keys
+	 * 
+	 * @return API Key Collection
+	 */
+	private JacksonDBCollection<ApiKey, String> getApiKeyCollection() {
+		DBCollection collection = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME);
+		return JacksonDBCollection.wrap(collection, ApiKey.class, String.class);
 	}
 
 	/**
