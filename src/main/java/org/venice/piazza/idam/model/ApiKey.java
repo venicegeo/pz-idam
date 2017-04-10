@@ -27,6 +27,7 @@ public class ApiKey {
 	private String userName;
 	private Long createdOn;
 	private Long expiresOn;
+	private Long lastUsedOn;
 
 	public ApiKey() {
 
@@ -49,6 +50,7 @@ public class ApiKey {
 		this.userName = userName;
 		this.createdOn = createdOn;
 		this.expiresOn = expiresOn;
+		this.lastUsedOn = System.currentTimeMillis();
 	}
 
 	public String getApiKey() {
@@ -81,5 +83,13 @@ public class ApiKey {
 
 	public void setExpiresOn(Long expiresOn) {
 		this.expiresOn = expiresOn;
+	}
+
+	public Long getLastUsedOn() {
+		return lastUsedOn;
+	}
+
+	public void setLastUsedOn(Long lastUsedOn) {
+		this.lastUsedOn = lastUsedOn;
 	}
 }

@@ -47,6 +47,7 @@ import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.ServerAddress;
 
+import model.logger.Severity;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
 
@@ -70,8 +71,10 @@ public class MongoAccessor {
 	private String THROTTLE_COLLECTION_NAME;
 	@Value("${mongo.thread.multiplier}")
 	private int mongoThreadMultiplier;
-	@Value("${key.duration.ms}")
-	private Long KEY_DURATION_MS;
+	@Value("${key.expiration.time.ms}")
+	private Long KEY_EXPIRATION_DURATION_MS;
+	@Value("${key.inactivity.threshold.ms}")
+	private Long KEY_INACTIVITY_THESHOLD_MS;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	private static final String USERNAME = "username";
@@ -127,7 +130,7 @@ public class MongoAccessor {
 	 */
 	public void updateApiKey(String username, String uuid) {
 		// Create the new API Key Model
-		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_DURATION_MS).getMillis());
+		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_EXPIRATION_DURATION_MS).getMillis());
 		Query query = DBQuery.is("userName", username);
 		// Update the old Key
 		getApiKeyCollection().update(query, apiKey);
@@ -142,7 +145,7 @@ public class MongoAccessor {
 	 *            The API Key for the user name
 	 */
 	public void createApiKey(String username, String uuid) {
-		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_DURATION_MS).getMillis());
+		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_EXPIRATION_DURATION_MS).getMillis());
 		getApiKeyCollection().insert(apiKey);
 	}
 
@@ -158,12 +161,26 @@ public class MongoAccessor {
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		// Check that the key exists.
 		if (apiKey == null) {
+			// Key does not exist
 			return false;
 		}
 		// Key exists. Check expiration date to ensure it's valid
 		if (apiKey.getExpiresOn() > System.currentTimeMillis()) {
+			// First, update the last time this key was used.
+			try {
+				Builder update = new Builder();
+				update.set("lastUsedOn", System.currentTimeMillis());
+				Query updateQuery = DBQuery.is("apiKey", uuid);
+				getApiKeyCollection().update(updateQuery, update);
+			} catch (Exception exception) {
+				String error = "Could not update time of last usage for API Key.";
+				LOGGER.error(error, exception);
+				pzLogger.log(error, Severity.WARNING);
+			}
+
 			return true;
 		} else {
+			// Key has expired and is not valid any longer
 			return false;
 		}
 	}
