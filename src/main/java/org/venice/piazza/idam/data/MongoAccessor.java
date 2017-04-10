@@ -165,7 +165,13 @@ public class MongoAccessor {
 			return false;
 		}
 		// Key exists. Check expiration date to ensure it's valid
-		if (apiKey.getExpiresOn() > System.currentTimeMillis()) {
+		if (apiKey.getExpiresOn() < System.currentTimeMillis()) {
+			// Key has expired and is not valid any longer
+			return false;
+		}
+		// Key has not expired. Check Inactivity date.
+		if ((System.currentTimeMillis() - apiKey.getLastUsedOn()) < KEY_INACTIVITY_THESHOLD_MS) {
+			// Key is not inactive.
 			// First, update the last time this key was used.
 			try {
 				Builder update = new Builder();
@@ -178,9 +184,9 @@ public class MongoAccessor {
 				pzLogger.log(error, Severity.WARNING);
 			}
 
+			// Key is Valid
 			return true;
 		} else {
-			// Key has expired and is not valid any longer
 			return false;
 		}
 	}
