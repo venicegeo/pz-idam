@@ -230,7 +230,7 @@ public class MongoAccessor {
 	 * 
 	 * @return API Key Collection
 	 */
-	private JacksonDBCollection<ApiKey, String> getApiKeyCollection() {
+	public JacksonDBCollection<ApiKey, String> getApiKeyCollection() {
 		DBCollection collection = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, ApiKey.class, String.class);
 	}
