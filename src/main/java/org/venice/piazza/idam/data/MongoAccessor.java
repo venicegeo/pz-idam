@@ -39,7 +39,6 @@ import org.venice.piazza.idam.model.user.UserThrottles;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
@@ -72,9 +71,9 @@ public class MongoAccessor {
 	@Value("${mongo.thread.multiplier}")
 	private int mongoThreadMultiplier;
 	@Value("${key.expiration.time.ms}")
-	private Long KEY_EXPIRATION_DURATION_MS;
+	private long KEY_EXPIRATION_DURATION_MS;
 	@Value("${key.inactivity.threshold.ms}")
-	private Long KEY_INACTIVITY_THESHOLD_MS;
+	private long KEY_INACTIVITY_THESHOLD_MS;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	private static final String USERNAME = "username";
@@ -130,7 +129,8 @@ public class MongoAccessor {
 	 */
 	public void updateApiKey(String username, String uuid) {
 		// Create the new API Key Model
-		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_EXPIRATION_DURATION_MS).getMillis());
+		long currentTime = System.currentTimeMillis();
+		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
 		Query query = DBQuery.is("userName", username);
 		// Update the old Key
 		getApiKeyCollection().update(query, apiKey);
@@ -145,7 +145,8 @@ public class MongoAccessor {
 	 *            The API Key for the user name
 	 */
 	public void createApiKey(String username, String uuid) {
-		ApiKey apiKey = new ApiKey(uuid, username, System.currentTimeMillis(), new DateTime().plus(KEY_EXPIRATION_DURATION_MS).getMillis());
+		long currentTime = System.currentTimeMillis();
+		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
 		getApiKeyCollection().insert(apiKey);
 	}
 

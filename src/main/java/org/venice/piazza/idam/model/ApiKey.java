@@ -25,9 +25,9 @@ package org.venice.piazza.idam.model;
 public class ApiKey {
 	private String apiKey;
 	private String userName;
-	private Long createdOn;
-	private Long expiresOn;
-	private Long lastUsedOn;
+	private long createdOn;
+	private long expiresOn;
+	private long lastUsedOn;
 
 	public ApiKey() {
 
@@ -45,7 +45,7 @@ public class ApiKey {
 	 * @param expiresOn
 	 *            Epoch, time of expiration
 	 */
-	public ApiKey(String apiKey, String userName, Long createdOn, Long expiresOn) {
+	public ApiKey(String apiKey, String userName, long createdOn, long expiresOn) {
 		this.apiKey = apiKey;
 		this.userName = userName;
 		this.createdOn = createdOn;
@@ -57,39 +57,31 @@ public class ApiKey {
 		return apiKey;
 	}
 
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
-	}
-
 	public String getUserName() {
 		return userName;
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-
-	public Long getCreatedOn() {
+	public long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Long createdOn) {
+	public void setCreatedOn(long createdOn) {
 		this.createdOn = createdOn;
 	}
 
-	public Long getExpiresOn() {
+	public long getExpiresOn() {
 		return expiresOn;
 	}
 
-	public void setExpiresOn(Long expiresOn) {
+	public void setExpiresOn(long expiresOn) {
 		this.expiresOn = expiresOn;
 	}
 
-	public Long getLastUsedOn() {
+	public long getLastUsedOn() {
 		return lastUsedOn;
 	}
 
-	public void setLastUsedOn(Long lastUsedOn) {
+	public void setLastUsedOn(long lastUsedOn) {
 		this.lastUsedOn = lastUsedOn;
 	}
 }
