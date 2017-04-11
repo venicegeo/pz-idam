@@ -127,9 +127,7 @@ public class MongoAccessorTests {
 	@Test
 	public void testGetUsername() {
 		// Mock
-		ApiKey apiKey = new ApiKey();
-		apiKey.setUserName("tester");
-		apiKey.setApiKey("myuuid");
+		ApiKey apiKey = new ApiKey("myuuid", "tester", System.currentTimeMillis(), System.currentTimeMillis() + 50000);
 
 		// (1) Exists
 		Mockito.doReturn(apiKey).when(apiCollection).findOne(Mockito.any(Query.class));
