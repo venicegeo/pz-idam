@@ -28,13 +28,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
-import org.mongojack.DBQuery.Query;
-import org.mongojack.DBQuery;
-import org.mongojack.JacksonDBCollection;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.ApiKey;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -54,10 +49,6 @@ public class MongoAccessorTests {
 	@Mock
 	private DBCollection dbCollection;
 
-	@Mock
-	private JacksonDBCollection<ApiKey, String> apiCollection;
-
-	@Spy
 	@InjectMocks
 	private MongoAccessor mongoAccessor;
 
@@ -68,13 +59,9 @@ public class MongoAccessorTests {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
-		Mockito.doReturn(apiCollection).when(mongoAccessor).getApiKeyCollection();
-
 		ReflectionTestUtils.setField(mongoAccessor, "DATABASE_HOST", "test");
 		ReflectionTestUtils.setField(mongoAccessor, "DATABASE_NAME", "test");
 		ReflectionTestUtils.setField(mongoAccessor, "API_KEY_COLLECTION_NAME", "collectionname");
-		ReflectionTestUtils.setField(mongoAccessor, "KEY_INACTIVITY_THESHOLD_MS", new Long(5000));
-		ReflectionTestUtils.setField(mongoAccessor, "KEY_EXPIRATION_DURATION_MS", new Long(10000));
 	}
 
 	@Test
@@ -103,41 +90,64 @@ public class MongoAccessorTests {
 
 	@Test
 	public void testIsAPIKeyValid() {
-		// Mock
-		ApiKey apiKey = new ApiKey("myuuid", "tester", System.currentTimeMillis(), System.currentTimeMillis() + 50000);
+		BasicDBObject toFind = new BasicDBObject("uuid", "myuuid");
 
-		// (1) API Key is invalid
-		Mockito.doReturn(null).when(apiCollection).findOne(Mockito.any(Query.class));
-		assertFalse(mongoAccessor.isApiKeyValid("myuuid"));
+		DBObject dbObj = Mockito.mock(DBObject.class);
 
-		// (2) API Key is valid
-		Mockito.doReturn(apiKey).when(apiCollection).findOne(Mockito.any(Query.class));
+		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
+
+		// (1) API Key is valid
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
 		assertTrue(mongoAccessor.isApiKeyValid("myuuid"));
 
-		// (3) API Key is expired
-		apiKey.setExpiresOn(System.currentTimeMillis() - 50000);
-		assertFalse(mongoAccessor.isApiKeyValid("myuuid"));
-
-		// (4) API Key is inactive
-		apiKey.setExpiresOn(System.currentTimeMillis() + 50000);
-		apiKey.setLastUsedOn(System.currentTimeMillis() - 50000);
+		// (2) API Key is invalid
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
 		assertFalse(mongoAccessor.isApiKeyValid("myuuid"));
 	}
 
 	@Test
 	public void testGetUsername() {
-		// Mock
-		ApiKey apiKey = new ApiKey("myuuid", "tester", System.currentTimeMillis(), System.currentTimeMillis() + 50000);
+		BasicDBObject toFind = new BasicDBObject("uuid", "myuuid");
+		DBObject dbObj = Mockito.mock(DBObject.class);
 
-		// (1) Exists
-		Mockito.doReturn(apiKey).when(apiCollection).findOne(Mockito.any(Query.class));
-		String userName = mongoAccessor.getUsername("myuuid");
-		assertTrue(apiKey.getUserName().equals(userName));
+		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
 
-		// (2) Does not Exist
-		Mockito.doReturn(null).when(apiCollection).findOne(Mockito.any(Query.class));
-		userName = mongoAccessor.getUsername("junkuuid");
-		assertTrue(userName == null);
+		// (1) Username is valid
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
+		when(dbObj.containsField("username")).thenReturn(true);
+		when(dbObj.get("username")).thenReturn("bsmith");
+		assertTrue(mongoAccessor.getUsername("myuuid").equals("bsmith"));
+
+		// (2) Username is invalid; record is present
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
+		when(dbObj.containsField("username")).thenReturn(false);
+		assertNull(mongoAccessor.getUsername("myuuid"));
+
+		// (3) Username is invalid; record is missing
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
+		assertNull(mongoAccessor.getUsername("myuuid"));
 	}
 
+	@Test
+	public void testGetUuid() {
+		BasicDBObject toFind = new BasicDBObject("username", "myuser");
+		DBObject dbObj = Mockito.mock(DBObject.class);
+
+		when(mongoDatabase.getCollection(eq("collectionname"))).thenReturn(dbCollection);
+
+		// (1) UUID is valid
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
+		when(dbObj.containsField("uuid")).thenReturn(true);
+		when(dbObj.get("uuid")).thenReturn("longuuidstring");
+		assertTrue(mongoAccessor.getApiKey("myuser").equals("longuuidstring"));
+
+		// (2) UUID is invalid, record is present
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(dbObj);
+		when(dbObj.containsField("uuid")).thenReturn(false);
+		assertNull(mongoAccessor.getApiKey("myuser"));
+
+		// (3) UUID is invalid, record is missing
+		when(dbCollection.findOne(refEq(toFind))).thenReturn(null);
+		assertNull(mongoAccessor.getApiKey("myuser"));
+	}
 }
