@@ -132,7 +132,7 @@ public class MongoAccessorTests {
 		// (1) Exists
 		Mockito.doReturn(apiKey).when(apiCollection).findOne(Mockito.any(Query.class));
 		String userName = mongoAccessor.getUsername("myuuid");
-		assertTrue(apiKey.getUserName().equals(userName));
+		assertTrue(apiKey.getUsername().equals(userName));
 
 		// (2) Does not Exist
 		Mockito.doReturn(null).when(apiCollection).findOne(Mockito.any(Query.class));
