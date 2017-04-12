@@ -131,7 +131,7 @@ public class MongoAccessor {
 		// Create the new API Key Model
 		long currentTime = System.currentTimeMillis();
 		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
-		Query query = DBQuery.is("userName", username);
+		Query query = DBQuery.is("username", username);
 		// Update the old Key
 		getApiKeyCollection().update(query, apiKey);
 	}
@@ -158,18 +158,34 @@ public class MongoAccessor {
 	 * @return True if valid. False if not.
 	 */
 	public boolean isApiKeyValid(String uuid) {
-		Query query = DBQuery.is("apiKey", uuid);
+		Query query = DBQuery.is("uuid", uuid);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		// Check that the key exists.
 		if (apiKey == null) {
 			// Key does not exist
 			return false;
 		}
+
+		// If the key does not have an expiration/timeout date (legacy) ensure one is assigned now
+		long currentTime = System.currentTimeMillis();
+		if ((apiKey.getExpiresOn() == 0) && (apiKey.getLastUsedOn()) == 0) {
+			apiKey.setExpiresOn(currentTime + KEY_EXPIRATION_DURATION_MS);
+			apiKey.setLastUsedOn(currentTime);
+
+			// Update the document
+			Builder update = new Builder();
+			update.set("expiresOn", apiKey.getExpiresOn());
+			update.set("lastUsedOn", apiKey.getLastUsedOn());
+			Query updateQuery = DBQuery.is("uuid", uuid);
+			getApiKeyCollection().update(updateQuery, update);
+		}
+
 		// Key exists. Check expiration date to ensure it's valid
 		if (apiKey.getExpiresOn() < System.currentTimeMillis()) {
 			// Key has expired and is not valid any longer
 			return false;
 		}
+
 		// Key has not expired. Check Inactivity date.
 		if ((System.currentTimeMillis() - apiKey.getLastUsedOn()) < KEY_INACTIVITY_THESHOLD_MS) {
 			// Key is not inactive.
@@ -177,7 +193,7 @@ public class MongoAccessor {
 			try {
 				Builder update = new Builder();
 				update.set("lastUsedOn", System.currentTimeMillis());
-				Query updateQuery = DBQuery.is("apiKey", uuid);
+				Query updateQuery = DBQuery.is("uuid", uuid);
 				getApiKeyCollection().update(updateQuery, update);
 			} catch (Exception exception) {
 				String error = "Could not update time of last usage for API Key.";
@@ -200,10 +216,10 @@ public class MongoAccessor {
 	 * @return The username. Null if the API Key is not valid.
 	 */
 	public String getUsername(String uuid) {
-		Query query = DBQuery.is("apiKey", uuid);
+		Query query = DBQuery.is("uuid", uuid);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		if (apiKey != null) {
-			return apiKey.getUserName();
+			return apiKey.getUsername();
 		} else {
 			return null;
 		}
@@ -217,10 +233,10 @@ public class MongoAccessor {
 	 * @return The API Key. Null if no username has a matching API Key entry.
 	 */
 	public String getApiKey(String username) {
-		Query query = DBQuery.is("userName", username);
+		Query query = DBQuery.is("username", username);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		if (apiKey != null) {
-			return apiKey.getApiKey();
+			return apiKey.getUuid();
 		} else {
 			return null;
 		}

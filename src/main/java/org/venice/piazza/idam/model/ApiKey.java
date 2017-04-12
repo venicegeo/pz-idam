@@ -15,6 +15,8 @@
  **/
 package org.venice.piazza.idam.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Model for representing an API Key in the Mongo Database. References the key itself, the user, and the creation and
  * expiration dates.
@@ -22,9 +24,10 @@ package org.venice.piazza.idam.model;
  * @author Patrick.Doody
  *
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ApiKey {
-	private String apiKey;
-	private String userName;
+	private String uuid;
+	private String username;
 	private long createdOn;
 	private long expiresOn;
 	private long lastUsedOn;
@@ -46,19 +49,19 @@ public class ApiKey {
 	 *            Epoch, time of expiration
 	 */
 	public ApiKey(String apiKey, String userName, long createdOn, long expiresOn) {
-		this.apiKey = apiKey;
-		this.userName = userName;
+		this.uuid = apiKey;
+		this.username = userName;
 		this.createdOn = createdOn;
 		this.expiresOn = expiresOn;
 		this.lastUsedOn = System.currentTimeMillis();
 	}
 
-	public String getApiKey() {
-		return apiKey;
+	public String getUuid() {
+		return uuid;
 	}
 
-	public String getUserName() {
-		return userName;
+	public String getUsername() {
+		return username;
 	}
 
 	public long getCreatedOn() {
