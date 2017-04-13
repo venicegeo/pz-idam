@@ -280,8 +280,15 @@ public class AuthController {
 	@RequestMapping(value = "/key/{key}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> deleteApiKey(@PathVariable(value = "key") String uuid) {
 		try {
+			//Delete API Key
+			String username = mongoAccessor.getUsername(uuid);
 			mongoAccessor.deleteApiKey(uuid);
-			return new ResponseEntity<>(new SuccessResponse(String.format("ApiKey: %s was deleted", uuid), IDAM_COMPONENT_NAME), HttpStatus.OK);
+			
+			//Log the action
+			String response = String.format("User: %s API Key was deleted", username);
+			pzLogger.log(response, Severity.INFORMATIONAL, new AuditElement(username, "deleteApiKey", ""));
+			LOGGER.info(response);
+			return new ResponseEntity<>(new SuccessResponse(response, IDAM_COMPONENT_NAME), HttpStatus.OK);
 		} catch (Exception exception) {
 			String error = String.format("Error deleting API Key: %s", exception.getMessage());
 			LOGGER.error(error, exception);
