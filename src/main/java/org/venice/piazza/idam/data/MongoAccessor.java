@@ -46,6 +46,7 @@ import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.ServerAddress;
 
+import exception.InvalidInputException;
 import model.logger.Severity;
 import model.security.authz.UserProfile;
 import util.PiazzaLogger;
@@ -240,6 +241,26 @@ public class MongoAccessor {
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * Deletes the API Key for the specified uuid
+	 * 
+	 * @param uuid
+	 *            The api key
+	 * @throws InvalidInputException 
+	 */
+	public void deleteApiKey(String uuid) throws InvalidInputException {
+		// Check that the key exists.
+		if (uuid == null) {
+			throw new InvalidInputException("Unable to delete null api key");
+		}
+
+		// Delete API Key
+		DBCollection collection = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME);
+		BasicDBObject deleteQuery = new BasicDBObject();
+		deleteQuery.append("uuid", uuid);
+		collection.remove(deleteQuery);
 	}
 
 	/**
