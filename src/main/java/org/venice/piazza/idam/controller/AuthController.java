@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -46,6 +47,7 @@ import model.logger.Severity;
 import model.response.AuthResponse;
 import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
+import model.response.SuccessResponse;
 import model.response.UUIDResponse;
 import model.security.authz.AuthorizationCheck;
 import model.security.authz.UserProfile;
@@ -269,6 +271,32 @@ public class AuthController {
 		}
 	}
 
+	/**
+	 * Deletes API Key with provided UUID
+	 * 
+	 * @param key
+	 * @return PiazzaResponse
+	 */
+	@RequestMapping(value = "/key/{key}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PiazzaResponse> deleteApiKey(@PathVariable(value = "key") String uuid) {
+		try {
+			//Delete API Key
+			String username = mongoAccessor.getUsername(uuid);
+			mongoAccessor.deleteApiKey(uuid);
+			
+			//Log the action
+			String response = String.format("User: %s API Key was deleted", username);
+			pzLogger.log(response, Severity.INFORMATIONAL, new AuditElement(username, "deleteApiKey", ""));
+			LOGGER.info(response);
+			return new ResponseEntity<>(new SuccessResponse(response, IDAM_COMPONENT_NAME), HttpStatus.OK);
+		} catch (Exception exception) {
+			String error = String.format("Error deleting API Key: %s", exception.getMessage());
+			LOGGER.error(error, exception);
+			pzLogger.log(error, Severity.ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
 	/**
 	 * Generates a new API Key based on the provided username and credential for GeoAxis.
 	 * 
