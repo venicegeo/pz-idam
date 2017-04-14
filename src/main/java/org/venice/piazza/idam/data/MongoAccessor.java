@@ -361,12 +361,16 @@ public class MongoAccessor {
 	 * @param dn
 	 *            The distinguished name of the user
 	 */
-	public UserProfile insertUserProfile(String username, String dn) {
+	public UserProfile insertUserProfile(String username, String dn, String adminCode, String dutyCode, String country) {
 		// Create Model
 		UserProfile userProfile = new UserProfile();
 		userProfile.setUsername(username);
 		userProfile.setDistinguishedName(dn);
 		userProfile.setCreatedOn(new DateTime());
+		userProfile.setAdminCode(adminCode);
+		userProfile.setDutyCode(dutyCode);
+		userProfile.setCountry(country);
+
 		// Commit
 		getUserProfileCollection().insert(userProfile);
 		// Return
