@@ -97,28 +97,27 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	}
 	
 	private AuthResponse processGxResponse(final GxAuthNResponse gxResponse) {
-		logger.log(String.format("GeoAxis response has returned authentication %s", gxResponse.isSuccessful()),
-				Severity.INFORMATIONAL,
-				new AuditElement("idam", gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
-		
 		boolean isAuthenticated = false;
 		UserProfile userProfile = null;
-
-		if (gxResponse.isSuccessful()) {
+		
+		if( gxResponse != null ) {
+			logger.log(String.format("GeoAxis response has returned authentication %s", gxResponse.isSuccessful()),
+					Severity.INFORMATIONAL,
+					new AuditElement("idam", gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
 
 			// If Authentication was successful, then get/create the User Profile.
-			if (gxResponse.isSuccessful()) {
+			if( gxResponse.isSuccessful() ) {
 				userProfile = getUserProfile(gxResponse);
-				
-				// NPE users will have "ou=Component" in their DN
-				if( userProfile.getDistinguishedName() != null && 
-						userProfile.getDistinguishedName().toLowerCase().contains("ou=component") ) {
+	
+				if( userProfile != null && userProfile.isNPE() ) {
 					isAuthenticated = true;
 				}
 			}
+		} else {
+			logger.log("GeoAxis has returned a NULL response!", Severity.INFORMATIONAL,
+					new AuditElement("idam", "userFailedAuthentication", ""));
 		}
-
-		// Return
+		
 		return new AuthResponse(isAuthenticated, userProfile);
 	}
 
@@ -176,7 +175,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			return null;
 		}
 	}
-
+	
 	private String getFormattedPem(String pem) {
 		String pemHeader = "-----BEGIN CERTIFICATE-----";
 		String pemFooter = "-----END CERTIFICATE-----";

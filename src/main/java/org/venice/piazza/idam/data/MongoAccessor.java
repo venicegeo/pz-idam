@@ -370,7 +370,14 @@ public class MongoAccessor {
 		userProfile.setAdminCode(adminCode);
 		userProfile.setDutyCode(dutyCode);
 		userProfile.setCountry(country);
-
+		
+		if( dn != null && dn.toLowerCase().contains("ou=component") ) {
+			userProfile.setNPE(true);
+		}
+		else {
+			userProfile.setNPE(false);
+		}
+		
 		// Commit
 		getUserProfileCollection().insert(userProfile);
 		// Return
