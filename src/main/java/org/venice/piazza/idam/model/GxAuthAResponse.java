@@ -38,7 +38,7 @@ public class GxAuthAResponse {
 		return serviceoragency;
 	}
 
-	public void setServiceoragency(List<String> serviceoragency) {
+	public void setServiceoragency(final List<String> serviceoragency) {
 		this.serviceoragency = serviceoragency;
 	}
 
