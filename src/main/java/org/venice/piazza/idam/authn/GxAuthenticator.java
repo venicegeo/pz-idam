@@ -15,7 +15,9 @@
  **/
 package org.venice.piazza.idam.authn;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,12 +25,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.model.GxAuthARequest;
+import org.venice.piazza.idam.model.GxAuthAResponse;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
 import org.venice.piazza.idam.model.PrincipalItem;
 
-import exception.InvalidInputException;
 import model.logger.AuditElement;
 import model.logger.Severity;
 import model.response.AuthResponse;
@@ -49,6 +52,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxApiUrlAtnCert;
 	@Value("${vcap.services.geoaxis.credentials.api.url.atnbasic}")
 	private String gxApiUrlAtnBasic;
+	@Value("${vcap.services.geoaxis.credentials.api.url.ata}")
+	private String gxApiUrlAta;	
 	@Value("${vcap.services.geoaxis.credentials.basic.mechanism}")
 	private String gxBasicMechanism;
 	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
@@ -62,55 +67,58 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private MongoAccessor mongoAccessor;
 
 	@Override
-	public AuthResponse getAuthenticationDecision(String username, String credential) {
+	public AuthResponse getAuthenticationDecision(final String username, final String credential) {
 		logger.log(String.format("Performing credential check for Username %s to GeoAxis.", username), Severity.INFORMATIONAL,
 				new AuditElement(username, "loginAttempt", ""));
-		GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
+		final GxAuthNUserPassRequest request = new GxAuthNUserPassRequest();
 		request.setUsername(username);
 		request.setPassword(credential);
 		request.setMechanism(gxBasicMechanism);
 		request.setHostIdentifier(gxBasicHostIdentifier);
 
-		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
+		final GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnBasic, request, GxAuthNResponse.class);
 
-		// If Authenticated, then get/create the UserProfile for this user
-		UserProfile userProfile = null;
-		if (gxResponse.isSuccessful()) {
-			userProfile = getUserProfile(gxResponse);
-		}
-
-		logger.log(String.format("GeoAxis response for Username %s has returned Authenticated %s", username, gxResponse.isSuccessful()),
-				Severity.INFORMATIONAL,
-				new AuditElement(username, gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
-
-		return new AuthResponse(gxResponse.isSuccessful(), userProfile);
+		return processGxResponse(gxResponse);
 	}
 
 	@Override
-	public AuthResponse getAuthenticationDecision(String pem) {
+	public AuthResponse getAuthenticationDecision(final String pem) {
 		logger.log("Performing cert check for PKI Cert to GeoAxis", Severity.INFORMATIONAL,
 				new AuditElement("idam", "loginCertAttempt", ""));
-
-		GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
+		
+		final GxAuthNCertificateRequest request = new GxAuthNCertificateRequest();
 		request.setPemCert(getFormattedPem(pem));
 		request.setMechanism("GxCert");
 		request.setHostIdentifier("//OAMServlet/certprotected");
 
-		GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
+		final GxAuthNResponse gxResponse = restTemplate.postForObject(gxApiUrlAtnCert, request, GxAuthNResponse.class);
 
-		if (gxResponse.isSuccessful() == false) {
-			logger.log("GeoAxis response for PKI Cert has failed authentication.", Severity.INFORMATIONAL,
-					new AuditElement("idam", "userFailedCertAuthentication", ""));
-		}
-
-		// If Authentication was successful, then get/create the User Profile.
+		return processGxResponse(gxResponse);
+	}
+	
+	private AuthResponse processGxResponse(final GxAuthNResponse gxResponse) {
+		boolean isAuthenticated = false;
 		UserProfile userProfile = null;
-		if (gxResponse.isSuccessful()) {
-			userProfile = getUserProfile(gxResponse);
-		}
+		
+		if( gxResponse != null ) {
+			logger.log(String.format("GeoAxis response has returned authentication %s", gxResponse.isSuccessful()),
+					Severity.INFORMATIONAL,
+					new AuditElement("idam", gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
 
-		// Return
-		return new AuthResponse(gxResponse.isSuccessful(), userProfile);
+			// If Authentication was successful, then get/create the User Profile.
+			if( gxResponse.isSuccessful() ) {
+				userProfile = getUserProfile(gxResponse);
+	
+//				if( userProfile != null && userProfile.isNPE() ) { // UNCOMMENT FOR NPE-ONLY ENFORCEMENT
+					isAuthenticated = true;
+//				}
+			}
+		} else {
+			logger.log("GeoAxis has returned a NULL response!", Severity.INFORMATIONAL,
+					new AuditElement("idam", "userFailedAuthentication", ""));
+		}
+		
+		return new AuthResponse(isAuthenticated, userProfile);
 	}
 
 	/**
@@ -121,7 +129,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	 *            The GeoAxis response, containing at a minimum the username and DN
 	 * @return The UserProfile object for this User
 	 */
-	private UserProfile getUserProfile(GxAuthNResponse gxResponse) {
+	private UserProfile getUserProfile(final GxAuthNResponse gxResponse) {
 		// Extract the Username and DN from the Response
 		String username = null;
 		String dn = null;
@@ -147,9 +155,14 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			if (mongoAccessor.hasUserProfile(username, dn)) {
 				// Get the User Profile
 				userProfile = mongoAccessor.getUserProfileByUsername(username);
-			} else {
-				// Create if it doesn't
-				userProfile = mongoAccessor.insertUserProfile(username, dn);
+			} 
+			else {	
+				Map<String,String> userProfileAttributes = getUserProfileAttributesFromGx(username);
+				userProfile = mongoAccessor.insertUserProfile(username, dn, 
+						userProfileAttributes.get("adminCode"), userProfileAttributes.get("dutyCode"), userProfileAttributes.get("country"));
+				
+				logger.log("Have atts: " + userProfileAttributes.get("adminCode") + " - " +  userProfileAttributes.get("dutyCode")
+					+ " - " + userProfileAttributes.get("country"), Severity.INFORMATIONAL);
 			}
 
 			// Return the Profile
@@ -162,12 +175,65 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			return null;
 		}
 	}
-
-	private String getFormattedPem(String pem) {
+	
+	private String getFormattedPem(final String pem) {
 		String pemHeader = "-----BEGIN CERTIFICATE-----";
 		String pemFooter = "-----END CERTIFICATE-----";
 		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);
 
 		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +", "\n") + "\n" + pemFooter;
+	}
+	
+	private Map<String,String> getUserProfileAttributesFromGx(final String username)  {
+		logger.log("Attempting to retrieve user profile attributes from GeoAxis", Severity.INFORMATIONAL,
+				new AuditElement("idam", "profileAttributeRetrievalAttempt", ""));
+
+		final GxAuthARequest request = new GxAuthARequest();
+		request.setUid(username);
+
+		final GxAuthAResponse[] gxResponse = restTemplate.postForObject(gxApiUrlAta, request, GxAuthAResponse[].class);
+		
+			logger.log("GeoAxis response for user profile attributes successful", Severity.INFORMATIONAL,
+					new AuditElement("idam", "profileAttributeRetrieved", ""));
+
+		final Map<String,String> userAttributes = new HashMap<>();
+
+		if( gxResponse != null && gxResponse.length > 0 ) {
+			final GxAuthAResponse firstElement = gxResponse[0];
+			
+			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
+				userAttributes.put("country", firstElement.getNationalityextended().get(0));
+			}
+			
+			/*
+			 * If NGA:
+			 *    admincode = serviceoragency
+			 *    dutycode = serviceoragency
+			 *    
+			 * If non-NGA:
+			 * 	  admincode = gxadministrativeorganizationcode
+			 *    dutycode = gxdutydodoccupationcode
+			 */	
+			
+			if( firstElement.getServiceoragency() != null && !firstElement.getServiceoragency().isEmpty()) {
+				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
+				
+				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
+					userAttributes.put("adminCode", firstElement.getServiceoragency().get(0));
+					userAttributes.put("dutyCode", firstElement.getServiceoragency().get(0));
+				}
+				else {
+					if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
+						userAttributes.put("adminCode", firstElement.getGxadministrativeorganizationcode().get(0));
+					}
+					
+					if( firstElement.getGxdutydodoccupationcode() != null && !firstElement.getGxdutydodoccupationcode().isEmpty()) {
+						userAttributes.put("dutyCode", firstElement.getGxdutydodoccupationcode().get(0));
+					}
+				}
+			}
+		}
+		
+		return userAttributes;
 	}
 }

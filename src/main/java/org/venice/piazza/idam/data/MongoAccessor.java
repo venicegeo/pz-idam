@@ -128,7 +128,7 @@ public class MongoAccessor {
 	 * @param uuid
 	 *            The updated API Key
 	 */
-	public void updateApiKey(String username, String uuid) {
+	public void updateApiKey(final String username, final String uuid) {
 		// Create the new API Key Model
 		long currentTime = System.currentTimeMillis();
 		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
@@ -145,7 +145,7 @@ public class MongoAccessor {
 	 * @param uuid
 	 *            The API Key for the user name
 	 */
-	public void createApiKey(String username, String uuid) {
+	public void createApiKey(final String username, final String uuid) {
 		long currentTime = System.currentTimeMillis();
 		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
 		getApiKeyCollection().insert(apiKey);
@@ -158,7 +158,7 @@ public class MongoAccessor {
 	 *            The API Key
 	 * @return True if valid. False if not.
 	 */
-	public boolean isApiKeyValid(String uuid) {
+	public boolean isApiKeyValid(final String uuid) {
 		Query query = DBQuery.is("uuid", uuid);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		// Check that the key exists.
@@ -233,7 +233,7 @@ public class MongoAccessor {
 	 *            The username
 	 * @return The API Key. Null if no username has a matching API Key entry.
 	 */
-	public String getApiKey(String username) {
+	public String getApiKey(final String username) {
 		Query query = DBQuery.is("username", username);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		if (apiKey != null) {
@@ -250,7 +250,7 @@ public class MongoAccessor {
 	 *            The api key
 	 * @throws InvalidInputException 
 	 */
-	public void deleteApiKey(String uuid) throws InvalidInputException {
+	public void deleteApiKey(final String uuid) throws InvalidInputException {
 		// Check that the key exists.
 		if (uuid == null) {
 			throw new InvalidInputException("Unable to delete null api key");
@@ -280,7 +280,7 @@ public class MongoAccessor {
 	 *            The username
 	 * @return The User Profile
 	 */
-	public UserProfile getUserProfileByUsername(String username) {
+	public UserProfile getUserProfileByUsername(final String username) {
 		BasicDBObject query = new BasicDBObject(USERNAME, username);
 		UserProfile userProfile;
 
@@ -308,7 +308,7 @@ public class MongoAccessor {
 	 *            The API Key
 	 * @return The User Profile.
 	 */
-	public UserProfile getUserProfileByApiKey(String uuid) {
+	public UserProfile getUserProfileByApiKey(final String uuid) {
 		String username = getUsername(uuid);
 		if (username == null) {
 			return null;
@@ -336,7 +336,7 @@ public class MongoAccessor {
 	 *            The distinguished name
 	 * @return True if the User has a UserProfile in the DB, false if not.
 	 */
-	public boolean hasUserProfile(String username, String dn) {
+	public boolean hasUserProfile(final String username, final String dn) {
 		Query query = DBQuery.empty();
 		query.and(DBQuery.is("username", username));
 		query.and(DBQuery.is("distinguishedName", dn));
@@ -361,12 +361,23 @@ public class MongoAccessor {
 	 * @param dn
 	 *            The distinguished name of the user
 	 */
-	public UserProfile insertUserProfile(String username, String dn) {
+	public UserProfile insertUserProfile(final String username, final String dn, final String adminCode, final String dutyCode, final String country) {
 		// Create Model
-		UserProfile userProfile = new UserProfile();
+		final UserProfile userProfile = new UserProfile();
 		userProfile.setUsername(username);
 		userProfile.setDistinguishedName(dn);
 		userProfile.setCreatedOn(new DateTime());
+		userProfile.setAdminCode(adminCode);
+		userProfile.setDutyCode(dutyCode);
+		userProfile.setCountry(country);
+		
+		if( dn != null && dn.toLowerCase().contains("ou=component") ) {
+			userProfile.setNPE(true);
+		}
+		else {
+			userProfile.setNPE(false);
+		}
+		
 		// Commit
 		getUserProfileCollection().insert(userProfile);
 		// Return
@@ -402,7 +413,7 @@ public class MongoAccessor {
 	 *            If true, the user throttle information will be added to the database if it doesn't exist already.
 	 * @return The throttle information, containing counts for invocations of each Throttle
 	 */
-	public UserThrottles getCurrentThrottlesForUser(String username, boolean createIfNull) throws MongoException {
+	public UserThrottles getCurrentThrottlesForUser(final String username, final boolean createIfNull) throws MongoException {
 		BasicDBObject query = new BasicDBObject("username", username);
 		UserThrottles userThrottles;
 
