@@ -201,8 +201,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		if( gxResponse != null && gxResponse.length > 0 ) {
 			GxAuthAResponse firstElement = gxResponse[0];
 			
-			if( firstElement.getCountry() != null && !firstElement.getCountry().isEmpty()) { 
-				userAttributes.put("country", firstElement.getCountry().get(0));
+			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
+				userAttributes.put("country", firstElement.getNationalityextended().get(0));
 			}
 			
 			/*

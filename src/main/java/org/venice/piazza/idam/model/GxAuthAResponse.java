@@ -32,7 +32,7 @@ public class GxAuthAResponse {
 	private List<String> gxdutydodoccupationcode;
 	
 	// Country for both Customer and Non-Customer Users
-	private List<String> country;
+	private List<String> nationalityextended;
 
 	public List<String> getServiceoragency() {
 		return serviceoragency;
@@ -46,7 +46,7 @@ public class GxAuthAResponse {
 		return gxadministrativeorganizationcode;
 	}
 
-	public void setGxadministrativeorganizationcode(List<String> gxadministrativeorganizationcode) {
+	public void setGxadministrativeorganizationcode(final List<String> gxadministrativeorganizationcode) {
 		this.gxadministrativeorganizationcode = gxadministrativeorganizationcode;
 	}
 
@@ -54,15 +54,15 @@ public class GxAuthAResponse {
 		return gxdutydodoccupationcode;
 	}
 
-	public void setGxdutydodoccupationcode(List<String> gxdutydodoccupationcode) {
+	public void setGxdutydodoccupationcode(final List<String> gxdutydodoccupationcode) {
 		this.gxdutydodoccupationcode = gxdutydodoccupationcode;
 	}
 
-	public List<String> getCountry() {
-		return country;
+	public List<String> getNationalityextended() {
+		return nationalityextended;
 	}
 
-	public void setCountry(List<String> country) {
-		this.country = country;
+	public void setNationalityextended(final List<String> country) {
+		this.nationalityextended = country;
 	}
 }
