@@ -15,10 +15,8 @@
  **/
 package org.venice.piazza.idam.authn;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -122,8 +120,9 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	}
 
 	/**
-	 * Creates a User Profile in the Mongo DB, if one does not already exist. If it exists, this will return the
-	 * existing UserProfile.
+	 * Creates a User Profile in the Mongo DB, if one does not already exist. 
+	 * If it exists, then it will update the profile with the most recent attributes.
+	 * 
 	 * 
 	 * @param gxResponse
 	 *            The GeoAxis response, containing at a minimum the username and DN
@@ -150,16 +149,25 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			logger.log(String.format("GeoAxis response has passed authentication, Username %s with DN %s", username, dn),
 					Severity.INFORMATIONAL);
 
-			// Detect if the UserProfile exists
-			UserProfile userProfile = null;
+			// Get the latest information from Gx
+			UserProfile userProfile = getUserProfileFromGx(username);
+			userProfile.setDistinguishedName(dn);
+			userProfile.setUsername(username);
+			
 			if (mongoAccessor.hasUserProfile(username, dn)) {
-				// Get the User Profile
-				userProfile = mongoAccessor.getUserProfileByUsername(username);
+				final UserProfile originalUserProfile = mongoAccessor.getUserProfileByUsername(username);
+				if( originalUserProfile != null ) {
+					userProfile.setCreatedOn(originalUserProfile.getCreatedOn());
+				}
+				
+				userProfile.setLastUpdatedOn(new DateTime());
+				
+				mongoAccessor.updateUserProfile(userProfile);
 			} 
-			else {	
-				Map<String,String> userProfileAttributes = getUserProfileAttributesFromGx(username);
-				userProfile = mongoAccessor.insertUserProfile(username, dn, 
-						userProfileAttributes.get("adminCode"), userProfileAttributes.get("dutyCode"), userProfileAttributes.get("country"));
+			else {
+				userProfile.setCreatedOn(new DateTime());
+
+				mongoAccessor.insertUserProfile(userProfile);
 			}
 
 			// Return the Profile
@@ -181,7 +189,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +", "\n") + "\n" + pemFooter;
 	}
 	
-	private Map<String,String> getUserProfileAttributesFromGx(final String username)  {
+	private UserProfile getUserProfileFromGx(final String username)  {
 		logger.log("Attempting to retrieve user profile attributes from GeoAxis", Severity.INFORMATIONAL,
 				new AuditElement("idam", "profileAttributeRetrievalAttempt", ""));
 
@@ -193,13 +201,13 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			logger.log("GeoAxis response for user profile attributes successful", Severity.INFORMATIONAL,
 					new AuditElement("idam", "profileAttributeRetrieved", ""));
 
-		final Map<String,String> userAttributes = new HashMap<>();
+		final UserProfile userProfile = new UserProfile();
 
 		if( gxResponse != null && gxResponse.length > 0 ) {
 			final GxAuthAResponse firstElement = gxResponse[0];
 
 			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
-				userAttributes.put("country", firstElement.getNationalityextended().get(0));
+				userProfile.setCountry(firstElement.getNationalityextended().get(0));
 			}
 			
 			/*
@@ -216,21 +224,21 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
 				
 				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
-					userAttributes.put("adminCode", firstElement.getServiceoragency().get(0));
-					userAttributes.put("dutyCode", firstElement.getServiceoragency().get(0));
+					userProfile.setAdminCode(firstElement.getServiceoragency().get(0));
+					userProfile.setDutyCode(firstElement.getServiceoragency().get(0));
 				}
 				else {
 					if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
-						userAttributes.put("adminCode", firstElement.getGxadministrativeorganizationcode().get(0));
+						userProfile.setAdminCode(firstElement.getGxadministrativeorganizationcode().get(0));
 					}
 					
 					if( firstElement.getGxdutydodoccupationcode() != null && !firstElement.getGxdutydodoccupationcode().isEmpty()) {
-						userAttributes.put("dutyCode", firstElement.getGxdutydodoccupationcode().get(0));
+						userProfile.setDutyCode(firstElement.getGxdutydodoccupationcode().get(0));
 					}
 				}
 			}
 		}
 		
-		return userAttributes;
+		return userProfile;
 	}
 }

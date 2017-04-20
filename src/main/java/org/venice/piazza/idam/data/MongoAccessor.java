@@ -317,6 +317,14 @@ public class MongoAccessor {
 		}
 	}
 
+	public void updateUserProfile(final UserProfile userProfile) {
+
+		Query query = DBQuery.empty();
+		query.and(DBQuery.is("username", userProfile.getUsername()));
+		query.and(DBQuery.is("distinguishedName", userProfile.getDistinguishedName()));
+		getUserProfileCollection().update(query, userProfile);
+	}
+	
 	/**
 	 * Gets the Mongo Collection of all User Profiles
 	 * 
@@ -361,15 +369,8 @@ public class MongoAccessor {
 	 * @param dn
 	 *            The distinguished name of the user
 	 */
-	public UserProfile insertUserProfile(final String username, final String dn, final String adminCode, final String dutyCode, final String country) {
-		// Create Model
-		final UserProfile userProfile = new UserProfile();
-		userProfile.setUsername(username);
-		userProfile.setDistinguishedName(dn);
-		userProfile.setCreatedOn(new DateTime());
-		userProfile.setAdminCode(adminCode);
-		userProfile.setDutyCode(dutyCode);
-		userProfile.setCountry(country);
+	public UserProfile insertUserProfile(final UserProfile userProfile) {
+		final String dn = userProfile.getDistinguishedName();
 		
 		if( dn != null && dn.toLowerCase().contains("ou=component") ) {
 			userProfile.setNPE(true);
