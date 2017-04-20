@@ -65,4 +65,11 @@ public class GxAuthAResponse {
 	public void setNationalityextended(final List<String> country) {
 		this.nationalityextended = country;
 	}
+
+	@Override
+	public String toString() {
+		return "GxAuthAResponse [serviceoragency=" + serviceoragency + ", gxadministrativeorganizationcode="
+				+ gxadministrativeorganizationcode + ", gxdutydodoccupationcode=" + gxdutydodoccupationcode
+				+ ", nationalityextended=" + nationalityextended + "]";
+	}
 }

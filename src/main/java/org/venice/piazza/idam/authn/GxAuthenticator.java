@@ -160,9 +160,6 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				Map<String,String> userProfileAttributes = getUserProfileAttributesFromGx(username);
 				userProfile = mongoAccessor.insertUserProfile(username, dn, 
 						userProfileAttributes.get("adminCode"), userProfileAttributes.get("dutyCode"), userProfileAttributes.get("country"));
-				
-				logger.log("Have atts: " + userProfileAttributes.get("adminCode") + " - " +  userProfileAttributes.get("dutyCode")
-					+ " - " + userProfileAttributes.get("country"), Severity.INFORMATIONAL);
 			}
 
 			// Return the Profile
@@ -200,7 +197,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 		if( gxResponse != null && gxResponse.length > 0 ) {
 			final GxAuthAResponse firstElement = gxResponse[0];
-			
+
 			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
 				userAttributes.put("country", firstElement.getNationalityextended().get(0));
 			}
