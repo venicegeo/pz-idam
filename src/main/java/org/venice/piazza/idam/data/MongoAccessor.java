@@ -318,7 +318,6 @@ public class MongoAccessor {
 	}
 
 	public void updateUserProfile(final UserProfile userProfile) {
-
 		Query query = DBQuery.empty();
 		query.and(DBQuery.is("username", userProfile.getUsername()));
 		query.and(DBQuery.is("distinguishedName", userProfile.getDistinguishedName()));
@@ -330,7 +329,7 @@ public class MongoAccessor {
 	 * 
 	 * @return Mongo collection for Profiles
 	 */
-	private JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
+	public JacksonDBCollection<UserProfile, String> getUserProfileCollection() {
 		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
 		return JacksonDBCollection.wrap(collection, UserProfile.class, String.class);
 	}
@@ -385,6 +384,28 @@ public class MongoAccessor {
 		return userProfile;
 	}
 
+	/**
+	 * Deletes a new User Profile from the database.
+	 * <p>
+	 * The action of deleting a User Profile is performed when the UserProfileDaemon checks the UserProfile of
+	 * each user for validity. Invalid UserProfiles, and their corresponding API Keys, will be deleted.
+	 * </p>
+	 *
+	 * @param username
+	 *            The name of the user.
+	 */
+	public void deleteUserProfile(final String username) throws InvalidInputException {
+		// Check that the key exists.
+		if (username == null) {
+			throw new InvalidInputException("Unable to delete profile of null username");
+		}
+
+		// Delete User Profile
+		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
+		BasicDBObject deleteQuery = new BasicDBObject();
+		deleteQuery.append("username", username);
+		collection.remove(deleteQuery);
+	}
 	/**
 	 * Gets the Mongo Collection of the User Throttles. This is the information that determines how many invocations of
 	 * a particular action that a user has performed in the last period of time.
