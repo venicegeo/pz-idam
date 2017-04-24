@@ -277,7 +277,7 @@ public class AuthController {
 	 * @param key
 	 * @return PiazzaResponse
 	 */
-	@RequestMapping(value = "/key/{key}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/v2/key/{key}", method = RequestMethod.DELETE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> deleteApiKey(@PathVariable(value = "key") String uuid) {
 		try {
 			//Delete API Key
