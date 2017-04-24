@@ -23,12 +23,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.GxAuthARequest;
-import org.venice.piazza.idam.model.GxAuthAResponse;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
 import org.venice.piazza.idam.model.PrincipalItem;
+import org.venice.piazza.idam.util.GxUserProfileClient;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
@@ -58,7 +57,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxBasicHostIdentifier;
 	@Autowired
 	private PiazzaLogger logger;
-
+	@Autowired
+	private GxUserProfileClient gxUserProfileClient;
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
@@ -150,7 +150,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 					Severity.INFORMATIONAL);
 
 			// Get the latest information from Gx
-			UserProfile userProfile = getUserProfileFromGx(username);
+			UserProfile userProfile = gxUserProfileClient.getUserProfileFromGx(username);
 			userProfile.setDistinguishedName(dn);
 			userProfile.setUsername(username);
 			
@@ -187,58 +187,5 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		String pemInternal = pem.substring(pemHeader.length(), pem.length() - pemFooter.length() - 1);
 
 		return pemHeader + "\n" + pemInternal.trim().replaceAll(" +", "\n") + "\n" + pemFooter;
-	}
-	
-	private UserProfile getUserProfileFromGx(final String username)  {
-		logger.log("Attempting to retrieve user profile attributes from GeoAxis", Severity.INFORMATIONAL,
-				new AuditElement("idam", "profileAttributeRetrievalAttempt", ""));
-
-		final GxAuthARequest request = new GxAuthARequest();
-		request.setUid(username);
-
-		final GxAuthAResponse[] gxResponse = restTemplate.postForObject(gxApiUrlAta, request, GxAuthAResponse[].class);
-		
-			logger.log("GeoAxis response for user profile attributes successful", Severity.INFORMATIONAL,
-					new AuditElement("idam", "profileAttributeRetrieved", ""));
-
-		final UserProfile userProfile = new UserProfile();
-
-		if( gxResponse != null && gxResponse.length > 0 ) {
-			final GxAuthAResponse firstElement = gxResponse[0];
-
-			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
-				userProfile.setCountry(firstElement.getNationalityextended().get(0));
-			}
-			
-			/*
-			 * If NGA:
-			 *    admincode = serviceoragency
-			 *    dutycode = serviceoragency
-			 *    
-			 * If non-NGA:
-			 * 	  admincode = gxadministrativeorganizationcode
-			 *    dutycode = gxdutydodoccupationcode
-			 */	
-			
-			if( firstElement.getServiceoragency() != null && !firstElement.getServiceoragency().isEmpty()) {
-				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
-				
-				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
-					userProfile.setAdminCode(firstElement.getServiceoragency().get(0));
-					userProfile.setDutyCode(firstElement.getServiceoragency().get(0));
-				}
-				else {
-					if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
-						userProfile.setAdminCode(firstElement.getGxadministrativeorganizationcode().get(0));
-					}
-					
-					if( firstElement.getGxdutydodoccupationcode() != null && !firstElement.getGxdutydodoccupationcode().isEmpty()) {
-						userProfile.setDutyCode(firstElement.getGxdutydodoccupationcode().get(0));
-					}
-				}
-			}
-		}
-		
-		return userProfile;
 	}
 }
