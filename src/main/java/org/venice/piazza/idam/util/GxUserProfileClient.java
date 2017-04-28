@@ -41,7 +41,7 @@ public class GxUserProfileClient {
 	@Autowired
 	private RestTemplate restTemplate;
 	
-	public UserProfile getUserProfileFromGx(final String username)  {
+	public UserProfile getUserProfileFromGx(final String username, final String dn)  {
 		logger.log("Attempting to retrieve user profile attributes from GeoAxis", Severity.INFORMATIONAL,
 				new AuditElement("idam", "profileAttributeRetrievalAttempt", ""));
 
@@ -54,6 +54,8 @@ public class GxUserProfileClient {
 				new AuditElement("idam", "profileAttributeRetrieved", ""));
 
 		final UserProfile userProfile = new UserProfile();
+		userProfile.setUsername(username);
+		userProfile.setDistinguishedName(dn);
 
 		if( gxResponse != null && gxResponse.length > 0 ) {
 			final GxAuthAResponse firstElement = gxResponse[0];
@@ -76,8 +78,8 @@ public class GxUserProfileClient {
 				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
 				
 				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
-					userProfile.setAdminCode(firstElement.getServiceoragency().get(0));
-					userProfile.setDutyCode(firstElement.getServiceoragency().get(0));
+					userProfile.setAdminCode(serviceOrAgencyValue);
+					userProfile.setDutyCode(serviceOrAgencyValue);
 				}
 				else {
 					if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
