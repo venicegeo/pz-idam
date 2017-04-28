@@ -369,18 +369,9 @@ public class MongoAccessor {
 	 *            The distinguished name of the user
 	 */
 	public UserProfile insertUserProfile(final UserProfile userProfile) {
-		final String dn = userProfile.getDistinguishedName();
-		
-		if( dn != null && dn.toLowerCase().contains("ou=component") ) {
-			userProfile.setNPE(true);
-		}
-		else {
-			userProfile.setNPE(false);
-		}
-		
-		// Commit
+
 		getUserProfileCollection().insert(userProfile);
-		// Return
+
 		return userProfile;
 	}
 

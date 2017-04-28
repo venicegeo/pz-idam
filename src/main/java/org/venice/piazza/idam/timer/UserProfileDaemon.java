@@ -54,9 +54,10 @@ public class UserProfileDaemon {
 		
 		for( final UserProfile originalUserProfile : userProfiles ) {
 			final String username = originalUserProfile.getUsername();
-			final UserProfile newUserProfile = gxUserProfileClient.getUserProfileFromGx(username);
+			final String dn = originalUserProfile.getDistinguishedName();
+			final UserProfile newUserProfile = gxUserProfileClient.getUserProfileFromGx(username, dn);
 			
-			if( !this.isUserProfileActive(newUserProfile) ) {
+			if( !isUserProfileActive(newUserProfile) ) {
 				// Profile not active, remove ApiKey and UserProfile
 				logger.log("UserProfileDaemon failed to verify UserProfile for user: " + username, Severity.INFORMATIONAL,
 						new AuditElement("idam", "userProfileVerificationFailureDAEMON", ""));				
