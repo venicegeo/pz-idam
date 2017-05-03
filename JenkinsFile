@@ -1,15 +1,32 @@
-node ('sl61'){
-  git url: 'https://github.com/venicegeo/pz-idam', branch: 'master'
-  withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) { 
-    stage 'Fortify Scan'
-    def mvnHome = tool 'M3'
-    sh "${mvnHome}/bin/mvn  install:install-file -Dfile=pom.xml -DpomFile=pom.xml/bin/mvn install:install-file -Dfile=pom.xml -DpomFile=pom.xml"
-    sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}" 
-    sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-    sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
+node ("") {
 
-    stage 'OWASP Scan'
-    sh '/opt/dependency-check/bin/dependency-check.sh --project "PZ IDAM" --scan "." --format "XML" --enableExperimental'
-    sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
-  }
+    stage("Clean") {
+      deleteDir()
+    }
+
+    stage("Fortify Scan") {
+      git url: 'https://github.com/venicegeo/pz-idam', branch: 'master'
+      withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
+        def mvnHome = tool 'M3'
+        withEnv(["HOME=${pwd()}"]) {
+          sh "mkdir -p ${env.HOME}/.m2/repository"
+          sh './ci/archive.sh'
+          sh "${mvnHome}/bin/mvn  install:install-file -Dfile=pz-idam.jar -DpomFile=pom.xml -Dmaven.repo.local=${env.HOME}/.m2/repository"
+          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} 'src/main/java/**/*.java'"
+          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+          sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
+        }
+      }
+    }
+
+    stage("OWASP Scan") {
+      withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
+        sh "ls -al /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
+        sh "head /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
+        sh "file /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
+        sh '/opt/dependency-check/bin/dependency-check.sh --project "PZ Job Common" --scan "." --format "XML" --enableExperimental'
+        //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
+      }
+    }
 }
+
