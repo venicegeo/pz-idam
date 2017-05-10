@@ -1,2 +1,9 @@
 ci/
+config/
 src/
+target/
+JenkinsFile
+jenkins.properties
+manifest.*.yml
+.*
+*.properties

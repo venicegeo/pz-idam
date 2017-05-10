@@ -1,32 +1,109 @@
-node ("") {
+@Library('pipelib@master') _
 
-    stage("Clean") {
-      deleteDir()
-    }
+node {
+  def mvn = tool 'M3'
+  def root = pwd()
 
-    stage("Fortify Scan") {
-      git url: 'https://github.com/venicegeo/pz-idam', branch: 'master'
-      withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
-        def mvnHome = tool 'M3'
-        withEnv(["HOME=${pwd()}"]) {
-          sh "mkdir -p ${env.HOME}/.m2/repository"
-          sh './ci/archive.sh'
-          sh "${mvnHome}/bin/mvn  install:install-file -Dfile=pz-idam.jar -DpomFile=pom.xml -Dmaven.repo.local=${env.HOME}/.m2/repository"
-          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} 'src/main/java/**/*.java'"
-          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-          sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
-        }
-      }
-    }
+  stage('Setup') {
+    git([
+      url: "https://github.com/venicegeo/pz-idam",
+      branch: "master"
+    ])
+  }
 
-    stage("OWASP Scan") {
-      withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
-        sh "ls -al /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
-        sh "head /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
-        sh "file /jslave/workspace/venice/piazza/pz-idam-pipeline/.m2/repository/org/venice/piazza/piazza-idam/1.0.0/piazza-idam-1.0.0.jar"
-        sh '/opt/dependency-check/bin/dependency-check.sh --project "PZ Job Common" --scan "." --format "XML" --enableExperimental'
-        //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/10/upload?apiKey=$THREADFIXKEY"
-      }
+  stage('Archive') {
+    withCredentials([file(credentialsId: 'ca8591a7-fc1f-4b6d-808e-c9944c9bf4f8', variable: 'JKS')]) {
+      sh """
+        ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
+
+        [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
+
+        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
+
+        [ -f "\$JKS" ] || rm \$JKS
+
+      """
     }
+    mavenPush()
+  }
+
+  stage('Scans') {
+//    dependencyCheck()
+    ionConnect()
+    sh """
+      mkdir -p ${root}/.m2/repository
+      ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
+        -Dmaven.repo.local=${root}/.m2/repository \
+        -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
+        -DdataFile=target/jacoco.exec
+    """
+    sonar()
+  }
+
+  stage('CI Deploy') {
+    withCredentials([
+      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
+      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
+    ]) {
+      sh """
+        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
+
+        for manifest in \$(ls -1 manifest*yml); do
+          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
+          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
+          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
+        done
+      """
+    }
+    cfPush()
+//    zap()
+    cfBgDeploy()
+  }
+
+  stage('Integration Testing') {
+    postman()
+  }
+
+  stage('Reset') {
+    git([
+      url: "https://github.com/venicegeo/pz-idam",
+      branch: "master"
+    ])
+  }
+
+  stage('Staging Deploy') {
+    withCredentials([
+      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
+      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
+    ]) {
+      sh """
+        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
+
+        for manifest in \$(ls -1 manifest*yml); do
+          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
+          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
+          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
+        done
+      """
+    }
+    cfPush {
+      cfDomain  = 'stage.geointservices.io'
+      cfSpace   = 'stage'
+    }
+    cfBgDeploy {
+      cfDomain  = 'stage.geointservices.io'
+      cfSpace   = 'stage'
+    }
+  }
+
+  stage('Final Scans') {
+    sh """
+      ${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml
+    """
+    fortify()
+  }
+
+  stage('Cleanup') {
+    deleteDir()
+  }
 }
-
