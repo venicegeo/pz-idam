@@ -20,7 +20,7 @@ node {
 
         cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
 
-        [ -f "\$JKS" ] || rm \$JKS
+        [ -f "\$JKS" ] || rm -f \$JKS
 
       """
     }
