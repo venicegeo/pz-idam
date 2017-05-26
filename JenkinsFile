@@ -102,6 +102,19 @@ node {
     }
   }
 
+  stage ('Stage: Integration Testing') {
+    postman {
+      cfSpace = 'stage'
+    }
+  }
+
+  stage('Reset') {
+    git([
+      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
+      branch: "master"
+    ])
+  }
+
   stage('Final Scans') {
     sh """
       ${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml
