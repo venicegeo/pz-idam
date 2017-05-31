@@ -16,4 +16,4 @@ When idam has initialized successfully, the following message will be displayed:
 
 `2017-05-31 07:02:27.934  INFO 5104 --- [           main] org.venice.piazza.idam.Application       : Started Application in 4.671 seconds (JVM running for 7.033)`
 
-By default Tomcat server listens on port 443.   To change port and other properties, update the application.properties file located at: src/main/resources/application.properties.
+By default Tomcat server listens on port 443.   To change port and other properties, update the **application.properties** file located in the _src/main/resources/_ directory.
