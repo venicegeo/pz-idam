@@ -2,7 +2,7 @@
 
 To build and run pz-idam, software such as Maven and MongoDB are required.  For details on these prerequisites, see the Developer's Guide https://pz-docs.geointservices.io/devguide/index.html#_piazza_core_overview
 
-pz-idam uses _Spring Profiles_ to invoke authentication models based on the required identity and access management approach.   By default, pz-idam runs with disable-authn spring profile.
+pz-idam uses _Spring Profiles_ to invoke authentication models based on the required identity and access management approach.   By default, pz-idam runs with _disable-authn_ Spring profile.
 
 To clone the pz-idam repostioriy, run the following command:
 
