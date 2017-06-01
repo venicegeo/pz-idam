@@ -18,7 +18,7 @@
 	<repositories>
 		<repository>
 			<id>nexus</id>
-			<url>https://nexus.devops.geointservices.io/content/repositories/Piazza-Group/</url>
+			<url>${env.ARTIFACT_STORAGE_URL}</url>
 		</repository>
 	</repositories>
 
