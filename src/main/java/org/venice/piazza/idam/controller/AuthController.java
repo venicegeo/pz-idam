@@ -349,9 +349,20 @@ public class AuthController {
 					// Username found and authenticated. Get the API Key.
 					if (username != null) {
 						String apiKey = mongoAccessor.getApiKey(username);
-						pzLogger.log(String.format("Successfully retrieved API Key for user %s.", username), Severity.INFORMATIONAL,
-								new AuditElement(username, "getExistingApiKey", ""));
-						return new ResponseEntity<>(new UUIDResponse(apiKey), HttpStatus.OK);
+						// Ensure the apiKey is not null
+						if (apiKey != null) {
+							// Key Found
+							pzLogger.log(String.format("Successfully retrieved API Key for user %s.", username), Severity.INFORMATIONAL,
+									new AuditElement(username, "getExistingApiKey", ""));
+							return new ResponseEntity<>(new UUIDResponse(apiKey), HttpStatus.OK);
+						} else {
+							// There is an account found, but there is no api key associated with it.
+							pzLogger.log(String.format("%s requested existing API Key but none was found.", username),
+									Severity.INFORMATIONAL, new AuditElement(username,
+											"failedGetExistingApiKey", ""));
+							String error = String.format("No active API Key found for %s. Please request a new API Key.", username);
+							return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.BAD_REQUEST);
+						}
 					}
 				}
 			}
