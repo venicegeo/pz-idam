@@ -15,6 +15,7 @@ node {
 
   stage('Archive') {
     withCredentials([file(credentialsId: 'ca8591a7-fc1f-4b6d-808e-c9944c9bf4f8', variable: 'JKS')]) {
+      sh "env"
       sh """
         ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
 
