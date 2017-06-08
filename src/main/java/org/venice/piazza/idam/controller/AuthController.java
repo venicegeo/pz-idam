@@ -267,7 +267,7 @@ public class AuthController {
 			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		}
 	}
 
@@ -377,7 +377,7 @@ public class AuthController {
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		}
 	}
 }
