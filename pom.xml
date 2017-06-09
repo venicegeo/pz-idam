@@ -51,9 +51,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.venice.piazza</groupId>
+			<groupId>org.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>ato-sprite-148-gcf72620</version>
+			<version>ato-sprite-149-ge476ad0</version>
 		</dependency>
 
 		<dependency>

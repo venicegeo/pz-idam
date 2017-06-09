@@ -1,130 +1,87 @@
-@Library('pipelib@master') _
-
-def THREADFIX_ID = env.THREADFIX_ID ? env.THREADFIX_ID : '115'
+#!/usr/bin/groovy
 
 node {
-  def mvn = tool 'M3'
   def root = pwd()
+  def mvn = tool 'M3'
 
   stage('Setup') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
+    deleteDir()
+    // github is open gitlab requires credentials to clone
+    if(env.GITLAB_CREDS) {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+    } else {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
+    }
   }
 
+  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
+
   stage('Archive') {
-    withCredentials([file(credentialsId: 'ca8591a7-fc1f-4b6d-808e-c9944c9bf4f8', variable: 'JKS')]) {
-      sh """
-        ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
-
-        [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
-
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
-        [ -f "\$JKS" ] || rm -f \$JKS
-
-      """
-    }
-    mavenPush()
+    sh """
+      ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
+      cp ${root}/target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
+    """
+   sh """mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/pz-idam.jar \
+      -DrepositoryId=nexus \
+      -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+      -DgroupId="org.piazza" \
+      -DgeneratePom=false \
+      -Dpackaging=jar \
+      -Dmaven.repo.local="${root}/.m2/repository" \
+      -DartifactId=pz-idam \
+      -Dversion=${appvers}
+    """
   }
 
   stage('Scans') {
-    dependencyCheck {
-      threadfixId = THREADFIX_ID
-    }
-    ionConnect()
-    sh """
-      mkdir -p ${root}/.m2/repository
-      ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
-        -Dmaven.repo.local=${root}/.m2/repository \
-        -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
-        -DdataFile=target/jacoco.exec
-    """
-    sonar()
-  }
+    withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
+      sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
+      sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "pz-idam" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
+      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+      //ionConnect()
+      //sh """
+      //  mkdir -p ${root}/.m2/repository
+      //  ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
+      //    -Dmaven.repo.local=${root}/.m2/repository \
+      //    -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
+      //    -DdataFile=target/jacoco.exec
+      //"""
 
-  stage('CI Deploy') {
-    withCredentials([
-      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
-      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
-    ]) {
       sh """
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
-        for manifest in \$(ls -1 manifest*yml); do
-          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
-          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
-          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
-        done
+        mkdir -p ${root}/.m2/repository
+        ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
+          -Dmaven.repo.local=${root}/.m2/repository \
+          -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
+          -DdataFile=target/jacoco.exec
       """
-    }
-    cfPush()
-    zap {
-      threadfixId = THREADFIX_ID
-    }
-    cfBgDeploy()
-  }
 
-  stage('Integration Testing') {
-    postman()
-  }
-
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
-  }
-
-  stage('Staging Deploy') {
-    withCredentials([
-      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
-      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
-    ]) {
       sh """
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
-        for manifest in \$(ls -1 manifest*yml); do
-          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
-          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
-          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
-        done
+        sonar-scanner -Dsonar.jacoco.reportPath=target/jacoco.exec \
+        -Dsonar.binaries=target/classes \
+        -Dsonar.language=java \
+        -Dsonar.links.scm=${env.GIT_URL} \
+        -Dsonar.links.scm_dev=${env.GIT_URL}.git \
+        -Dsonar.links.issue= \
+        -Dsonar.links.homepage= \
+        -Dsonar.links.ci=${env.JOB_URL} \
+        -Dsonar.projectKey=venicegeo:piazza:${artifactId} \
+        -Dsonar.projectName=venicegeo:piazza:${artifactId} \
+        -Dsonar.projectBaseDir=${root} \
+        -Dsonar.projectVersion=${appvers} \
+        -Dsonar.redmine.url= \
+        -Dsonar.redmine.api-idam-key= \
+        -Dsonar.redmine.project-key= \
+        -Dsonar.sourceEncoding=utf-8 \
+        -Dsonar.sources=src/main/java \
+        -Dsonar.exclusions= \
+        -Dsonar.tests=src/test/java
       """
-    }
-    cfPush {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
-    }
-    cfBgDeploy {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
+
+      //sh "${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml"
+      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
+      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
     }
   }
 
-  stage ('Stage: Integration Testing') {
-    postman {
-      cfSpace = 'stage'
-    }
-  }
-
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
-  }
-
-  stage('Final Scans') {
-    sh """
-      ${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml
-    """
-    fortify {
-      threadfixId = THREADFIX_ID
-    }
-  }
-
-  stage('Cleanup') {
-    deleteDir()
-  }
 }
