@@ -3,7 +3,11 @@
 node {
   def root = pwd()
   def mvn = tool 'M3'
-
+  def sonarUrl = "https://sonar.gs.mil"
+  def projectKey = "venicegeo:piazza:pz-idam"
+  def projectName = "venicegeo:piazza:pz-idam"
+  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
+ 
   stage('Setup') {
     deleteDir()
     // github is open gitlab requires credentials to clone
@@ -13,8 +17,6 @@ node {
       git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
     }
   }
-
-  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
 
   stage('Archive') {
     sh """
@@ -55,33 +57,16 @@ node {
           -DdataFile=target/jacoco.exec
       """
 
-      sh """
-        sonar-scanner -Dsonar.jacoco.reportPath=target/jacoco.exec \
-        -Dsonar.binaries=target/classes \
-        -Dsonar.language=java \
-        -Dsonar.links.scm=${env.GIT_URL} \
-        -Dsonar.links.scm_dev=${env.GIT_URL}.git \
-        -Dsonar.links.issue= \
-        -Dsonar.links.homepage= \
-        -Dsonar.links.ci=${env.JOB_URL} \
-        -Dsonar.projectKey=venicegeo:piazza:${artifactId} \
-        -Dsonar.projectName=venicegeo:piazza:${artifactId} \
-        -Dsonar.projectBaseDir=${root} \
-        -Dsonar.projectVersion=${appvers} \
-        -Dsonar.redmine.url= \
-        -Dsonar.redmine.api-idam-key= \
-        -Dsonar.redmine.project-key= \
-        -Dsonar.sourceEncoding=utf-8 \
-        -Dsonar.sources=src/main/java \
-        -Dsonar.exclusions= \
-        -Dsonar.tests=src/test/java
-      """
-
       //sh "${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml"
       sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
       sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
       sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
     }
+      
+    withCredentials([string(credentialsId: 'sonar-prod-publish-token', variable: 'USERNAME')]) {
+      withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
+        sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${sonarUrl} -Dsonar.projectKey=${projectKey} -Dsonar.projectName=${projectName} -Dsonar.login=${USERNAME} -P nga"
+      }
+    }
   }
-
 }
