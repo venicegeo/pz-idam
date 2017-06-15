@@ -1,130 +1,244 @@
-@Library('pipelib@master') _
-
-def THREADFIX_ID = env.THREADFIX_ID ? env.THREADFIX_ID : '115'
+#!/usr/bin/groovy
 
 node {
-  def mvn = tool 'M3'
   def root = pwd()
+  def mvn = tool 'M3'
+  def zapHome = tool 'ZAProxy_v2_5_0'
+  def nodejs = tool 'NodeJS_6'
+  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
+  appvers = appvers.trim()
+  def appName = "pz-idam-${appvers}"
 
   stage('Setup') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
+    deleteDir()
+    // github is open gitlab requires credentials to clone
+    if(env.GITLAB_CREDS) {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+    } else {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
+    }
+    sh "sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml"
   }
 
   stage('Archive') {
-    withCredentials([file(credentialsId: 'ca8591a7-fc1f-4b6d-808e-c9944c9bf4f8', variable: 'JKS')]) {
-      sh """
-        ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
+      withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
+        sh """
+          ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
 
-        [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
+          [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
 
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
+          cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
 
-        [ -f "\$JKS" ] || rm -f \$JKS
+          [ -f "\$JKS" ] || rm -f \$JKS
 
+        """
+      }
+
+    // Check if exists already
+    def getDependencyStatus = sh(script: """mvn -X --settings ~/.m2/settings.xml dependency:get \
+      -Dmaven.repo.local="${root}/.m2/repository" \
+      -DrepositoryId=nexus \
+      -DartifactId=pz-idam \
+      -Dversion=${appvers} \
+      -DgroupId="org.venice.piazza" \
+      -Dpackaging=jar \
+      -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+      >> /dev/null 2>&1 \
+    """, returnStatus: true)
+    echo "dependency status = ${getDependencyStatus}"
+    if (getDependencyStatus == 0) {
+      echo "Artifact version ${appvers} exists in Nexus, nothing to do"
+    } else {
+      sh """mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/pz-idam.jar \
+        -DrepositoryId=nexus \
+        -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+        -DgroupId="org.venice.piazza" \
+        -DgeneratePom=false \
+        -Dpackaging=jar \
+        -Dmaven.repo.local="${root}/.m2/repository" \
+        -DartifactId=pz-idam \
+        -Dversion=${appvers}
       """
     }
-    mavenPush()
   }
 
   stage('Scans') {
-    dependencyCheck {
-      threadfixId = THREADFIX_ID
-    }
-    ionConnect()
-    sh """
-      mkdir -p ${root}/.m2/repository
-      ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
-        -Dmaven.repo.local=${root}/.m2/repository \
-        -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
-        -DdataFile=target/jacoco.exec
-    """
-    sonar()
-  }
+    withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
+      sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
+      sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "pz-idam" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
+      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
 
-  stage('CI Deploy') {
-    withCredentials([
-      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
-      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
-    ]) {
+      //ionConnect()
+      def ionTool = tool 'ion-connect-latest'
+      withEnv([
+        "ION_CONNECT_LATEST_HOME=${ionTool}",
+        "PATH+ION=${ionTool}/linux/bin",
+        "PATH+JQ=${tool 'jq1_5'}"
+      ]) {
+        withCredentials([string(credentialsId: "${env.IONCHANNEL_SECRET_KEY}", variable: 'IONCHANNEL_SECRET_KEY')]) {
+          def pomFile = "${root}/pom.xml"
+          sh """
+            resp=\$(ion-connect dependency resolve-dependencies-in-file --flatten --type maven ${pomFile})
+            deps=\$(echo \${resp} | jq .dependencies)
+            ion-connect vulnerability get-vulnerabilities-for-list "\${deps}"
+          """
+        }
+      }
+
       sh """
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
-        for manifest in \$(ls -1 manifest*yml); do
-          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
-          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
-          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
-        done
+        mkdir -p ${root}/.m2/repository
+        ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
+          -Dmaven.repo.local=${root}/.m2/repository \
+          -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
+          -DdataFile=target/jacoco.exec
       """
+
+      //sh "${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml"
+      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
+      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
     }
-    cfPush()
-    zap {
-      threadfixId = THREADFIX_ID
+
+    withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
+      withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
+        def projectId = "venicegeo:piazza:pz-idam"
+        sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME} -P nga"
+      }
     }
-    cfBgDeploy()
   }
 
-  stage('Integration Testing') {
-    postman()
-  }
 
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
-  }
-
-  stage('Staging Deploy') {
-    withCredentials([
-      string(credentialsId: 'ff7148c6-2855-4f3d-bd2e-3aa296b09d98', variable: 'JKS_PASSPHRASE'),
-      string(credentialsId: 'da3092c4-d13d-4078-ab91-a630c61547aa', variable: 'PZ_PASSPHRASE')
-    ]) {
-      sh """
-        cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
-        for manifest in \$(ls -1 manifest*yml); do
-          echo "    JKS_FILE: pz-idam.jks" >> \$manifest
-          echo "    JKS_PASSPHRASE: \$JKS_PASSPHRASE" >> \$manifest
-          echo "    PZ_PASSPHRASE: \$PZ_PASSPHRASE" >> \$manifest
-        done
+  stage ('Int Deploy') {
+    if(!fileExists('.cf')) {
+      sh "mkdir -p .cf"
+    }
+    withEnv(['CF_HOME=.cf']) {
+      withCredentials([
+        [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS'],
+        string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE'),
+        string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE')
+      ]) {
+        sh "cf api ${env.PCF_API_ENDPOINT}"
+        sh "cf auth ${CFUSER} ${CFPASS}"
+        sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}"
+        sh "cf push ${appName} -f manifest.yml --hostname ${appName} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start"
+        sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
+        sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
+        sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
+        sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
+        sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+        sh "cf start ${appName}"
+      }
+    }
+    withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+      sh "mkdir -p ${root}/zap-out"
+      sh """${zapHome}/zap.sh -cmd \
+        -quickout ${root}/zap-out/zap.xml \
+        -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN} \
       """
+      sh "cat ${root}/zap-out/zap.xml"
+      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
     }
-    cfPush {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
-    }
-    cfBgDeploy {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
-    }
-  }
-
-  stage ('Stage: Integration Testing') {
-    postman {
-      cfSpace = 'stage'
-    }
-  }
-
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-idam',
-      branch: "master"
-    ])
-  }
-
-  stage('Final Scans') {
-    sh """
-      ${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml
-    """
-    fortify {
-      threadfixId = THREADFIX_ID
+    withEnv(['CF_HOME=.cf']) {
+      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+        sh "cf api ${env.PCF_API_ENDPOINT}"
+        sh "cf auth ${CFUSER} ${CFPASS}"
+        sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}"
+        def legacyAppNames = sh(script: "cf routes | grep \"pz-idam \" | awk '{print \$4}'", returnStdout: true)
+        sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname pz-idam"
+        // Remove Legacy applications
+        for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+          def legacyAppName = legacyApp.toString().trim()
+          if (legacyAppName != appName) {
+            sh "cf delete -f ${legacyAppName}"
+          }
+        }
+      }
     }
   }
 
-  stage('Cleanup') {
-    deleteDir()
+  if (!params.SKIP_INTEGRATION_TESTS) {
+    stage('Phase One Integration Tests') {
+      if(!fileExists("integration-tests")) {
+        sh "mkdir -p integration-tests"
+      }
+      // Clone Test Repository
+      withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+        withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
+          dir ("integration-tests") {
+            if(env.GITLAB_CREDS) {
+              git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master", credentialsId: "${env.GITLAB_CREDS}"
+            } else {
+              git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master"
+            }
+            sh "npm install newman@2"
+            sh "ci/blackbox.sh"
+          }
+        }
+      }
+    }
+  }
+
+  if(params.DEPLOY_PHASE_TWO) {
+    stage('Stage Deploy') {
+      if(!fileExists('.cf')) {
+        sh "mkdir -p .cf"
+      }
+      withEnv(['CF_HOME=.cf']) {
+        withCredentials([
+          [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS'],
+          string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE'),
+          string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE')
+        ]) {
+          sh "cf api ${env.PCF_API_ENDPOINT}"
+          sh "cf auth ${CFUSER} ${CFPASS}"
+          sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+          sh "cf push ${appName} -f manifest.yml --hostname ${appName} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start"
+          sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
+          sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
+          sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
+          sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
+          sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+          sh "cf start ${appName}"
+        }
+      }
+      withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+        sh """${zapHome}/zap.sh -cmd \
+        -quickout ${root}/zap-out/zap.xml \
+        -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN} \
+        """
+        sh "cat ${root}/zap-out/zap.xml"
+        sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+      }
+      withEnv(['CF_HOME=.cf']) {
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+        sh "cf api ${env.PCF_API_ENDPOINT}"
+        sh "cf auth ${CFUSER} ${CFPASS}"
+        sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+        def legacyAppNames = sh(script: "cf routes | grep \"pz-idam \" | awk '{print \$4}'", returnStdout: true)
+        sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname pz-idam"
+          // Remove Legacy applications
+          for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+            def legacyAppName = legacyApp.toString().trim()
+            if (legacyAppName != appName) {
+              sh "cf delete -f ${legacyAppName}"
+            }
+          }
+        }
+      }
+    }
+
+    if (!params.SKIP_INTEGRATION_TESTS) {
+      stage('Phase Two Integration Tests') {
+        withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+          withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
+            dir ("integration-tests") {
+              sh "ci/blackbox.sh"
+            }
+          }
+        }
+      }
+    }
+
   }
 }
