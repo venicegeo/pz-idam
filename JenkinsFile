@@ -26,6 +26,7 @@ node {
           ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
 
           [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
+          cp ${root}/src/main/resources/pz-idam.jks ${root}/pz-idam.jks
 
           cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
 
