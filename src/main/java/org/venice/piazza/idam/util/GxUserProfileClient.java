@@ -77,7 +77,7 @@ public class GxUserProfileClient {
 			if( firstElement.getServiceoragency() != null && !firstElement.getServiceoragency().isEmpty()) {
 				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
 				
-				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
+				if( "NGA".equalsIgnoreCase(serviceOrAgencyValue) ) {
 					userProfile.setAdminCode(serviceOrAgencyValue);
 					userProfile.setDutyCode(serviceOrAgencyValue);
 				}

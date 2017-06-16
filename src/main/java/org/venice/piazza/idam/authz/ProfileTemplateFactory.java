@@ -61,7 +61,9 @@ public class ProfileTemplateFactory {
 			templateString = IOUtils.toString(templateStream);
 		} finally {
 			try {
-				templateStream.close();
+				if( templateStream != null ) {
+					templateStream.close();
+				}
 			} catch (Exception exception) {
 				LOGGER.error("Error closing Template Stream.", exception);
 			}

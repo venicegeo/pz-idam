@@ -192,8 +192,7 @@ public class AuthController {
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
-			String error = String.format("Error checking authorization: %s: %s",
-					authorizationCheck != null ? authorizationCheck.toString() : "Null Payload Sent.", exception.getMessage());
+			String error = String.format("Error checking authorization: %s", authorizationCheck);
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error

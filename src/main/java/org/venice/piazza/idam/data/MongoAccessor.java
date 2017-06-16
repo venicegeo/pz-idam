@@ -94,7 +94,7 @@ public class MongoAccessor {
 		try {
 			MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
 			// Enable SSL if the `mongossl` Profile is enabled
-			if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("mongossl"))) {
+			if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> "mongossl".equalsIgnoreCase(env))) {
 				builder.sslEnabled(true);
 				builder.sslInvalidHostNameAllowed(true);
 			}

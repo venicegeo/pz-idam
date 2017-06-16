@@ -120,7 +120,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				}
 				
 				if( username != null && dn != null ) {
-					if( dn != null && dn.toLowerCase().contains("ou=component") ) {
+					if( dn.toLowerCase().contains("ou=component") ) {
 						isNPE = true;
 						userProfile = getUserProfile(username, dn, isNPE);
 					}

@@ -94,9 +94,12 @@ public class JobConsumer {
 	 * recorded in the Throttle table.
 	 */
 	public void pollForJobs() {
+		
+		Consumer<String, String> consumer = null;
+		
 		try {
 			// Create the General Group Consumer
-			Consumer<String, String> consumer = KafkaClientFactory.getConsumer(kafkaHosts, kafkaGroup);
+			consumer = KafkaClientFactory.getConsumer(kafkaHosts, kafkaGroup);
 			consumer.subscribe(topics);
 
 			// Poll
@@ -119,11 +122,15 @@ public class JobConsumer {
 					}
 				}
 			}
-			consumer.close();
 		} catch (WakeupException exception) {
 			String error = String.format("Polling Thread forcefully closed: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
+		}
+		finally { 
+			if( consumer != null ) {
+				consumer.close();
+			}
 		}
 	}
 
