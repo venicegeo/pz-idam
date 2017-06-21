@@ -168,9 +168,9 @@ node {
         withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
           dir ("integration-tests") {
             if(env.GITLAB_CREDS) {
-              git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master", credentialsId: "${env.GITLAB_CREDS}"
+                git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
             } else {
-              git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master"
+                git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
             }
             sh "npm install newman@2"
             sh "ci/blackbox.sh"
