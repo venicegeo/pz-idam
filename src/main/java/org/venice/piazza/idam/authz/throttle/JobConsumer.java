@@ -149,7 +149,7 @@ public class JobConsumer {
 	 */
 	private void processThrottle(Job job) {
 		String username = job.getCreatedBy();
-		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.job;
+		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.JOB;
 		// Update persistence
 		try {
 			accessor.incrementUserThrottles(username, component);

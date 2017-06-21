@@ -73,7 +73,7 @@ public class AuthorizerTests {
 		assertTrue(response.isAuthSuccess.equals(true));
 
 		// Test POST methods where the user is not throttled.
-		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.job)).thenReturn(new Integer(5));
+		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.JOB)).thenReturn(new Integer(5));
 		mockCheck.setAction(new Permission("POST", "data"));
 		response = throttleAuthorizer.canUserPerformAction(mockCheck);
 		assertTrue(response.isAuthSuccess.equals(true));
@@ -82,7 +82,7 @@ public class AuthorizerTests {
 		assertTrue(response.isAuthSuccess.equals(true));
 
 		// Test Jobs where the user is throttled due to excessive Jobs
-		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.job))
+		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.JOB))
 				.thenReturn(new Integer(10000000));
 		mockCheck.setAction(new Permission("POST", "data"));
 		response = throttleAuthorizer.canUserPerformAction(mockCheck);
@@ -91,7 +91,7 @@ public class AuthorizerTests {
 
 		// Test when exceptions are thrown - throttles should be permissive (don't block if the DB goes down, or
 		// something)
-		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.job))
+		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.JOB))
 				.thenThrow(new MongoException("Oops"));
 		mockCheck.setAction(new Permission("POST", "data"));
 		response = throttleAuthorizer.canUserPerformAction(mockCheck);

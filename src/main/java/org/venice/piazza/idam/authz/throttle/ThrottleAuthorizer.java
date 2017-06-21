@@ -66,7 +66,7 @@ public class ThrottleAuthorizer implements Authorizer {
 			try {
 				// Get the number of invocations for this user
 				invocations = accessor.getInvocationsForUserThrottle(authorizationCheck.getUsername(),
-						model.security.authz.Throttle.Component.job);
+						model.security.authz.Throttle.Component.JOB);
 				// Determine if the number of invocations exceeds the limit
 				if (isThrottleInvocationsExceeded(invocations, authorizationCheck.getUsername())) {
 					String message = String.format("Number of Jobs for user %s has been exceeded (%s). Please try again tomorrow.",
