@@ -132,7 +132,7 @@ public class MongoAccessor {
 		// Create the new API Key Model
 		long currentTime = System.currentTimeMillis();
 		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
-		Query query = DBQuery.is("username", username);
+		Query query = DBQuery.is(USERNAME, username);
 		// Update the old Key
 		getApiKeyCollection().update(query, apiKey);
 	}
@@ -234,7 +234,7 @@ public class MongoAccessor {
 	 * @return The API Key. Null if no username has a matching API Key entry.
 	 */
 	public String getApiKey(final String username) {
-		Query query = DBQuery.is("username", username);
+		Query query = DBQuery.is(USERNAME, username);
 		ApiKey apiKey = getApiKeyCollection().findOne(query);
 		if (apiKey != null) {
 			return apiKey.getUuid();
@@ -319,7 +319,7 @@ public class MongoAccessor {
 
 	public void updateUserProfile(final UserProfile userProfile) {
 		Query query = DBQuery.empty();
-		query.and(DBQuery.is("username", userProfile.getUsername()));
+		query.and(DBQuery.is(USERNAME, userProfile.getUsername()));
 		query.and(DBQuery.is("distinguishedName", userProfile.getDistinguishedName()));
 		getUserProfileCollection().update(query, userProfile);
 	}
@@ -345,7 +345,7 @@ public class MongoAccessor {
 	 */
 	public boolean hasUserProfile(final String username, final String dn) {
 		Query query = DBQuery.empty();
-		query.and(DBQuery.is("username", username));
+		query.and(DBQuery.is(USERNAME, username));
 		query.and(DBQuery.is("distinguishedName", dn));
 		UserProfile userProfile = getUserProfileCollection().findOne(query);
 		if (userProfile == null) {
@@ -394,7 +394,7 @@ public class MongoAccessor {
 		// Delete User Profile
 		DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
 		BasicDBObject deleteQuery = new BasicDBObject();
-		deleteQuery.append("username", username);
+		deleteQuery.append(USERNAME, username);
 		collection.remove(deleteQuery);
 	}
 	/**
@@ -427,7 +427,7 @@ public class MongoAccessor {
 	 * @return The throttle information, containing counts for invocations of each Throttle
 	 */
 	public UserThrottles getCurrentThrottlesForUser(final String username, final boolean createIfNull) throws MongoException {
-		BasicDBObject query = new BasicDBObject("username", username);
+		BasicDBObject query = new BasicDBObject(USERNAME, username);
 		UserThrottles userThrottles;
 
 		try {
@@ -481,7 +481,7 @@ public class MongoAccessor {
 		Integer currentInvocations = getInvocationsForUserThrottle(username, component);
 		Builder update = new Builder();
 		update.set(String.format("throttles.%s", component.toString()), ++currentInvocations);
-		Query query = DBQuery.is("username", username);
+		Query query = DBQuery.is(USERNAME, username);
 		getUserThrottlesCollection().update(query, update);
 	}
 

@@ -33,7 +33,7 @@ public class ApiKey {
 	private long lastUsedOn;
 
 	public ApiKey() {
-
+		// Empty constructor required by Jackson
 	}
 
 	/**

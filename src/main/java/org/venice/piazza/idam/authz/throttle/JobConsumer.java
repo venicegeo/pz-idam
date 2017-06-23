@@ -106,21 +106,7 @@ public class JobConsumer {
 			while (!closed.get()) {
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(1000);
 				// Handle new Messages on this topic.
-				for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
-					// Record the Job Type and the user requesting that Job
-					try {
-						Job job = mapper.readValue(consumerRecord.value(), Job.class);
-						processThrottle(job);
-						System.out.println("Throttle processed.");
-						LOGGER.info("Processed");
-					} catch (IOException exception) {
-						String error = String.format(
-								"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
-								consumerRecord.key(), exception.getMessage());
-						LOGGER.error(error, exception);
-						pzLogger.log(error, Severity.ERROR);
-					}
-				}
+				handleNewMessage(consumerRecords);
 			}
 		} catch (WakeupException exception) {
 			String error = String.format("Polling Thread forcefully closed: %s", exception.getMessage());
@@ -134,6 +120,24 @@ public class JobConsumer {
 		}
 	}
 
+	private void handleNewMessage(final ConsumerRecords<String,String> consumerRecords) {
+		for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+			// Record the Job Type and the user requesting that Job
+			try {
+				Job job = mapper.readValue(consumerRecord.value(), Job.class);
+				processThrottle(job);
+				System.out.println("Throttle processed.");
+				LOGGER.info("Processed");
+			} catch (IOException exception) {
+				String error = String.format(
+						"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
+						consumerRecord.key(), exception.getMessage());
+				LOGGER.error(error, exception);
+				pzLogger.log(error, Severity.ERROR);
+			}
+		}
+	}
+	
 	/**
 	 * Stops all polling
 	 */

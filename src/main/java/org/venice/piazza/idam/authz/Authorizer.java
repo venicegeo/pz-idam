@@ -25,6 +25,7 @@ import model.security.authz.AuthorizationCheck;
  * @author Patrick.Doody
  *
  */
+@FunctionalInterface
 public interface Authorizer {
 	/**
 	 * Determines if the user can perform the specified action.
