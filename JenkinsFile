@@ -68,22 +68,22 @@ node {
       sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "pz-idam" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
       sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
 
-      //ionConnect()
-      def ionTool = tool 'ion-connect-latest'
-      withEnv([
-        "ION_CONNECT_LATEST_HOME=${ionTool}",
-        "PATH+ION=${ionTool}/linux/bin",
-        "PATH+JQ=${tool 'jq1_5'}"
-      ]) {
-        withCredentials([string(credentialsId: "${env.IONCHANNEL_SECRET_KEY}", variable: 'IONCHANNEL_SECRET_KEY')]) {
-          def pomFile = "${root}/pom.xml"
-          sh """
-            resp=\$(ion-connect dependency resolve-dependencies-in-file --flatten --type maven ${pomFile})
-            deps=\$(echo \${resp} | jq .dependencies)
-            ion-connect vulnerability get-vulnerabilities-for-list "\${deps}"
-          """
-        }
-      }
+//      //ionConnect()
+//      def ionTool = tool 'ion-connect-latest'
+//      withEnv([
+//        "ION_CONNECT_LATEST_HOME=${ionTool}",
+//        "PATH+ION=${ionTool}/linux/bin",
+//        "PATH+JQ=${tool 'jq1_5'}"
+//      ]) {
+//        withCredentials([string(credentialsId: "${env.IONCHANNEL_SECRET_KEY}", variable: 'IONCHANNEL_SECRET_KEY')]) {
+//          def pomFile = "${root}/pom.xml"
+//          sh """
+//            resp=\$(ion-connect dependency resolve-dependencies-in-file --flatten --type maven ${pomFile})
+//            deps=\$(echo \${resp} | jq .dependencies)
+//            ion-connect vulnerability get-vulnerabilities-for-list "\${deps}"
+//          """
+//        }
+//      }
 
       sh """
         mkdir -p ${root}/.m2/repository
