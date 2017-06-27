@@ -219,30 +219,10 @@ public class AuthController {
 			if (headerValue != null && (headerParts = headerValue.split(" ")).length == 2) {
 
 				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+				username = getAuthenticatedUsername(decodedAuthNInfo);
 
-				// PKI Auth
-				if (decodedAuthNInfo.split(":").length == 1) {
-					AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-					if (authResponse.getIsAuthSuccess()) {
-						username = authResponse.getUserProfile().getUsername();
-						uuid = uuidFactory.getUUID();
-					}
-				}
-
-				// BASIC Auth
-				else if (decodedAuthNInfo.split(":").length == 2) {
-					String[] decodedUserPassParts = decodedAuthNInfo.split(":");
-					username = decodedUserPassParts[0];
-					String credential = decodedUserPassParts[1];
-					AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(username, credential);
-
-					if (authResponse.getIsAuthSuccess()) {
-						uuid = uuidFactory.getUUID();
-					}
-				}
-
-				if (uuid != null && username != null) {
-					
+				if (username != null) {
+					uuid = uuidFactory.getUUID();
 					updateAPIKey(username, uuid);
 
 					// Return the Key
@@ -331,22 +311,8 @@ public class AuthController {
 			if (authHeader != null && (headerParts = authHeader.split(" ")).length == 2) {
 
 				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+				username = getAuthenticatedUsername(decodedAuthNInfo);
 				
-				// PKI Auth - authenticate and get username
-				if (decodedAuthNInfo.split(":").length == 1) {
-					AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-					if (authResponse.getIsAuthSuccess()) {
-						username = authResponse.getUserProfile().getUsername();
-					}
-				}
-				// BASIC Auth - authenticate and get username
-				else if (decodedAuthNInfo.split(":").length == 2) {
-					String[] decodedUserPassParts = decodedAuthNInfo.split(":");
-					if (piazzaAuthenticator.getAuthenticationDecision(decodedUserPassParts[0], decodedUserPassParts[1])
-							.getIsAuthSuccess()) {
-						username = decodedUserPassParts[0];
-					}
-				}
 				// Username found and authenticated. Get the API Key.
 				if (username != null) {
 					String apiKey = mongoAccessor.getApiKey(username);
@@ -366,6 +332,28 @@ public class AuthController {
 			// Return Error
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		}
+	}
+	
+	private String getAuthenticatedUsername(final String decodedAuthNInfo) {
+		String username = null;
+		AuthResponse authResponse = null;
+		
+		// PKI Auth - authenticate
+		if (decodedAuthNInfo.split(":").length == 1) {
+			authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
+		}
+		
+		// BASIC Auth - authenticate
+		else if (decodedAuthNInfo.split(":").length == 2) {
+			String[] decodedUserPassParts = decodedAuthNInfo.split(":");
+			authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedUserPassParts[0], decodedUserPassParts[1]);
+		}
+		
+		if (authResponse != null && authResponse.getIsAuthSuccess()) {
+			username = authResponse.getUserProfile().getUsername();
+		}
+		
+		return username;
 	}
 	
 	private ResponseEntity<PiazzaResponse> getExistingAPIKeyResponse(final String apiKey, final String username) {
