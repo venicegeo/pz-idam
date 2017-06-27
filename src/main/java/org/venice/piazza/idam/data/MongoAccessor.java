@@ -78,7 +78,6 @@ public class MongoAccessor {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoAccessor.class);
 	private static final String USERNAME = "username";
-	private static final String UUID = "uuid";
 	private static final String INSTANCE_NOT_AVAILABLE_ERROR = "MongoDB instance not available.";
 
 	@Autowired

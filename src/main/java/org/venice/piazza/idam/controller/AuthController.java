@@ -211,18 +211,17 @@ public class AuthController {
 	@RequestMapping(value = "/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> generateApiKey() {
 		try {
-			String headerValue = request.getHeader("Authorization");
+			final String headerValue = request.getHeader("Authorization");
 			String username = null;
-			String uuid = null;
-			String[] headerParts = null;
-			
-			if (headerValue != null && (headerParts = headerValue.split(" ")).length == 2) {
+
+			if (headerValue != null && headerValue.split(" ").length == 2) {
+				final String[] headerParts = headerValue.split(" ");
 
 				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
 				username = getAuthenticatedUsername(decodedAuthNInfo);
 
 				if (username != null) {
-					uuid = uuidFactory.getUUID();
+					String uuid = uuidFactory.getUUID();
 					updateAPIKey(username, uuid);
 
 					// Return the Key
@@ -232,7 +231,7 @@ public class AuthController {
 				}
 			}
 
-			String error = "Authentication failed for user " + username;
+			final String error = "Authentication failed for user " + username;
 			pzLogger.log(error, Severity.INFORMATIONAL, new AuditElement(username, "failedToGenerateKey", ""));
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
@@ -303,12 +302,12 @@ public class AuthController {
 	public ResponseEntity<PiazzaResponse> getExistingApiKey() {
 		try {
 			// Decode credentials. We need to get the username of this account.
-			String authHeader = request.getHeader("Authorization");
+			final String authHeader = request.getHeader("Authorization");
 			String username = null;
-			String[] headerParts = null;
-			
+
 			// Ensure the Authorization Header is present
-			if (authHeader != null && (headerParts = authHeader.split(" ")).length == 2) {
+			if (authHeader != null && authHeader.split(" ").length == 2) {
+				final String[] headerParts = authHeader.split(" ");
 
 				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
 				username = getAuthenticatedUsername(decodedAuthNInfo);

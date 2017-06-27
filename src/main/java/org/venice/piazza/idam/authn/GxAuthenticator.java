@@ -124,7 +124,6 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 
 	private UserProfile processSuccessfulResponse(final GxAuthNResponse gxResponse) {
 		UserProfile userProfile = null;
-		boolean isNPE = false;
 
 		// Extract the Username and DN from the Response
 		String username = null;
@@ -143,8 +142,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		
 		if( username != null && dn != null ) {
 			if( dn.toLowerCase().contains("ou=component") ) {
-				isNPE = true;
-				userProfile = getUserProfile(username, dn, isNPE);
+				userProfile = getUserProfile(username, dn, true);
 			}
 			else {
 				logger.log("User is not an NPE! Failing Authentication", Severity.INFORMATIONAL,

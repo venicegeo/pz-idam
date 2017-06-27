@@ -126,8 +126,7 @@ public class JobConsumer {
 			try {
 				Job job = mapper.readValue(consumerRecord.value(), Job.class);
 				processThrottle(job);
-				System.out.println("Throttle processed.");
-				LOGGER.info("Processed");
+				LOGGER.info("Throttle Processed");
 			} catch (IOException exception) {
 				String error = String.format(
 						"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
