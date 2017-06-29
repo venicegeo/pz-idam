@@ -5,9 +5,6 @@ node {
   def mvn = tool 'M3'
   def zapHome = tool 'ZAProxy_v2_5_0'
   def nodejs = tool 'NodeJS_6'
-  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
-  appvers = appvers.trim()
-  def appName = "pz-idam-${appvers}"
 
   stage('Setup') {
     deleteDir()
@@ -20,17 +17,17 @@ node {
     sh "sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml"
   }
 
+  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
+  appvers = appvers.trim()
+  def appName = "pz-idam-${appvers}"
+
   stage('Archive') {
       withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
         sh """
           [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
-
           ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
-
           cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
-
           [ -f "\$JKS" ] || rm -f \$JKS
-
         """
       }
 
