@@ -127,7 +127,13 @@ node {
         if(params.USE_MONGO_SSL) {
           sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
         }
-        sh "cf start ${appName}"
+        try {
+          sh "cf start ${appName}"
+        } catch (Exception e) {
+          //sh "cf logs --recent ${appName}"
+          sh "cf delete ${appName} -f"
+          error("Error during application start. Deleting ${appName} and failing the build.")
+        }
       }
     }
     withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
@@ -203,7 +209,13 @@ node {
           if(params.USE_MONGO_SSL) {
             sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
           }
-          sh "cf start ${appName}"
+          try {
+            sh "cf start ${appName}"
+          } catch (Exception e) {
+            //sh "cf logs --recent ${appName}"
+            sh "cf delete ${appName} -f"
+            error("Error during application start. Deleting ${appName} and failing the build.")
+          }
         }
       }
       withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
