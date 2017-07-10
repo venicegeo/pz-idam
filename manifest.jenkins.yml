@@ -6,9 +6,6 @@ applications:
   timeout: 80
   services:
     - pz-mongodb
-    - pz-servicecontroller
-    - beachfront
-    - pztest-integration
     - geoaxis
     - pz-kafka
     - pz-elasticsearch
