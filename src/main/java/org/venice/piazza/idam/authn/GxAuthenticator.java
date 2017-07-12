@@ -100,7 +100,6 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	
 	private AuthResponse processGxResponse(final GxAuthNResponse gxResponse) {
 		boolean isAuthSuccess = false;
-		boolean isNpe = false;
 		UserProfile userProfile = null;
 		
 		if( gxResponse != null ) {
@@ -113,10 +112,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				userProfile = processSuccessfulResponse(gxResponse);
 				
 				if( userProfile != null ) {
-					isNpe = userProfile.isNPE();
+					isAuthSuccess = true;
 				}
-				
-				isAuthSuccess = npeUsersOnly ? isNpe : true;
 			}
 		}
 		else {
@@ -146,7 +143,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		}
 		
 		if( username != null && dn != null ) {
-			if( dn.toLowerCase().contains("ou=component") ) {
+			if( (npeUsersOnly && dn.toLowerCase().contains("ou=component")) || !npeUsersOnly) {
 				userProfile = getUserProfile(username, dn, true);
 			}
 			else {
