@@ -55,6 +55,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxBasicMechanism;
 	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
 	private String gxBasicHostIdentifier;
+	@Value("${npe.users.only")
+	private Boolean npeUsersOnly;
 	@Autowired
 	private PiazzaLogger logger;
 	@Autowired
@@ -97,7 +99,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	}
 	
 	private AuthResponse processGxResponse(final GxAuthNResponse gxResponse) {
-		boolean isNPE = false;
+		boolean isAuthSuccess = false;
+		boolean isNpe = false;
 		UserProfile userProfile = null;
 		
 		if( gxResponse != null ) {
@@ -110,8 +113,10 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				userProfile = processSuccessfulResponse(gxResponse);
 				
 				if( userProfile != null ) {
-					isNPE = userProfile.isNPE();
+					isNpe = userProfile.isNPE();
 				}
+				
+				isAuthSuccess = npeUsersOnly ? isNpe : true;
 			}
 		}
 		else {
@@ -119,7 +124,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 					new AuditElement("idam", USER_FAILED_AUTH, ""));
 		}
 		
-		return new AuthResponse(isNPE, userProfile);
+		return new AuthResponse(isAuthSuccess, userProfile);
 	}
 
 	private UserProfile processSuccessfulResponse(final GxAuthNResponse gxResponse) {
