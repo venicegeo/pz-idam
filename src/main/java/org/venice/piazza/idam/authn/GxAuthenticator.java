@@ -55,7 +55,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxBasicMechanism;
 	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
 	private String gxBasicHostIdentifier;
-	@Value("${npe.users.only")
+	@Value("${npe.users.only}")
 	private Boolean npeUsersOnly;
 	@Autowired
 	private PiazzaLogger logger;
