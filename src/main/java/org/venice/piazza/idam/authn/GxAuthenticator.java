@@ -133,12 +133,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
 			for (PrincipalItem item : listItems) {
-				if ("UID".equalsIgnoreCase(item.getName())) {
-					username = item.getValue();
-				} 
-				else if ("DN".equalsIgnoreCase(item.getName())) {
-					dn = item.getValue();
-				}
+				username = checkKey("UID", item);
+				dn = checkKey("DN", item);
 			}
 		}
 		
@@ -159,6 +155,16 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		return userProfile;
 	}
 	
+	private String checkKey(final String keyName, final PrincipalItem item) {
+		String value = null;
+
+		if (keyName.equalsIgnoreCase(item.getName())) {
+			value = item.getValue();
+		}
+
+		return value;
+	}
+
 	/**
 	 * Creates a User Profile in the Mongo DB, if one does not already exist. 
 	 * If it exists, then it will update the profile with the most recent attributes.
