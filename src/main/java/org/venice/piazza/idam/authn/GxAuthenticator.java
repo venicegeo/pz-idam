@@ -133,8 +133,12 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
 			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
 			for (PrincipalItem item : listItems) {
-				username = checkKey("UID", item);
-				dn = checkKey("DN", item);
+				if (username == null) {
+					username = checkKey("UID", item);
+				}
+				if (dn == null) {
+					dn = checkKey("DN", item);
+				}
 			}
 		}
 		
