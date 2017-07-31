@@ -66,7 +66,7 @@ import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = { "org.venice.piazza.common.hibernate" })
 @EntityScan(basePackages = { "org.venice.piazza.common.hibernate" })
-@ComponentScan(basePackages = { "jobmanager", "util", "org.venice.piazza", "org.venice.piazza.idam" })
+@ComponentScan(basePackages = { "util", "org.venice.piazza", "org.venice.piazza.idam" })
 public class Application extends SpringBootServletInitializer {
 
 	@Override
