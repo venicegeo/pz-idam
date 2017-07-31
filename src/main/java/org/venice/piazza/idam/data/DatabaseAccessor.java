@@ -21,10 +21,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.venice.piazza.common.hibernate.dao.ApiKeyDao;
+import org.venice.piazza.common.hibernate.dao.UserProfileDao;
+import org.venice.piazza.common.hibernate.dao.UserThrottlesDao;
+import org.venice.piazza.common.hibernate.entity.ApiKeyEntity;
 
 import exception.InvalidInputException;
+import model.logger.Severity;
+import model.security.ApiKey;
 import model.security.authz.UserProfile;
 import model.security.authz.UserThrottles;
 import util.PiazzaLogger;
@@ -39,9 +44,14 @@ public class DatabaseAccessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseAccessor.class);
 
 	@Autowired
-	private PiazzaLogger pzLogger;
+	private UserProfileDao userprofileDao;
 	@Autowired
-	private Environment environment;
+	private ApiKeyDao apiKeyDao;
+	@Autowired
+	private UserThrottlesDao userThrottlesDao;
+
+	@Autowired
+	private PiazzaLogger pzLogger;
 
 	/**
 	 * Updates the API Key for the specified user in DB
@@ -52,12 +62,13 @@ public class DatabaseAccessor {
 	 *            The updated API Key
 	 */
 	public void updateApiKey(final String username, final String uuid) {
-		// // Create the new API Key Model
-		// long currentTime = System.currentTimeMillis();
-		// ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
-		// Query query = DBQuery.is(USERNAME, username);
-		// // Update the old Key
-		// getApiKeyCollection().update(query, apiKey);
+		ApiKeyEntity apiKeyEntity = apiKeyDao.getApiKeyByUserName(username);
+		if (apiKeyEntity != null) {
+			long currentTime = System.currentTimeMillis();
+			ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
+			apiKeyEntity.setApiKey(apiKey);
+			apiKeyDao.save(apiKeyEntity);
+		}
 	}
 
 	/**
@@ -69,9 +80,9 @@ public class DatabaseAccessor {
 	 *            The API Key for the user name
 	 */
 	public void createApiKey(final String username, final String uuid) {
-		// long currentTime = System.currentTimeMillis();
-		// ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
-		// getApiKeyCollection().insert(apiKey);
+		long currentTime = System.currentTimeMillis();
+		ApiKey apiKey = new ApiKey(uuid, username, currentTime, currentTime + KEY_EXPIRATION_DURATION_MS);
+		apiKeyDao.save(new ApiKeyEntity(apiKey));
 	}
 
 	/**
@@ -82,55 +93,49 @@ public class DatabaseAccessor {
 	 * @return True if valid. False if not.
 	 */
 	public boolean isApiKeyValid(final String uuid) {
-		return false;
-		// Query query = DBQuery.is("uuid", uuid);
-		// ApiKey apiKey = getApiKeyCollection().findOne(query);
-		// // Check that the key exists.
-		// if (apiKey == null) {
-		// // Key does not exist
-		// return false;
-		// }
-		//
-		// // If the key does not have an expiration/timeout date (legacy) ensure one is assigned now
-		// long currentTime = System.currentTimeMillis();
-		// if ((apiKey.getExpiresOn() == 0) && (apiKey.getLastUsedOn()) == 0) {
-		// apiKey.setExpiresOn(currentTime + KEY_EXPIRATION_DURATION_MS);
-		// apiKey.setLastUsedOn(currentTime);
-		//
-		// // Update the document
-		// Builder update = new Builder();
-		// update.set("expiresOn", apiKey.getExpiresOn());
-		// update.set("lastUsedOn", apiKey.getLastUsedOn());
-		// Query updateQuery = DBQuery.is("uuid", uuid);
-		// getApiKeyCollection().update(updateQuery, update);
-		// }
-		//
-		// // Key exists. Check expiration date to ensure it's valid
-		// if (apiKey.getExpiresOn() < System.currentTimeMillis()) {
-		// // Key has expired and is not valid any longer
-		// return false;
-		// }
-		//
-		// // Key has not expired. Check Inactivity date.
-		// if ((System.currentTimeMillis() - apiKey.getLastUsedOn()) < KEY_INACTIVITY_THESHOLD_MS) {
-		// // Key is not inactive.
-		// // First, update the last time this key was used.
-		// try {
-		// Builder update = new Builder();
-		// update.set("lastUsedOn", System.currentTimeMillis());
-		// Query updateQuery = DBQuery.is("uuid", uuid);
-		// getApiKeyCollection().update(updateQuery, update);
-		// } catch (Exception exception) {
-		// String error = "Could not update time of last usage for API Key.";
-		// LOGGER.error(error, exception);
-		// pzLogger.log(error, Severity.WARNING);
-		// }
-		//
-		// // Key is Valid
-		// return true;
-		// } else {
-		// return false;
-		// }
+		ApiKeyEntity apiKeyEntity = apiKeyDao.getApiKeyByUuid(uuid);
+
+		// No key exists
+		if (apiKeyEntity == null) {
+			return false;
+		}
+
+		ApiKey apiKey = apiKeyEntity.getApiKey();
+
+		// If the key does not have an expiration/timeout date (legacy) ensure one is assigned now
+		long currentTime = System.currentTimeMillis();
+		if ((apiKey.getExpiresOn() == 0) && (apiKey.getLastUsedOn()) == 0) {
+			apiKey.setExpiresOn(currentTime + KEY_EXPIRATION_DURATION_MS);
+			apiKey.setLastUsedOn(currentTime);
+
+			// Update the document
+			apiKeyDao.save(apiKeyEntity);
+		}
+
+		// Key exists. Check expiration date to ensure it's valid
+		if (apiKey.getExpiresOn() < System.currentTimeMillis()) {
+			// Key has expired and is not valid any longer
+			return false;
+		}
+
+		// Key has not expired. Check Inactivity date.
+		if ((System.currentTimeMillis() - apiKey.getLastUsedOn()) < KEY_INACTIVITY_THESHOLD_MS) {
+			// Key is not inactive.
+			// First, update the last time this key was used.
+			try {
+				apiKey.setLastUsedOn(System.currentTimeMillis());
+				apiKeyDao.save(apiKeyEntity);
+			} catch (Exception exception) {
+				String error = "Could not update time of last usage for API Key.";
+				LOGGER.error(error, exception);
+				pzLogger.log(error, Severity.WARNING);
+			}
+
+			// Key is Valid
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -141,14 +146,12 @@ public class DatabaseAccessor {
 	 * @return The username. Null if the API Key is not valid.
 	 */
 	public String getUsername(String uuid) {
-		return null;
-		// Query query = DBQuery.is("uuid", uuid);
-		// ApiKey apiKey = getApiKeyCollection().findOne(query);
-		// if (apiKey != null) {
-		// return apiKey.getUsername();
-		// } else {
-		// return null;
-		// }
+		ApiKeyEntity apiKeyEntity = apiKeyDao.getApiKeyByUuid(uuid);
+		if (apiKeyEntity == null) {
+			return null;
+		} else {
+			return apiKeyEntity.getApiKey().getUsername();
+		}
 	}
 
 	/**
@@ -159,14 +162,12 @@ public class DatabaseAccessor {
 	 * @return The API Key. Null if no username has a matching API Key entry.
 	 */
 	public String getApiKey(final String username) {
-		return null;
-		// Query query = DBQuery.is(USERNAME, username);
-		// ApiKey apiKey = getApiKeyCollection().findOne(query);
-		// if (apiKey != null) {
-		// return apiKey.getUuid();
-		// } else {
-		// return null;
-		// }
+		ApiKeyEntity apiKeyEntity = apiKeyDao.getApiKeyByUserName(username);
+		if (apiKeyEntity == null) {
+			return null;
+		} else {
+			return apiKeyEntity.getApiKey().getUuid();
+		}
 	}
 
 	/**
@@ -177,16 +178,10 @@ public class DatabaseAccessor {
 	 * @throws InvalidInputException
 	 */
 	public void deleteApiKey(final String uuid) throws InvalidInputException {
-		// // Check that the key exists.
-		// if (uuid == null) {
-		// throw new InvalidInputException("Unable to delete null api key");
-		// }
-		//
-		// // Delete API Key
-		// DBCollection collection = mongoDatabase.getCollection(API_KEY_COLLECTION_NAME);
-		// BasicDBObject deleteQuery = new BasicDBObject();
-		// deleteQuery.append("uuid", uuid);
-		// collection.remove(deleteQuery);
+		if (uuid == null) {
+			throw new InvalidInputException("Unable to delete null api key");
+		}
+		apiKeyDao.deleteApiKeyByUuid(uuid);
 	}
 
 	/**
