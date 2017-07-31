@@ -26,6 +26,7 @@ import org.venice.piazza.common.hibernate.dao.ApiKeyDao;
 import org.venice.piazza.common.hibernate.dao.UserProfileDao;
 import org.venice.piazza.common.hibernate.dao.UserThrottlesDao;
 import org.venice.piazza.common.hibernate.entity.ApiKeyEntity;
+import org.venice.piazza.common.hibernate.entity.UserProfileEntity;
 
 import exception.InvalidInputException;
 import model.logger.Severity;
@@ -44,7 +45,7 @@ public class DatabaseAccessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseAccessor.class);
 
 	@Autowired
-	private UserProfileDao userprofileDao;
+	private UserProfileDao userProfileDao;
 	@Autowired
 	private ApiKeyDao apiKeyDao;
 	@Autowired
@@ -192,24 +193,15 @@ public class DatabaseAccessor {
 	 * @return The User Profile
 	 */
 	public UserProfile getUserProfileByUsername(final String username) {
-		// BasicDBObject query = new BasicDBObject(USERNAME, username);
-		// UserProfile userProfile;
-		//
-		// try {
-		// if ((userProfile = getUserProfileCollection().findOne(query)) == null) {
-		// // TODO: Current hack, until we commit the UserProfile to Mongo during /key creation.
-		// // TODO: In a clean environment (with a freshly deleted UUID table) this code can be removed. It's
-		// // remaining for legacy where Keys might exist w/o UserProfiles.
-		// userProfile = new UserProfile();
-		// userProfile.setUsername(username);
-		// return userProfile;
-		// }
-		// } catch (MongoTimeoutException mte) {
-		// LOGGER.error(INSTANCE_NOT_AVAILABLE_ERROR, mte);
-		// throw new MongoException(INSTANCE_NOT_AVAILABLE_ERROR);
-		// }
-
-		return null;
+		UserProfileEntity userProfileEntity = userProfileDao.getUserProfileByUserName(username);
+		if (userProfileEntity == null) {
+			// Create one if not defined
+			UserProfile userProfile = new UserProfile();
+			userProfile.setUsername(username);
+			return userProfile;
+		} else {
+			return userProfileEntity.getUserProfile();
+		}
 	}
 
 	/**
