@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
@@ -64,7 +64,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 	
 	private static final String USER_FAILED_AUTH = "userFailedAuthentication";
 
@@ -170,7 +170,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	}
 
 	/**
-	 * Creates a User Profile in the Mongo DB, if one does not already exist. 
+	 * Creates a User Profile in the DB, if one does not already exist. 
 	 * If it exists, then it will update the profile with the most recent attributes.
 	 * 
 	 * 
@@ -188,8 +188,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			// Get the latest information from Gx
 			final UserProfile userProfile = gxUserProfileClient.getUserProfileFromGx(username, dn);
 			
-			if (mongoAccessor.hasUserProfile(username, dn)) {
-				final UserProfile originalUserProfile = mongoAccessor.getUserProfileByUsername(username);
+			if (accessor.hasUserProfile(username, dn)) {
+				final UserProfile originalUserProfile = accessor.getUserProfileByUsername(username);
 				if( originalUserProfile != null ) {
 					userProfile.setCreatedOn(originalUserProfile.getCreatedOn());
 					userProfile.setNPE(isNPE);
@@ -197,13 +197,13 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				
 				userProfile.setLastUpdatedOn(new DateTime());
 				
-				mongoAccessor.updateUserProfile(userProfile);
+				accessor.updateUserProfile(userProfile);
 			} 
 			else {
 				userProfile.setCreatedOn(new DateTime());
 				userProfile.setNPE(isNPE);
 
-				mongoAccessor.insertUserProfile(userProfile);
+				accessor.insertUserProfile(userProfile);
 			}
 
 			// Return the Profile

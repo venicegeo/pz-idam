@@ -24,9 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
-import org.venice.piazza.idam.data.MongoAccessor;
-
-import com.mongodb.MongoException;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 
 import model.response.AuthResponse;
 import model.security.authz.AuthorizationCheck;
@@ -41,7 +39,7 @@ import util.PiazzaLogger;
  */
 public class AuthorizerTests {
 	@Mock
-	private MongoAccessor accessor;
+	private DatabaseAccessor accessor;
 	@Mock
 	private PiazzaLogger pzLogger;
 	@InjectMocks
@@ -88,14 +86,6 @@ public class AuthorizerTests {
 		response = throttleAuthorizer.canUserPerformAction(mockCheck);
 		assertTrue(response.isAuthSuccess.equals(false));
 		assertTrue(response.getDetails().toString().contains("exceeded"));
-
-		// Test when exceptions are thrown - throttles should be permissive (don't block if the DB goes down, or
-		// something)
-		when(accessor.getInvocationsForUserThrottle("tester", model.security.authz.Throttle.Component.JOB))
-				.thenThrow(new MongoException("Oops"));
-		mockCheck.setAction(new Permission("POST", "data"));
-		response = throttleAuthorizer.canUserPerformAction(mockCheck);
-		assertTrue(response.isAuthSuccess.equals(true));
 	}
 
 }

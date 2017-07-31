@@ -39,7 +39,7 @@ import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
 
 import model.logger.AuditElement;
@@ -64,7 +64,7 @@ public class AuthController {
 	@Autowired
 	private PiazzaLogger pzLogger;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 	@Autowired
 	private PiazzaAuthenticator piazzaAuthenticator;
 	@Autowired
@@ -103,9 +103,9 @@ public class AuthController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				if (mongoAccessor.isApiKeyValid(uuid)) {
+				if (accessor.isApiKeyValid(uuid)) {
 					// Look up the user profile
-					UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
+					UserProfile userProfile = accessor.getUserProfileByApiKey(uuid);
 					pzLogger.log("Verified API Key.", Severity.INFORMATIONAL,
 							new AuditElement(userProfile.getUsername(), "verifiedApiKey", ""));
 					// Send back the success
@@ -148,18 +148,18 @@ public class AuthController {
 			// Check the validity of the API Key
 			if (authorizationCheck.getApiKey() != null) {
 
-				if (!mongoAccessor.isApiKeyValid(authorizationCheck.getApiKey())) {
+				if (!accessor.isApiKeyValid(authorizationCheck.getApiKey())) {
 					throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
 				} 
 				
 				// If the API Key was specified, but the user name was not, then populate the username so that the
 				// Authorizers below can function.				
 				else if (authorizationCheck.getUsername() == null) {
-					authorizationCheck.setUsername(mongoAccessor.getUsername(authorizationCheck.getApiKey()));
+					authorizationCheck.setUsername(accessor.getUsername(authorizationCheck.getApiKey()));
 				}
 				
 				// Ensure the API Key matches the Payload
-				if (!mongoAccessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
+				if (!accessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
 					throw new AuthorizationException("Failed to Authenticate.", 
 						new AuthResponse(false, "API Key identity does not match the authorization check username."));
 				}
@@ -183,7 +183,7 @@ public class AuthController {
 			pzLogger.log("Passed authorization check.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckPassed", authorizationCheck.toString()));
 			return new ResponseEntity<AuthResponse>(
-					new AuthResponse(true, mongoAccessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
+					new AuthResponse(true, accessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
@@ -244,10 +244,10 @@ public class AuthController {
 
 	private void updateAPIKey(final String username, final String uuid) {
 		// Update the API Key in the UUID Collection
-		if (mongoAccessor.getApiKey(username) != null) {
-			mongoAccessor.updateApiKey(username, uuid);
+		if (accessor.getApiKey(username) != null) {
+			accessor.updateApiKey(username, uuid);
 		} else {
-			mongoAccessor.createApiKey(username, uuid);
+			accessor.createApiKey(username, uuid);
 		}
 	}
 	
@@ -261,8 +261,8 @@ public class AuthController {
 	public ResponseEntity<PiazzaResponse> deleteApiKey(@PathVariable(value = "key") String uuid) {
 		try {
 			//Delete API Key
-			String username = mongoAccessor.getUsername(uuid);
-			mongoAccessor.deleteApiKey(uuid);
+			String username = accessor.getUsername(uuid);
+			accessor.deleteApiKey(uuid);
 			
 			//Log the action
 			String response = String.format("User: %s API Key was deleted", username);
@@ -314,7 +314,7 @@ public class AuthController {
 				
 				// Username found and authenticated. Get the API Key.
 				if (username != null) {
-					String apiKey = mongoAccessor.getApiKey(username);
+					String apiKey = accessor.getApiKey(username);
 					return getExistingAPIKeyResponse(apiKey, username);
 				}
 			}

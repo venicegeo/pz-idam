@@ -1,6 +1,6 @@
 **pz-idam** provides identiy and access management support for Piazza. 
 
-To build and run pz-idam, software such as Maven and MongoDB are required.  For details on these prerequisites, refer to the
+To build and run pz-idam, software such as Maven and PostgreSQL are required.  For details on these prerequisites, refer to the
 [Piazza Developer's Guide](https://pz-docs.geointservices.io/devguide/index.html#_piazza_core_overview).
 
 pz-idam uses _Spring Profiles_ to invoke authentication models based on the required identity and access management approach.   By default, pz-idam runs with _disable-authn_ Spring profile.

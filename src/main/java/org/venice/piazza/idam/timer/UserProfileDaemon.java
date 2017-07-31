@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.util.GxUserProfileClient;
 
 import exception.InvalidInputException;
@@ -40,7 +40,7 @@ public class UserProfileDaemon {
 	@Autowired
 	private PiazzaLogger logger;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 	@Autowired
 	private GxUserProfileClient gxUserProfileClient;
 	
@@ -50,7 +50,7 @@ public class UserProfileDaemon {
 		logger.log("UserProfileDaemon starting to check existing UserProfiles for validity!", Severity.INFORMATIONAL,
 				new AuditElement("idam", "profileAttributeRetrievalAttemptDAEMON", ""));
 		
-		final List<UserProfile> userProfiles = mongoAccessor.getUserProfileCollection().find().toArray();
+		final List<UserProfile> userProfiles = accessor.getUserProfiles();
 		
 		for( final UserProfile originalUserProfile : userProfiles ) {
 			final String username = originalUserProfile.getUsername();
@@ -62,9 +62,9 @@ public class UserProfileDaemon {
 				logger.log("UserProfileDaemon failed to verify UserProfile for user: " + username, Severity.INFORMATIONAL,
 						new AuditElement("idam", "userProfileVerificationFailureDAEMON", ""));				
 				
-				final String apiKey = mongoAccessor.getApiKey(username);
-				mongoAccessor.deleteApiKey(apiKey);
-				mongoAccessor.deleteUserProfile(username);
+				final String apiKey = accessor.getApiKey(username);
+				accessor.deleteApiKey(apiKey);
+				accessor.deleteUserProfile(username);
 			}
 			else {
 				// Log verified ApiKey
