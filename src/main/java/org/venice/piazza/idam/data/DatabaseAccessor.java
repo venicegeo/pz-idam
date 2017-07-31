@@ -340,25 +340,13 @@ public class DatabaseAccessor {
 	 * @return The throttle information, containing counts for invocations of each Throttle
 	 */
 	public UserThrottles getCurrentThrottlesForUser(final String username, final boolean createIfNull) {
-		// BasicDBObject query = new BasicDBObject(USERNAME, username);
-		// UserThrottles userThrottles;
-		//
-		// try {
-		// userThrottles = getUserThrottlesCollection().findOne(query);
-		// } catch (MongoTimeoutException mte) {
-		// LOGGER.error(INSTANCE_NOT_AVAILABLE_ERROR, mte);
-		// throw new MongoException(INSTANCE_NOT_AVAILABLE_ERROR);
-		// }
-		//
-		// // If the User Throttles object doesn't exist, then create a default one and set the initial values.
-		// if ((userThrottles == null) && (createIfNull)) {
-		// // Get the set of default throttles
-		// userThrottles = new UserThrottles(username);
-		// // Commit to the database
-		// insertUserThrottles(userThrottles);
-		// }
-
-		return null;
+		UserThrottlesEntity userThrottlesEntity = userThrottlesDao.getUserThrottlesByUserName(username);
+		if ((userThrottlesEntity == null) && (createIfNull)) {
+			// If the Throttles didn't exist, but one should be created, then do so
+			userThrottlesEntity = new UserThrottlesEntity(new UserThrottles(username));
+			userThrottlesDao.save(userThrottlesEntity);
+		}
+		return userThrottlesEntity != null ? userThrottlesEntity.getUserThrottles() : null;
 	}
 
 	/**
@@ -371,8 +359,7 @@ public class DatabaseAccessor {
 	 * @return The number of invocations
 	 */
 	public Integer getInvocationsForUserThrottle(String username, model.security.authz.Throttle.Component component) {
-		return 0;
-		// return getCurrentThrottlesForUser(username, true).getThrottles().get(component.toString());
+		return getCurrentThrottlesForUser(username, true).getThrottles().get(component.toString());
 	}
 
 	/**
@@ -382,7 +369,7 @@ public class DatabaseAccessor {
 	 *            The Throttles object, containing the username.
 	 */
 	public void insertUserThrottles(UserThrottles userThrottles) {
-		// getUserThrottlesCollection().insert(userThrottles);
+		userThrottlesDao.save(new UserThrottlesEntity(userThrottles));
 	}
 
 	/**
@@ -392,17 +379,18 @@ public class DatabaseAccessor {
 	 *            The component, as defined in the Throttle model
 	 */
 	public void incrementUserThrottles(String username, model.security.authz.Throttle.Component component) {
-		// Integer currentInvocations = getInvocationsForUserThrottle(username, component);
-		// Builder update = new Builder();
-		// update.set(String.format("throttles.%s", component.toString()), ++currentInvocations);
-		// Query query = DBQuery.is(USERNAME, username);
-		// getUserThrottlesCollection().update(query, update);
+		UserThrottlesEntity userThrottlesEntity = userThrottlesDao.getUserThrottlesByUserName(username);
+		if (userThrottlesEntity != null) {
+			Integer currentInvocations = userThrottlesEntity.getUserThrottles().getThrottles().get(component.toString());
+			userThrottlesEntity.getUserThrottles().getThrottles().put(component.toString(), ++currentInvocations);
+			userThrottlesDao.save(userThrottlesEntity);
+		}
 	}
 
 	/**
 	 * Clears all throttle invocations in the Throttle table.
 	 */
 	public void clearThrottles() {
-		// getUserThrottlesCollection().drop();
+		userThrottlesDao.deleteAll();
 	}
 }
