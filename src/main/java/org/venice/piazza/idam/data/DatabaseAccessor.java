@@ -15,6 +15,7 @@
  **/
 package org.venice.piazza.idam.data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ import org.venice.piazza.common.hibernate.dao.UserProfileDao;
 import org.venice.piazza.common.hibernate.dao.UserThrottlesDao;
 import org.venice.piazza.common.hibernate.entity.ApiKeyEntity;
 import org.venice.piazza.common.hibernate.entity.UserProfileEntity;
+import org.venice.piazza.common.hibernate.entity.UserThrottlesEntity;
 
 import exception.InvalidInputException;
 import model.logger.Severity;
@@ -205,12 +207,19 @@ public class DatabaseAccessor {
 	}
 
 	/**
-	 * Gets all the User Profiles
+	 * Gets all the User Profiles. Not paginated, can be large.
 	 * 
 	 * @return The list of User Profiles
 	 */
 	public List<UserProfile> getUserProfiles() {
-		return null;
+		Iterable<UserProfileEntity> results = userProfileDao.findAll();
+		// Collect the Profiles
+		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
+		for (UserProfileEntity userProfileEntity : results) {
+			userProfiles.add(userProfileEntity.getUserProfile());
+		}
+		// Return the full list
+		return userProfiles;
 	}
 
 	/**
@@ -221,20 +230,36 @@ public class DatabaseAccessor {
 	 * @return The User Profile.
 	 */
 	public UserProfile getUserProfileByApiKey(final String uuid) {
-		return null;
-		// String username = getUsername(uuid);
-		// if (username == null) {
-		// return null;
-		// } else {
-		// return getUserProfileByUsername(username);
-		// }
+		// Get the API Key, which contains the user name
+		ApiKeyEntity apiKeyEntity = apiKeyDao.getApiKeyByUuid(uuid);
+		if (apiKeyEntity == null) {
+			return null;
+		}
+		// Search profiles for that username
+		String userName = apiKeyEntity.getApiKey().getUsername();
+		UserProfileEntity userProfileEntity = userProfileDao.getUserProfileByUserName(userName);
+		if (userProfileEntity == null) {
+			return null;
+		}
+		return userProfileEntity.getUserProfile();
 	}
 
-	public void updateUserProfile(final UserProfile userProfile) {
-		// Query query = DBQuery.empty();
-		// query.and(DBQuery.is(USERNAME, userProfile.getUsername()));
-		// query.and(DBQuery.is("distinguishedName", userProfile.getDistinguishedName()));
-		// getUserProfileCollection().update(query, userProfile);
+	/**
+	 * Updates a User Profile that matches the specified distinguished name and user name
+	 * 
+	 * @param userName
+	 *            The username to match the existing profile
+	 * @param dn
+	 *            The dn to match the existing profile
+	 * @param userProfile
+	 *            The new User Profile object
+	 */
+	public void updateUserProfile(final String userName, final String dn, final UserProfile userProfile) {
+		UserProfileEntity userProfileEntity = userProfileDao.getUserProfileByUserNameAndDn(userName, dn);
+		if (userProfileEntity != null) {
+			userProfileEntity.setUserProfile(userProfile);
+			userProfileDao.save(userProfileEntity);
+		}
 	}
 
 	/**
@@ -247,16 +272,12 @@ public class DatabaseAccessor {
 	 * @return True if the User has a UserProfile in the DB, false if not.
 	 */
 	public boolean hasUserProfile(final String username, final String dn) {
-		return false;
-		// Query query = DBQuery.empty();
-		// query.and(DBQuery.is(USERNAME, username));
-		// query.and(DBQuery.is("distinguishedName", dn));
-		// UserProfile userProfile = getUserProfileCollection().findOne(query);
-		// if (userProfile == null) {
-		// return false;
-		// } else {
-		// return true;
-		// }
+		UserProfileEntity userProfileEntity = userProfileDao.getUserProfileByUserNameAndDn(username, dn);
+		if (userProfileEntity != null) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -272,12 +293,8 @@ public class DatabaseAccessor {
 	 * @param dn
 	 *            The distinguished name of the user
 	 */
-	public UserProfile insertUserProfile(final UserProfile userProfile) {
-		return null;
-		//
-		// getUserProfileCollection().insert(userProfile);
-		//
-		// return userProfile;
+	public void insertUserProfile(final UserProfile userProfile) {
+		userProfileDao.save(new UserProfileEntity(userProfile));
 	}
 
 	/**
@@ -291,26 +308,26 @@ public class DatabaseAccessor {
 	 *            The name of the user.
 	 */
 	public void deleteUserProfile(final String username) throws InvalidInputException {
-		// // Check that the key exists.
-		// if (username == null) {
-		// throw new InvalidInputException("Unable to delete profile of null username");
-		// }
-		//
-		// // Delete User Profile
-		// DBCollection collection = mongoDatabase.getCollection(USER_PROFILE_COLLECTION_NAME);
-		// BasicDBObject deleteQuery = new BasicDBObject();
-		// deleteQuery.append(USERNAME, username);
-		// collection.remove(deleteQuery);
+		if (username == null) {
+			throw new InvalidInputException("Unable to delete profile of null username");
+		}
+		userProfileDao.deleteUserProfileByUserName(username);
 	}
 
 	/**
-	 * Gets all User Throttles from the Database and returns an unsorted list of them.
+	 * Gets all User Throttles from the Database and returns an unsorted list of them. Not paginated, can be large.
 	 * 
 	 * @return List of all User Throttles.
 	 */
 	public List<UserThrottles> getAllUserThrottles() {
-		return null;
-		// return getUserThrottlesCollection().find().toArray();
+		Iterable<UserThrottlesEntity> results = userThrottlesDao.findAll();
+		// Collect the Throttles iteratable collection
+		List<UserThrottles> userThrottles = new ArrayList<UserThrottles>();
+		for (UserThrottlesEntity userThrottlesEntity : results) {
+			userThrottles.add(userThrottlesEntity.getUserThrottles());
+		}
+		// Return the full list
+		return userThrottles;
 	}
 
 	/**

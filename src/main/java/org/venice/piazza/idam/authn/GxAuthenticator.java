@@ -197,7 +197,7 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				
 				userProfile.setLastUpdatedOn(new DateTime());
 				
-				accessor.updateUserProfile(userProfile);
+				accessor.updateUserProfile(username, dn, userProfile);
 			} 
 			else {
 				userProfile.setCreatedOn(new DateTime());
