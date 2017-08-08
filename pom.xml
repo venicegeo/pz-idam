@@ -64,7 +64,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>HIBERNATE</version>
+			<version>1-0-0-2-gdcb1b78</version>
 		</dependency>
 
 		<dependency>
