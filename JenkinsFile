@@ -124,9 +124,7 @@ node {
         sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
         sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
         sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-        if(params.USE_MONGO_SSL) {
-          sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
-        }
+
         try {
           sh "cf start ${appName}"
         } catch (Exception e) {
@@ -206,9 +204,7 @@ node {
           sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
           sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
           sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-          if(params.USE_MONGO_SSL) {
-            sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
-          }
+
           try {
             sh "cf start ${appName}"
           } catch (Exception e) {

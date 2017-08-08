@@ -5,11 +5,11 @@ applications:
   instances: 1
   timeout: 80
   services:
-    - pz-mongodb
     - geoaxis
     - pz-kafka
     - pz-elasticsearch
+    - pz-geoserver-efs
   path: pz-idam.jar
-  buildpack: 'https://github.com/cloudfoundry/java-buildpack.git#v3.9'
+  buildpack: java_buildpack_offline
   env:
     SPRING_PROFILES_ACTIVE: geoaxis
