@@ -184,7 +184,10 @@ public class DatabaseAccessor {
 		if (uuid == null) {
 			throw new InvalidInputException("Unable to delete null api key");
 		}
-		apiKeyDao.deleteApiKeyByUuid(uuid);
+		ApiKeyEntity entity = apiKeyDao.getApiKeyByUuid(uuid);
+		if (entity != null) {
+			apiKeyDao.delete(entity);
+		}
 	}
 
 	/**
@@ -311,7 +314,10 @@ public class DatabaseAccessor {
 		if (username == null) {
 			throw new InvalidInputException("Unable to delete profile of null username");
 		}
-		userProfileDao.deleteUserProfileByUserName(username);
+		UserProfileEntity entity = userProfileDao.getUserProfileByUserName(username);
+		if (entity != null) {
+			userProfileDao.delete(entity);
+		}
 	}
 
 	/**
