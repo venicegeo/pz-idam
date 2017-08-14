@@ -23,18 +23,18 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.view.RedirectView;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
@@ -51,6 +51,7 @@ import model.response.SuccessResponse;
 import model.response.UUIDResponse;
 import model.security.authz.AuthorizationCheck;
 import model.security.authz.UserProfile;
+import org.venice.piazza.idam.util.GxOAuthClient;
 import util.PiazzaLogger;
 import util.UUIDFactory;
 
@@ -75,6 +76,8 @@ public class AuthController {
 	private ThrottleAuthorizer throttleAuthorizer;
 	@Autowired
 	private EndpointAuthorizer endpointAuthorizer;
+	@Autowired
+	private RestTemplate restTemplate;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 	private static final String IDAM_COMPONENT_NAME = "IDAM";
@@ -370,5 +373,42 @@ public class AuthController {
 			String error = String.format("No active API Key found for %s. Please request a new API Key.", username);
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.BAD_REQUEST);
 		}
+	}
+
+	@RequestMapping(value = "/oauth", method = RequestMethod.GET)
+	public RedirectView oauthRedirect() {
+		final GxOAuthClient client = new GxOAuthClient();
+		return new RedirectView(client.getOAuthUrlForGx());
+	}
+
+	@RequestMapping(value = "/oauthResponse", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> oauthResponse(@RequestParam String code, HttpSession session) {
+		try {
+			GxOAuthClient client = new GxOAuthClient();
+			try {
+				LOGGER.info("CODE = " + code);
+
+				final String accessToken = client.getAccessToken(code, restTemplate);
+				LOGGER.info(accessToken);
+
+				final ResponseEntity<String> profileResponse = client.getUserProfile(accessToken, restTemplate);
+				LOGGER.info(profileResponse.getBody());
+
+				LOGGER.info("Session = " + session);
+				// TODO: Retrieve the api key
+				session.setAttribute("api_key", "apikey");
+
+				return profileResponse;
+			} catch (HttpClientErrorException | HttpServerErrorException hee) {
+				LOGGER.error(hee.getResponseBodyAsString(), hee);
+				return new ResponseEntity<>(hee.getResponseBodyAsString(), hee.getStatusCode());
+			}
+		} catch (Exception exception) {
+			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
+			LOGGER.error(error, exception);
+			pzLogger.log(error, Severity.ERROR);
+			return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
 	}
 }
