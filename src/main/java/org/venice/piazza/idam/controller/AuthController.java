@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
+import javax.naming.ldap.LdapName;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -403,17 +404,26 @@ public class AuthController {
 				if (!accessor.hasUserProfile(username, dn)) {
 					// If there's no profile create one and
 					// make sure they have an api key
+					LdapName ldapName = new LdapName(dn);
+					String country = ldapName.getRdns().stream().filter(rdn ->
+						rdn.getType().equalsIgnoreCase("C")
+					).
+						findAny().
+						orElse(null).
+						getValue().toString();
+					LOGGER.info("Country = " + country);
 					final UserProfile profile = new UserProfile();
 					profile.setDistinguishedName(dn);
 					profile.setUsername(username);
 					profile.setDutyCode(userProfile.get("DC").toString());
-					profile.setCountry(userProfile.get("CO").toString());
+					profile.setCountry(country);
 					profile.setAdminCode(userProfile.get("AC").toString());
 					accessor.insertUserProfile(profile);
 					// TODO: Proper way to set api key?
-					accessor.createApiKey(username, new UUIDFactory().getUUID());
+					accessor.createApiKey(username, uuidFactory.getUUID());
 				}
 
+				final UserProfile user = accessor.getUserProfileByUsername(username);
 				final String apiKey = accessor.getApiKey(username);
 
 				LOGGER.info("Session = " + session);
