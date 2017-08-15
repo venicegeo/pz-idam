@@ -32,31 +32,31 @@ import java.util.Base64;
 import java.util.Map;
 
 @Component
-//@Profile({ "geoaxis" })
 public class GxOAuthClient {
 
-	//@Value("${vcap.services.geoaxis.credentials.uri}")
+	@Value("${BASE_URL}")
 	private String gxBaseUrl;
 
-	//@Value("${vcap.services.geoaxis.credentials.client_id}")
+	@Value("${CLIENT_ID}")
 	private String gxClientId;
 
-	//@Value("${vcap.services.geoaxis.credentials.token}")
-	private String gxBasicAuthToken;
+	@Value("${CLIENT_SEC}")
+	private String gxClientSec;
 
+	@Value("${REDIRECT_URI}")
+	private String redirectUri;
+
+	@Autowired
+	private RestTemplate restTemplate;
 
 	@Autowired
 	private PiazzaLogger logger;
 
 	private static final String AUTHORIZATION = "Authorization";
 
-	public String getAccessToken(final String code, final RestTemplate restTemplate) throws HttpClientErrorException, HttpServerErrorException {
-		// String redirectUri = "bf-api.int.geointservices.io/login"
-		logger.log("Test", Severity.DEBUG);
-		String redirectUri = "localhost:8080/oauthResponse";
+	public String getAccessToken(final String code) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
-		System.out.println("restTemplate: " + restTemplate);
 		ResponseEntity<String> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
 				getTokenRequestUrl(redirectUri, code),
 				HttpMethod.POST,
@@ -69,10 +69,9 @@ public class GxOAuthClient {
 		return accessTokenMap.get("access_token").toString();
 	}
 
-	public ResponseEntity<String> getUserProfile(final String accessToken, final RestTemplate restTemplate) throws HttpClientErrorException, HttpServerErrorException {
+	public ResponseEntity<String> getUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
-		System.out.println("restTemplate: " + restTemplate);
 		ResponseEntity<String> profileResponse = new ResponseEntity<>(restTemplate.exchange(
 				getProfileRequestUrl(),
 				HttpMethod.GET,
@@ -83,32 +82,22 @@ public class GxOAuthClient {
 	}
 
 	public String getOAuthUrlForGx()  {
-		final String redirectUrl = "localhost:8080/oauthResponse";
-		gxBaseUrl = "localhost:5001";
-		gxClientId = "XXX";
-		final String url = "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
-				+ gxClientId + "&response_type=code&redirect_uri=" + redirectUrl;
-		return url;
+		return "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
+				+ gxClientId + "&response_type=code&redirect_uri=" + redirectUri;
 	}
 
 	private String getTokenRequestUrl(
 			final String redirectUri,
 			final String code) {
-		gxBaseUrl = "localhost:5001";
-		final String url = "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/tokens?grant_type=authorization_code&redirect_uri="
+		return "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/tokens?grant_type=authorization_code&redirect_uri="
 				+ redirectUri + "&code=" + code;
-		return url;
 	}
 
 	private String getProfileRequestUrl() {
-		gxBaseUrl = "localhost:5001";
-		final String url = "http://" + gxBaseUrl + "/ms_oauth/resources/userprofile/me";
-		return url;
+		return "http://" + gxBaseUrl + "/ms_oauth/resources/userprofile/me";
 	}
 
 	private String getGxBasicAuthToken() {
-		gxClientId = "XXX";
-		final String gxClientSec = "YYY";
 		final String unencodedString = gxClientId + ":" + gxClientSec;
 		return Base64.getEncoder().encodeToString(unencodedString.getBytes());
 	}

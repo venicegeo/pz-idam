@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
@@ -33,7 +35,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.authz.Authorizer;
@@ -78,6 +79,8 @@ public class AuthController {
 	private EndpointAuthorizer endpointAuthorizer;
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private GxOAuthClient oAuthClient;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 	private static final String IDAM_COMPONENT_NAME = "IDAM";
@@ -377,27 +380,31 @@ public class AuthController {
 
 	@RequestMapping(value = "/oauth", method = RequestMethod.GET)
 	public RedirectView oauthRedirect() {
-		final GxOAuthClient client = new GxOAuthClient();
-		return new RedirectView(client.getOAuthUrlForGx());
+		return new RedirectView(oAuthClient.getOAuthUrlForGx());
 	}
 
 	@RequestMapping(value = "/oauthResponse", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> oauthResponse(@RequestParam String code, HttpSession session) {
+	public ResponseEntity<String> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
-			GxOAuthClient client = new GxOAuthClient();
 			try {
 				LOGGER.info("CODE = " + code);
 
-				final String accessToken = client.getAccessToken(code, restTemplate);
+				final String accessToken = oAuthClient.getAccessToken(code);
 				LOGGER.info(accessToken);
 
-				final ResponseEntity<String> profileResponse = client.getUserProfile(accessToken, restTemplate);
+				final ResponseEntity<String> profileResponse = oAuthClient.getUserProfile(accessToken);
 				LOGGER.info(profileResponse.getBody());
 
 				LOGGER.info("Session = " + session);
-				// TODO: Retrieve the api key
+				// TODO: Retrieve the api key from user table
 				session.setAttribute("api_key", "apikey");
+				// We probably don't need both of these
+				Cookie cookie = new Cookie("api_key", "apikey");
+				cookie.setHttpOnly(true);
+				cookie.setSecure(true);
+				response.addCookie(cookie);
 
+				// TODO: Create/retrieve a user profile
 				return profileResponse;
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
