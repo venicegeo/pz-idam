@@ -30,6 +30,7 @@ import javax.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
@@ -395,16 +396,34 @@ public class AuthController {
 				final ResponseEntity<String> profileResponse = oAuthClient.getUserProfile(accessToken);
 				LOGGER.info(profileResponse.getBody());
 
+				final JacksonJsonParser parser = new JacksonJsonParser();
+				final Map<String, Object> userProfile = parser.parseMap(profileResponse.getBody());
+				final String username = userProfile.get("username").toString();
+				final String dn = userProfile.get("DN").toString();
+				if (!accessor.hasUserProfile(username, dn)) {
+					// If there's no profile create one and
+					// make sure they have an api key
+					final UserProfile profile = new UserProfile();
+					profile.setDistinguishedName(dn);
+					profile.setUsername(username);
+					profile.setDutyCode(userProfile.get("DC").toString());
+					profile.setCountry(userProfile.get("CO").toString());
+					profile.setAdminCode(userProfile.get("AC").toString());
+					accessor.insertUserProfile(profile);
+					// TODO: Proper way to set api key?
+					accessor.createApiKey(username, new UUIDFactory().getUUID());
+				}
+
+				final String apiKey = accessor.getApiKey(username);
+
 				LOGGER.info("Session = " + session);
-				// TODO: Retrieve the api key from user table
-				session.setAttribute("api_key", "apikey");
+				session.setAttribute("api_key", apiKey);
 				// We probably don't need both of these
-				Cookie cookie = new Cookie("api_key", "apikey");
+				Cookie cookie = new Cookie("api_key", apiKey);
 				cookie.setHttpOnly(true);
 				cookie.setSecure(true);
 				response.addCookie(cookie);
 
-				// TODO: Create/retrieve a user profile
 				return profileResponse;
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
