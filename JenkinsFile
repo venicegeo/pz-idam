@@ -124,9 +124,7 @@ node {
         sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
         sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
         sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-        if(params.USE_MONGO_SSL) {
-          sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
-        }
+
         try {
           sh "cf start ${appName}"
         } catch (Exception e) {
@@ -173,8 +171,8 @@ node {
       withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
         withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
           dir ("integration-tests") {
-            if(env.GITLAB_CREDS) {
-                git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+            if(env.INTEGRATION_GITLAB_CREDS) {
+                git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.INTEGRATION_GITLAB_CREDS}"
             } else {
                 git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
             }
@@ -206,9 +204,7 @@ node {
           sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
           sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
           sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-          if(params.USE_MONGO_SSL) {
-            sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,mongossl,geoaxis"
-          }
+
           try {
             sh "cf start ${appName}"
           } catch (Exception e) {
