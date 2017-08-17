@@ -26,8 +26,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.venice.piazza.idam.model.GxOAuthResponse;
 import util.PiazzaLogger;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import java.util.Base64;
 import java.util.Map;
 
@@ -69,16 +73,46 @@ public class GxOAuthClient {
 		return accessTokenMap.get("access_token").toString();
 	}
 
-	public ResponseEntity<String> getUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
+	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
-		ResponseEntity<String> profileResponse = new ResponseEntity<>(restTemplate.exchange(
+		ResponseEntity<GxOAuthResponse> profileResponse = new ResponseEntity<>(restTemplate.exchange(
 				getProfileRequestUrl(),
 				HttpMethod.GET,
 				new HttpEntity<>("parameters", headers),
-				String.class).getBody(),
+				GxOAuthResponse.class).getBody(),
 				HttpStatus.OK);
 		return profileResponse;
+	}
+
+	public UserProfile getUserProfileFromGxProfile(GxOAuthResponse oAuthResponse) throws InvalidNameException {
+		final LdapName ldapName = new LdapName(oAuthResponse.getDn());
+		final Rdn countryRdn = ldapName.getRdns().stream().filter(rdn ->
+				rdn.getType().equalsIgnoreCase("C")
+		).
+				findAny().
+				orElse(null);
+		String country = "";
+		if (countryRdn != null) {
+			country = countryRdn.getValue().toString();
+		}
+
+		String dutyCode;
+		String adminCode;
+		if ("NGA".equalsIgnoreCase(oAuthResponse.getServiceOrAgency())) {
+			dutyCode = oAuthResponse.getServiceOrAgency();
+			adminCode = oAuthResponse.getServiceOrAgency();
+		} else {
+			dutyCode = oAuthResponse.getAdministrativeOrganizationCode();
+			adminCode = oAuthResponse.getAdministrativeOrganizationCode();
+		}
+		final UserProfile profile = new UserProfile();
+		profile.setDistinguishedName(oAuthResponse.getDn());
+		profile.setUsername(oAuthResponse.getUsername());
+		profile.setCountry(country);
+		profile.setDutyCode(dutyCode);
+		profile.setAdminCode(adminCode);
+		return profile;
 	}
 
 	public String getOAuthUrlForGx()  {

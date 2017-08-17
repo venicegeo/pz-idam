@@ -23,6 +23,7 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -43,6 +44,7 @@ import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
 import org.venice.piazza.idam.data.DatabaseAccessor;
+import org.venice.piazza.idam.model.GxOAuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
 
 import model.logger.AuditElement;
@@ -386,40 +388,27 @@ public class AuthController {
 	}
 
 	@RequestMapping(value = "/oauthResponse", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
+	public ResponseEntity<?> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
+				// TODO: Remove excessive logging
 				LOGGER.info("CODE = " + code);
-
+				LOGGER.info("Requesting access token...");
 				final String accessToken = oAuthClient.getAccessToken(code);
-				LOGGER.info(accessToken);
+				LOGGER.info("Access token = " + accessToken);
 
-				final ResponseEntity<String> profileResponse = oAuthClient.getUserProfile(accessToken);
-				LOGGER.info(profileResponse.getBody());
+				LOGGER.info("Requesting user profile...");
+				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
+				LOGGER.info("User profile = " + profileResponse.getBody().toString());
 
-				final JacksonJsonParser parser = new JacksonJsonParser();
-				final Map<String, Object> userProfile = parser.parseMap(profileResponse.getBody());
-				final String username = userProfile.get("username").toString();
-				final String dn = userProfile.get("DN").toString();
+				final String username = profileResponse.getBody().getUsername();
+				final String dn = profileResponse.getBody().getDn();
+				LOGGER.info("Username = " + username);
+				LOGGER.info("DN = " + dn);
 				if (!accessor.hasUserProfile(username, dn)) {
-					// If there's no profile create one and
-					// make sure they have an api key
-					LdapName ldapName = new LdapName(dn);
-					String country = ldapName.getRdns().stream().filter(rdn ->
-						rdn.getType().equalsIgnoreCase("C")
-					).
-						findAny().
-						orElse(null).
-						getValue().toString();
-					LOGGER.info("Country = " + country);
-					final UserProfile profile = new UserProfile();
-					profile.setDistinguishedName(dn);
-					profile.setUsername(username);
-					profile.setDutyCode(userProfile.get("DC").toString());
-					profile.setCountry(country);
-					profile.setAdminCode(userProfile.get("AC").toString());
+					// If there's no profile create one and make sure they have an api key
+					UserProfile profile = oAuthClient.getUserProfileFromGxProfile(profileResponse.getBody());
 					accessor.insertUserProfile(profile);
-					// TODO: Proper way to set api key?
 					accessor.createApiKey(username, uuidFactory.getUUID());
 				}
 
@@ -428,13 +417,13 @@ public class AuthController {
 
 				LOGGER.info("Session = " + session);
 				session.setAttribute("api_key", apiKey);
-				// We probably don't need both of these
+				// TODO: We probably don't need both of these. Remove the one we don't need.
 				Cookie cookie = new Cookie("api_key", apiKey);
 				cookie.setHttpOnly(true);
 				cookie.setSecure(true);
 				response.addCookie(cookie);
 
-				return profileResponse;
+				return new ResponseEntity<>(user, HttpStatus.OK);
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
 				return new ResponseEntity<>(hee.getResponseBodyAsString(), hee.getStatusCode());
