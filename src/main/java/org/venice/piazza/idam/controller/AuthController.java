@@ -391,31 +391,32 @@ public class AuthController {
 	public ResponseEntity<?> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
-				// TODO: Remove excessive logging
-				LOGGER.info("CODE = " + code);
-				LOGGER.info("Requesting access token...");
+				LOGGER.debug("Requesting access token...");
 				final String accessToken = oAuthClient.getAccessToken(code);
-				LOGGER.info("Access token = " + accessToken);
 
-				LOGGER.info("Requesting user profile...");
+				LOGGER.debug("Requesting user profile...");
 				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
-				LOGGER.info("User profile = " + profileResponse.getBody().toString());
 
 				final String username = profileResponse.getBody().getUsername();
 				final String dn = profileResponse.getBody().getDn();
-				LOGGER.info("Username = " + username);
-				LOGGER.info("DN = " + dn);
+
+				// If there's no profile create one and make sure they have an api key
 				if (!accessor.hasUserProfile(username, dn)) {
-					// If there's no profile create one and make sure they have an api key
 					UserProfile profile = oAuthClient.getUserProfileFromGxProfile(profileResponse.getBody());
 					accessor.insertUserProfile(profile);
 					accessor.createApiKey(username, uuidFactory.getUUID());
 				}
 
 				final UserProfile user = accessor.getUserProfileByUsername(username);
-				final String apiKey = accessor.getApiKey(username);
+				String apiKey = accessor.getApiKey(username);
 
-				LOGGER.info("Session = " + session);
+				// If key is invalid, delete and reissue
+				if (!accessor.isApiKeyValid(apiKey)) {
+					accessor.deleteApiKey(apiKey);
+					apiKey = uuidFactory.getUUID();
+					accessor.createApiKey(username, apiKey);
+				}
+
 				session.setAttribute("api_key", apiKey);
 				// TODO: We probably don't need both of these. Remove the one we don't need.
 				Cookie cookie = new Cookie("api_key", apiKey);
