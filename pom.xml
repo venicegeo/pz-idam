@@ -51,6 +51,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.1.1</version>
@@ -70,7 +75,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>1-0-0-6-ga7dc8d2</version>
+			<version>RABBIT</version>
 		</dependency>
 
 		<dependency>
