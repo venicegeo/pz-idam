@@ -57,7 +57,7 @@ public class JobConsumer {
 	 * @param jobTypeString
 	 *            The serialized PiazzaJobType Model
 	 */
-	@RabbitListener(queues = { "IngestJob-${SPACE}", "AccessJob-${SPACE}", "ExecuteServiceJob-${SPACE}", "Repeat-Job-${SPACE}" })
+	@RabbitListener(queues = { "IngestJob-${SPACE}", "AccessJob-${SPACE}", "ExecuteServiceJob-${SPACE}", "RepeatJob-${SPACE}" })
 	public void processJobMessage(String jobTypeString) {
 		try {
 			// Deserialize the Job
