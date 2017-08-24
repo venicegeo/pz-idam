@@ -31,6 +31,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContexts;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -64,6 +65,7 @@ import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 @Configuration
 @EnableAutoConfiguration
 @EnableTransactionManagement
+@EnableRabbit
 @EnableJpaRepositories(basePackages = { "org.venice.piazza.common.hibernate" })
 @EntityScan(basePackages = { "org.venice.piazza.common.hibernate" })
 @ComponentScan(basePackages = { "util", "org.venice.piazza", "org.venice.piazza.idam" })

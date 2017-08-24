@@ -6,7 +6,7 @@ applications:
   timeout: 80
   services:
     - geoaxis
-    - pz-kafka
+    - pz-rabbitmq
     - pz-elasticsearch
     - pz-geoserver-efs
   path: pz-idam.jar
