@@ -61,9 +61,9 @@ public class JobConsumer {
 	 * @param jobTypeString
 	 *            The serialized PiazzaJobType Model
 	 */
-	@RabbitListener(bindings = @QueueBinding(key = "IngestJob-${SPACE}", value = @Queue(value = "IDAMThrottles", autoDelete = "true", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
-	@RabbitListener(bindings = @QueueBinding(key = "AccessJob-${SPACE}", value = @Queue(value = "IDAMThrottles", autoDelete = "true", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
-	@RabbitListener(bindings = @QueueBinding(key = "ExecuteServiceJob-${SPACE}", value = @Queue(value = "IDAMThrottles", autoDelete = "true", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
+	@RabbitListener(bindings = @QueueBinding(key = "IngestJob-${SPACE}", value = @Queue(value = "IDAMThrottles-${SPACE}", autoDelete = "false", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
+	@RabbitListener(bindings = @QueueBinding(key = "AccessJob-${SPACE}", value = @Queue(value = "IDAMThrottles-${SPACE}", autoDelete = "false", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
+	@RabbitListener(bindings = @QueueBinding(key = "ExecuteServiceJob-${SPACE}", value = @Queue(value = "IDAMThrottles-${SPACE}", autoDelete = "false", durable = "true"), exchange = @Exchange(value = JobMessageFactory.PIAZZA_EXCHANGE_NAME, autoDelete = "false", durable = "true")))
 	public void processJobMessage(String jobTypeString) {
 		try {
 			// Deserialize the Job
