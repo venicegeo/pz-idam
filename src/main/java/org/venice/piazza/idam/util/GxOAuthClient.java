@@ -38,16 +38,16 @@ import java.util.Map;
 @Component
 public class GxOAuthClient {
 
-	@Value("${BASE_URL}")
+	@Value("${GEOAXIS}")
 	private String gxBaseUrl;
 
-	@Value("${CLIENT_ID}")
+	@Value("${GEOAXIS_CLIENT_ID}")
 	private String gxClientId;
 
-	@Value("${CLIENT_SEC}")
+	@Value("${GEOAXIS_SECRET}")
 	private String gxClientSec;
 
-	@Value("${REDIRECT_URI}")
+	@Value("${GEOAXIS_REDIRECT_URI}")
 	private String redirectUri;
 
 	@Autowired
