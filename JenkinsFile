@@ -59,49 +59,51 @@ node {
     }
   }
 
-  stage('Scans') {
-    withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
-      sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
-      sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "pz-idam" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
-      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+  if(!params.SKIP_SCANS) {
+	  stage('Scans') {
+		withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
+		  sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
+		  sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "pz-idam" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
+		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
 
-//      //ionConnect()
-//      def ionTool = tool 'ion-connect-latest'
-//      withEnv([
-//        "ION_CONNECT_LATEST_HOME=${ionTool}",
-//        "PATH+ION=${ionTool}/linux/bin",
-//        "PATH+JQ=${tool 'jq1_5'}"
-//      ]) {
-//        withCredentials([string(credentialsId: "${env.IONCHANNEL_SECRET_KEY}", variable: 'IONCHANNEL_SECRET_KEY')]) {
-//          def pomFile = "${root}/pom.xml"
-//          sh """
-//            resp=\$(ion-connect dependency resolve-dependencies-in-file --flatten --type maven ${pomFile})
-//            deps=\$(echo \${resp} | jq .dependencies)
-//            ion-connect vulnerability get-vulnerabilities-for-list "\${deps}"
-//          """
-//        }
-//      }
+	//      //ionConnect()
+	//      def ionTool = tool 'ion-connect-latest'
+	//      withEnv([
+	//        "ION_CONNECT_LATEST_HOME=${ionTool}",
+	//        "PATH+ION=${ionTool}/linux/bin",
+	//        "PATH+JQ=${tool 'jq1_5'}"
+	//      ]) {
+	//        withCredentials([string(credentialsId: "${env.IONCHANNEL_SECRET_KEY}", variable: 'IONCHANNEL_SECRET_KEY')]) {
+	//          def pomFile = "${root}/pom.xml"
+	//          sh """
+	//            resp=\$(ion-connect dependency resolve-dependencies-in-file --flatten --type maven ${pomFile})
+	//            deps=\$(echo \${resp} | jq .dependencies)
+	//            ion-connect vulnerability get-vulnerabilities-for-list "\${deps}"
+	//          """
+	//        }
+	//      }
 
-      sh """
-        mkdir -p ${root}/.m2/repository
-        ${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
-          -Dmaven.repo.local=${root}/.m2/repository \
-          -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
-          -DdataFile=target/jacoco.exec
-      """
+		  sh """
+			mkdir -p ${root}/.m2/repository
+			${mvn}/bin/mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install \
+			  -Dmaven.repo.local=${root}/.m2/repository \
+			  -Pcoverage-per-test org.jacoco:jacoco-maven-plugin:report \
+			  -DdataFile=target/jacoco.exec
+		  """
 
-      //sh "${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml"
-      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
-      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-    }
+		  //sh "${mvn}/bin/mvn install:install-file -Dmaven.repo.local=${root} -Dfile=pom.xml -DpomFile=pom.xml"
+		  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
+		  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+		}
 
-    withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
-      withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
-        def projectId = "venicegeo:piazza:pz-idam"
-        sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME} -P nga"
-      }
-    }
+		withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
+		  withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
+			def projectId = "venicegeo:piazza:pz-idam"
+			sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME} -P nga"
+		  }
+		}
+	  }
   }
 
 
@@ -134,15 +136,17 @@ node {
         }
       }
     }
-    withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-      sh "mkdir -p ${root}/zap-out"
-      sh """${zapHome}/zap.sh -cmd \
-        -quickout ${root}/zap-out/zap.xml \
-        -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN} \
-      """
-      sh "cat ${root}/zap-out/zap.xml"
-      sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-    }
+	if(!params.SKIP_SCANS) {
+		withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+		  sh "mkdir -p ${root}/zap-out"
+		  sh """${zapHome}/zap.sh -cmd \
+			-quickout ${root}/zap-out/zap.xml \
+			-quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN} \
+		  """
+		  sh "cat ${root}/zap-out/zap.xml"
+		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+		}
+	}
     withEnv(['CF_HOME=.cf']) {
       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
         sh "cf api ${env.PCF_API_ENDPOINT}"
@@ -214,14 +218,16 @@ node {
           }
         }
       }
-      withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-        sh """${zapHome}/zap.sh -cmd \
-        -quickout ${root}/zap-out/zap.xml \
-        -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN} \
-        """
-        sh "cat ${root}/zap-out/zap.xml"
-        sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-      }
+	  if(!params.SKIP_SCANS) {
+		  withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+			sh """${zapHome}/zap.sh -cmd \
+			-quickout ${root}/zap-out/zap.xml \
+			-quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN} \
+			"""
+			sh "cat ${root}/zap-out/zap.xml"
+			sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+		  }
+	  }
       withEnv(['CF_HOME=.cf']) {
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
         sh "cf api ${env.PCF_API_ENDPOINT}"
