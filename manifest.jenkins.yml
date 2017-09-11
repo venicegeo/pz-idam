@@ -10,6 +10,5 @@ applications:
     - pz-elasticsearch
     - pz-geoserver-efs
   path: pz-idam.jar
-  buildpack: java_buildpack_offline
   env:
     SPRING_PROFILES_ACTIVE: geoaxis
