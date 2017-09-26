@@ -7,7 +7,7 @@ mkdir -p $root/.m2/repository
 source $root/ci/vars.sh
 
 # Copy JKS
-[ -z "$JKS" ] || mv $JKS $root/src/main/resources/pz-idam.jks
+[ -z "$JKS" ] || mv $JKS $root/src/main/resources/piazza.jks
 
 # Path to output JAR
 src=$root/target/piazza-idam*.jar
@@ -19,4 +19,4 @@ src=$root/target/piazza-idam*.jar
 mv $src $root/$APP.$EXT
 
 # Remove JKS file
-[ -z "$JKS" ] || rm $root/src/main/resources/pz-idam.jks
+[ -z "$JKS" ] || rm $root/src/main/resources/piazza.jks

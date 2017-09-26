@@ -24,7 +24,7 @@ node {
   stage('Archive') {
       withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
         sh """
-          [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/pz-idam.jks
+          [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
           ${mvn}/bin/mvn clean package -U -X -Dmaven.repo.local=${root}
           cp target/piazza-idam-1.0.0.jar ${root}/pz-idam.jar
           [ -f "\$JKS" ] || rm -f \$JKS
@@ -123,7 +123,7 @@ node {
         sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start"
         sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
         sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
-        sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
+        sh "cf set-env ${appName} JKS_FILE piazza.jks"
         sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
         sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
 
@@ -205,7 +205,7 @@ node {
           sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start"
           sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
           sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
-          sh "cf set-env ${appName} JKS_FILE pz-idam.jks"
+          sh "cf set-env ${appName} JKS_FILE piazza.jks"
           sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
           sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
 
