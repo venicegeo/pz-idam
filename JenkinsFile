@@ -121,14 +121,13 @@ node {
         sh "cf auth ${CFUSER} ${CFPASS}"
         sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}"
         sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start"
-        sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
-        sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
-        sh "cf set-env ${appName} JKS_FILE piazza.jks"
-        sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
-        sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-
         try {
-          sh "cf start ${appName}"
+			sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
+			sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
+			sh "cf set-env ${appName} JKS_FILE piazza.jks"
+			sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
+			sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+			sh "cf start ${appName}"
         } catch (Exception e) {
           //sh "cf logs --recent ${appName}"
           sh "cf delete ${appName} -f -r"
@@ -203,14 +202,13 @@ node {
           sh "cf auth ${CFUSER} ${CFPASS}"
           sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
           sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start"
-          sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
-          sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
-          sh "cf set-env ${appName} JKS_FILE piazza.jks"
-          sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
-          sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-
-          try {
-            sh "cf start ${appName}"
+          try {		  
+			  sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
+			  sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
+			  sh "cf set-env ${appName} JKS_FILE piazza.jks"
+			  sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
+			  sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+              sh "cf start ${appName}"
           } catch (Exception e) {
             //sh "cf logs --recent ${appName}"
             sh "cf delete ${appName} -f -r"
