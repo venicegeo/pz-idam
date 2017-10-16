@@ -28,6 +28,7 @@ import java.util.Arrays;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContexts;
@@ -146,7 +147,7 @@ public class Application extends SpringBootServletInitializer {
 			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(getStore(), new TrustSelfSignedStrategy()).useProtocol("TLS").build();
 			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext)
-					.setMaxConnPerRoute(httpMaxRoute).build();
+					.setMaxConnPerRoute(httpMaxRoute).setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
 
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
