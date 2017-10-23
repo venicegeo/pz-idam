@@ -28,8 +28,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.venice.piazza.idam.data.MongoAccessor;
-import org.venice.piazza.idam.model.user.UserThrottles;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
@@ -37,6 +36,7 @@ import model.response.ErrorResponse;
 import model.response.PiazzaResponse;
 import model.response.UserProfileResponse;
 import model.security.authz.UserProfile;
+import model.security.authz.UserThrottles;
 import util.PiazzaLogger;
 
 /**
@@ -51,7 +51,7 @@ public class AdminController {
 	@Autowired
 	private Environment env;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
 
@@ -77,7 +77,7 @@ public class AdminController {
 	 */
 	@RequestMapping(value = "/admin/throttles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<UserThrottles> getAllUserThrottles() {
-		return mongoAccessor.getAllUserThrottles();
+		return accessor.getAllUserThrottles();
 	}
 
 	/**
@@ -100,10 +100,10 @@ public class AdminController {
 			}
 
 			// Check for Profile
-			UserProfile userProfile = mongoAccessor.getUserProfileByUsername(username);
+			UserProfile userProfile = accessor.getUserProfileByUsername(username);
 			if (userProfile != null) {
 				// Attach the Throttles
-				UserThrottles throttles = mongoAccessor.getCurrentThrottlesForUser(username, true);
+				UserThrottles throttles = accessor.getCurrentThrottlesForUser(username, true);
 				// Audit the Retrieval
 				pzLogger.log(String.format("Retrieved Profile for user %s.", username), Severity.INFORMATIONAL,
 						new AuditElement(username, "userProfileCheckSuccess", ""));

@@ -39,7 +39,7 @@ import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
 
 import model.logger.AuditElement;
@@ -64,7 +64,7 @@ public class AuthController {
 	@Autowired
 	private PiazzaLogger pzLogger;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 	@Autowired
 	private PiazzaAuthenticator piazzaAuthenticator;
 	@Autowired
@@ -103,9 +103,9 @@ public class AuthController {
 		try {
 			String uuid = body.get("uuid");
 			if (uuid != null) {
-				if (mongoAccessor.isApiKeyValid(uuid)) {
+				if (accessor.isApiKeyValid(uuid)) {
 					// Look up the user profile
-					UserProfile userProfile = mongoAccessor.getUserProfileByApiKey(uuid);
+					UserProfile userProfile = accessor.getUserProfileByApiKey(uuid);
 					pzLogger.log("Verified API Key.", Severity.INFORMATIONAL,
 							new AuditElement(userProfile.getUsername(), "verifiedApiKey", ""));
 					// Send back the success
@@ -147,26 +147,26 @@ public class AuthController {
 			// If the API Key is specified, then also perform authentication before doing the authorization check.
 			// Check the validity of the API Key
 			if (authorizationCheck.getApiKey() != null) {
-				if (!mongoAccessor.isApiKeyValid(authorizationCheck.getApiKey())) {
+
+				if (!accessor.isApiKeyValid(authorizationCheck.getApiKey())) {
 					throw new AuthorizationException("Failed to Authenticate.", new AuthResponse(false, "Invalid API Key."));
-				} else {
-					// If the API Key was specified, but the user name was not, then populate the username so that the
-					// Authorizers below can function.
-					if (authorizationCheck.getUsername() == null) {
-						authorizationCheck.setUsername(mongoAccessor.getUsername(authorizationCheck.getApiKey()));
-					}
+				} 
+				
+				// If the API Key was specified, but the user name was not, then populate the username so that the
+				// Authorizers below can function.				
+				else if (authorizationCheck.getUsername() == null) {
+					authorizationCheck.setUsername(accessor.getUsername(authorizationCheck.getApiKey()));
 				}
+				
 				// Ensure the API Key matches the Payload
-				if (!mongoAccessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
-					throw new AuthorizationException("Failed to Authenticate.",
-							new AuthResponse(false, "API Key identity does not match the authorization check username."));
+				if (!accessor.getUsername(authorizationCheck.getApiKey()).equals(authorizationCheck.getUsername())) {
+					throw new AuthorizationException("Failed to Authenticate.", 
+						new AuthResponse(false, "API Key identity does not match the authorization check username."));
 				}
-			} else {
-				// If the user specifies neither an API Key or a Username, then the request parameters are insufficient.
-				if ((authorizationCheck.getUsername() == null) || (authorizationCheck.getUsername().isEmpty())) {
-					throw new AuthorizationException("Incomplete request details",
-							new AuthResponse(false, "API Key or Username not specified."));
-				}
+			}
+			// If the user specifies neither an API Key or a Username, then the request parameters are insufficient.
+			else if ((authorizationCheck.getUsername() == null) || (authorizationCheck.getUsername().isEmpty())) {
+				throw new AuthorizationException("Incomplete request details", new AuthResponse(false, "API Key or Username not specified."));
 			}
 
 			// Loop through all Authorizations and check if the action is permitted by each
@@ -183,7 +183,7 @@ public class AuthController {
 			pzLogger.log("Passed authorization check.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckPassed", authorizationCheck.toString()));
 			return new ResponseEntity<AuthResponse>(
-					new AuthResponse(true, mongoAccessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
+					new AuthResponse(true, accessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
@@ -192,15 +192,14 @@ public class AuthController {
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
-			String error = String.format("Error checking authorization: %s: %s",
-					authorizationCheck != null ? authorizationCheck.toString() : "Null Payload Sent.", exception.getMessage());
+			String error = String.format("Error checking authorization: %s", authorizationCheck);
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
 			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
-
+	
 	/**
 	 * Generates a new API Key based on the provided username and credential for GeoAxis.
 	 * 
@@ -212,65 +211,46 @@ public class AuthController {
 	@RequestMapping(value = "/key", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PiazzaResponse> generateApiKey() {
 		try {
-			String headerValue = request.getHeader("Authorization");
+			final String headerValue = request.getHeader("Authorization");
 			String username = null;
-			String uuid = null;
 
-			if (headerValue != null) {
-				String[] headerParts = headerValue.split(" ");
+			if (headerValue != null && headerValue.split(" ").length == 2) {
+				final String[] headerParts = headerValue.split(" ");
 
-				if (headerParts.length == 2) {
+				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+				username = getAuthenticatedUsername(decodedAuthNInfo);
 
-					String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+				if (username != null) {
+					String uuid = uuidFactory.getUUID();
+					updateAPIKey(username, uuid);
 
-					// PKI Auth
-					if (decodedAuthNInfo.split(":").length == 1) {
-						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-						if (authResponse.getIsAuthSuccess()) {
-							username = authResponse.getUserProfile().getUsername();
-							uuid = uuidFactory.getUUID();
-						}
-					}
-
-					// BASIC Auth
-					else if (decodedAuthNInfo.split(":").length == 2) {
-						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
-						username = decodedUserPassParts[0];
-						String credential = decodedUserPassParts[1];
-						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(username, credential);
-
-						if (authResponse.getIsAuthSuccess()) {
-							uuid = uuidFactory.getUUID();
-						}
-					}
-
-					if (uuid != null && username != null) {
-						// Update the API Key in the UUID Collection
-						if (mongoAccessor.getApiKey(username) != null) {
-							mongoAccessor.updateApiKey(username, uuid);
-						} else {
-							mongoAccessor.createApiKey(username, uuid);
-						}
-
-						// Return the Key
-						pzLogger.log("Successfully verified Key.", Severity.INFORMATIONAL,
-								new AuditElement(username, "generateApiKey", ""));
-						return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.OK);
-					}
+					// Return the Key
+					pzLogger.log("Successfully verified Key.", Severity.INFORMATIONAL,
+							new AuditElement(username, "generateApiKey", ""));
+					return new ResponseEntity<>(new UUIDResponse(uuid), HttpStatus.CREATED);
 				}
 			}
 
-			String error = "Authentication failed for user " + username;
+			final String error = "Authentication failed for user " + username;
 			pzLogger.log(error, Severity.INFORMATIONAL, new AuditElement(username, "failedToGenerateKey", ""));
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
 		}
 	}
 
+	private void updateAPIKey(final String username, final String uuid) {
+		// Update the API Key in the UUID Collection
+		if (accessor.getApiKey(username) != null) {
+			accessor.updateApiKey(username, uuid);
+		} else {
+			accessor.createApiKey(username, uuid);
+		}
+	}
+	
 	/**
 	 * Deletes API Key with provided UUID
 	 * 
@@ -281,8 +261,8 @@ public class AuthController {
 	public ResponseEntity<PiazzaResponse> deleteApiKey(@PathVariable(value = "key") String uuid) {
 		try {
 			//Delete API Key
-			String username = mongoAccessor.getUsername(uuid);
-			mongoAccessor.deleteApiKey(uuid);
+			String username = accessor.getUsername(uuid);
+			accessor.deleteApiKey(uuid);
 			
 			//Log the action
 			String response = String.format("User: %s API Key was deleted", username);
@@ -322,37 +302,20 @@ public class AuthController {
 	public ResponseEntity<PiazzaResponse> getExistingApiKey() {
 		try {
 			// Decode credentials. We need to get the username of this account.
-			String authHeader = request.getHeader("Authorization");
+			final String authHeader = request.getHeader("Authorization");
 			String username = null;
 
 			// Ensure the Authorization Header is present
-			if (authHeader != null) {
-				String[] headerParts = authHeader.split(" ");
-				// Ensure Valid Auth
-				if (headerParts.length == 2) {
-					String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
-					// PKI Auth - authenticate and get username
-					if (decodedAuthNInfo.split(":").length == 1) {
-						AuthResponse authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
-						if (authResponse.getIsAuthSuccess()) {
-							username = authResponse.getUserProfile().getUsername();
-						}
-					}
-					// BASIC Auth - authenticate and get username
-					else if (decodedAuthNInfo.split(":").length == 2) {
-						String[] decodedUserPassParts = decodedAuthNInfo.split(":");
-						if (piazzaAuthenticator.getAuthenticationDecision(decodedUserPassParts[0], decodedUserPassParts[1])
-								.getIsAuthSuccess()) {
-							username = decodedUserPassParts[0];
-						}
-					}
-					// Username found and authenticated. Get the API Key.
-					if (username != null) {
-						String apiKey = mongoAccessor.getApiKey(username);
-						pzLogger.log(String.format("Successfully retrieved API Key for user %s.", username), Severity.INFORMATIONAL,
-								new AuditElement(username, "getExistingApiKey", ""));
-						return new ResponseEntity<>(new UUIDResponse(apiKey), HttpStatus.OK);
-					}
+			if (authHeader != null && authHeader.split(" ").length == 2) {
+				final String[] headerParts = authHeader.split(" ");
+
+				String decodedAuthNInfo = new String(Base64.getDecoder().decode(headerParts[1]), StandardCharsets.UTF_8);
+				username = getAuthenticatedUsername(decodedAuthNInfo);
+				
+				// Username found and authenticated. Get the API Key.
+				if (username != null) {
+					String apiKey = accessor.getApiKey(username);
+					return getExistingAPIKeyResponse(apiKey, username);
 				}
 			}
 			// If the username was not found and authenticated from the auth header, then no API Key can be returned.
@@ -366,7 +329,46 @@ public class AuthController {
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
-			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.UNAUTHORIZED);
+		}
+	}
+	
+	private String getAuthenticatedUsername(final String decodedAuthNInfo) {
+		String username = null;
+		AuthResponse authResponse = null;
+		
+		// PKI Auth - authenticate
+		if (decodedAuthNInfo.split(":").length == 1) {
+			authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedAuthNInfo.split(":")[0]);
+		}
+		
+		// BASIC Auth - authenticate
+		else if (decodedAuthNInfo.split(":").length == 2) {
+			String[] decodedUserPassParts = decodedAuthNInfo.split(":");
+			authResponse = piazzaAuthenticator.getAuthenticationDecision(decodedUserPassParts[0], decodedUserPassParts[1]);
+		}
+		
+		if (authResponse != null && authResponse.getIsAuthSuccess()) {
+			username = authResponse.getUserProfile().getUsername();
+		}
+		
+		return username;
+	}
+	
+	private ResponseEntity<PiazzaResponse> getExistingAPIKeyResponse(final String apiKey, final String username) {
+		// Ensure the apiKey is not null
+		if (apiKey != null) {
+			// Key Found
+			pzLogger.log(String.format("Successfully retrieved API Key for user %s.", username), Severity.INFORMATIONAL,
+					new AuditElement(username, "getExistingApiKey", ""));
+			return new ResponseEntity<>(new UUIDResponse(apiKey), HttpStatus.OK);
+		} else {
+			// There is an account found, but there is no api key associated with it.
+			pzLogger.log(String.format("%s requested existing API Key but none was found.", username),
+					Severity.INFORMATIONAL, new AuditElement(username,
+							"failedGetExistingApiKey", ""));
+			String error = String.format("No active API Key found for %s. Please request a new API Key.", username);
+			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.BAD_REQUEST);
 		}
 	}
 }

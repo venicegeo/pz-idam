@@ -26,9 +26,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.venice.piazza.idam.authz.Authorizer;
-import org.venice.piazza.idam.data.MongoAccessor;
-
-import com.mongodb.MongoException;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 
 import model.logger.Severity;
 import model.response.AuthResponse;
@@ -38,7 +36,7 @@ import util.PiazzaLogger;
 
 /**
  * Authorizer that determines if a specified user action will be prevented due to excessive use of that action
- * (throttling). This will use Throttle information in the Mongo instance to determine if a user should be throttled or
+ * (throttling). This will use Throttle information in the DB instance to determine if a user should be throttled or
  * not.
  * 
  * @author Patrick.Doody
@@ -47,7 +45,7 @@ import util.PiazzaLogger;
 @Component
 public class ThrottleAuthorizer implements Authorizer {
 	@Autowired
-	private MongoAccessor accessor;
+	private DatabaseAccessor accessor;
 	@Autowired
 	private PiazzaLogger pzLogger;
 	@Value("${throttle.frequency.interval}")
@@ -66,7 +64,7 @@ public class ThrottleAuthorizer implements Authorizer {
 			try {
 				// Get the number of invocations for this user
 				invocations = accessor.getInvocationsForUserThrottle(authorizationCheck.getUsername(),
-						model.security.authz.Throttle.Component.job);
+						model.security.authz.Throttle.Component.JOB);
 				// Determine if the number of invocations exceeds the limit
 				if (isThrottleInvocationsExceeded(invocations, authorizationCheck.getUsername())) {
 					String message = String.format("Number of Jobs for user %s has been exceeded (%s). Please try again tomorrow.",
@@ -75,11 +73,11 @@ public class ThrottleAuthorizer implements Authorizer {
 				} else {
 					return new AuthResponse(true);
 				}
-			} catch (MongoException mongoException) {
+			} catch (Exception exception) {
 				String error = String.format(
 						"Error getting number of invocations for Auth Check %s. %s. Throttle authorization checks may not be functioning correctly.",
-						authorizationCheck.toString(), mongoException.getMessage());
-				LOGGER.error(error, mongoException);
+						authorizationCheck.toString(), exception.getMessage());
+				LOGGER.error(error, exception);
 				pzLogger.log(error, Severity.ERROR);
 				// Currently, do not deny this request. The database is not properly working and we don't want to
 				// blacklist everything if the database can't be reached.

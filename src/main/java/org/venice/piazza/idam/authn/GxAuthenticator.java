@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
@@ -55,6 +55,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	private String gxBasicMechanism;
 	@Value("${vcap.services.geoaxis.credentials.basic.hostidentifier}")
 	private String gxBasicHostIdentifier;
+	@Value("${npe.users.only}")
+	private Boolean npeUsersOnly;
 	@Autowired
 	private PiazzaLogger logger;
 	@Autowired
@@ -62,7 +64,9 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
+	
+	private static final String USER_FAILED_AUTH = "userFailedAuthentication";
 
 	@Override
 	public AuthResponse getAuthenticationDecision(final String username, final String credential) {
@@ -95,55 +99,78 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 	}
 	
 	private AuthResponse processGxResponse(final GxAuthNResponse gxResponse) {
-		boolean isNPE = false;
+		boolean isAuthSuccess = false;
 		UserProfile userProfile = null;
 		
 		if( gxResponse != null ) {
 			logger.log(String.format("GeoAxis response has returned authentication %s", gxResponse.isSuccessful()),
 					Severity.INFORMATIONAL,
-					new AuditElement("idam", gxResponse.isSuccessful() ? "userLoggedIn" : "userFailedAuthentication", ""));
+					new AuditElement("idam", gxResponse.isSuccessful() ? "userLoggedIn" : USER_FAILED_AUTH, ""));
 
 			// If Authentication was successful, then get/create the User Profile.
 			if( gxResponse.isSuccessful() ) {
-				// Extract the Username and DN from the Response
-				String username = null;
-				String dn = null;
-				if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
-					List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
-					for (PrincipalItem item : listItems) {
-						if ("UID".equalsIgnoreCase(item.getName())) {
-							username = item.getValue();
-						} else if ("DN".equalsIgnoreCase(item.getName())) {
-							dn = item.getValue();
-						}
-					}
-				}
+				userProfile = processSuccessfulResponse(gxResponse);
 				
-				if( username != null && dn != null ) {
-					if( dn != null && dn.toLowerCase().contains("ou=component") ) {
-						isNPE = true;
-						userProfile = getUserProfile(username, dn, isNPE);
-					}
-					else {
-						logger.log("User is not an NPE! Failing Authentication", Severity.INFORMATIONAL,
-								new AuditElement("idam", "userFailedAuthentication", ""));
-					}
-				}
-				else {
-					logger.log("GeoAxis has returned a NULL Username or DN!", Severity.INFORMATIONAL,
-							new AuditElement("idam", "userFailedAuthentication", ""));
+				if( userProfile != null ) {
+					isAuthSuccess = true;
 				}
 			}
-		} else {
+		}
+		else {
 			logger.log("GeoAxis has returned a NULL response!", Severity.INFORMATIONAL,
-					new AuditElement("idam", "userFailedAuthentication", ""));
+					new AuditElement("idam", USER_FAILED_AUTH, ""));
 		}
 		
-		return new AuthResponse(isNPE, userProfile);
+		return new AuthResponse(isAuthSuccess, userProfile);
+	}
+
+	private UserProfile processSuccessfulResponse(final GxAuthNResponse gxResponse) {
+		UserProfile userProfile = null;
+
+		// Extract the Username and DN from the Response
+		String username = null;
+		String dn = null;
+		if (gxResponse.getPrincipals() != null && gxResponse.getPrincipals().getPrincipal() != null) {
+			List<PrincipalItem> listItems = gxResponse.getPrincipals().getPrincipal();
+			for (PrincipalItem item : listItems) {
+				if (username == null) {
+					username = checkKey("UID", item);
+				}
+				if (dn == null) {
+					dn = checkKey("DN", item);
+				}
+			}
+		}
+		
+		if( username != null && dn != null ) {
+			if( (npeUsersOnly && dn.toLowerCase().contains("ou=component")) || !npeUsersOnly) {
+				userProfile = getUserProfile(username, dn, true);
+			}
+			else {
+				logger.log("User is not an NPE! Failing Authentication", Severity.INFORMATIONAL,
+						new AuditElement("idam", USER_FAILED_AUTH, ""));
+			}
+		}
+		else {
+			logger.log("GeoAxis has returned a NULL Username or DN!", Severity.INFORMATIONAL,
+					new AuditElement("idam", USER_FAILED_AUTH, ""));
+		}
+		
+		return userProfile;
+	}
+	
+	private String checkKey(final String keyName, final PrincipalItem item) {
+		String value = null;
+
+		if (keyName.equalsIgnoreCase(item.getName())) {
+			value = item.getValue();
+		}
+
+		return value;
 	}
 
 	/**
-	 * Creates a User Profile in the Mongo DB, if one does not already exist. 
+	 * Creates a User Profile in the DB, if one does not already exist. 
 	 * If it exists, then it will update the profile with the most recent attributes.
 	 * 
 	 * 
@@ -161,8 +188,8 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 			// Get the latest information from Gx
 			final UserProfile userProfile = gxUserProfileClient.getUserProfileFromGx(username, dn);
 			
-			if (mongoAccessor.hasUserProfile(username, dn)) {
-				final UserProfile originalUserProfile = mongoAccessor.getUserProfileByUsername(username);
+			if (accessor.hasUserProfile(username, dn)) {
+				final UserProfile originalUserProfile = accessor.getUserProfileByUsername(username);
 				if( originalUserProfile != null ) {
 					userProfile.setCreatedOn(originalUserProfile.getCreatedOn());
 					userProfile.setNPE(isNPE);
@@ -170,13 +197,13 @@ public class GxAuthenticator implements PiazzaAuthenticator {
 				
 				userProfile.setLastUpdatedOn(new DateTime());
 				
-				mongoAccessor.updateUserProfile(userProfile);
+				accessor.updateUserProfile(username, dn, userProfile);
 			} 
 			else {
 				userProfile.setCreatedOn(new DateTime());
 				userProfile.setNPE(isNPE);
 
-				mongoAccessor.insertUserProfile(userProfile);
+				accessor.insertUserProfile(userProfile);
 			}
 
 			// Return the Profile

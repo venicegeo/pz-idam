@@ -32,10 +32,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.MongoException;
 
 import messaging.job.KafkaClientFactory;
 import model.job.Job;
@@ -60,7 +59,7 @@ public class JobConsumer {
 	@Autowired
 	private PiazzaLogger pzLogger;
 	@Autowired
-	private MongoAccessor accessor;
+	private DatabaseAccessor accessor;
 	@Value("${SPACE}")
 	private String space;
 	@Value("${vcap.services.pz-kafka.credentials.host}")
@@ -94,36 +93,45 @@ public class JobConsumer {
 	 * recorded in the Throttle table.
 	 */
 	public void pollForJobs() {
+
+		Consumer<String, String> consumer = null;
+
 		try {
 			// Create the General Group Consumer
-			Consumer<String, String> consumer = KafkaClientFactory.getConsumer(kafkaHosts, kafkaGroup);
+			consumer = KafkaClientFactory.getConsumer(kafkaHosts, kafkaGroup);
 			consumer.subscribe(topics);
 
 			// Poll
 			while (!closed.get()) {
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(1000);
 				// Handle new Messages on this topic.
-				for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
-					// Record the Job Type and the user requesting that Job
-					try {
-						Job job = mapper.readValue(consumerRecord.value(), Job.class);
-						processThrottle(job);
-						System.out.println("Throttle processed.");
-						LOGGER.info("Processed");
-					} catch (IOException exception) {
-						String error = String.format(
-								"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
-								consumerRecord.key(), exception.getMessage());
-						LOGGER.error(error, exception);
-						pzLogger.log(error, Severity.ERROR);
-					}
-				}
+				handleNewMessage(consumerRecords);
 			}
-			consumer.close();
 		} catch (WakeupException exception) {
 			String error = String.format("Polling Thread forcefully closed: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
+		} finally {
+			if (consumer != null) {
+				consumer.close();
+			}
+		}
+	}
+
+	private void handleNewMessage(final ConsumerRecords<String, String> consumerRecords) {
+		for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+			// Record the Job Type and the user requesting that Job
+			try {
+				Job job = mapper.readValue(consumerRecord.value(), Job.class);
+				processThrottle(job);
+				LOGGER.info("Throttle Processed");
+			} catch (IOException exception) {
+				String error = String.format(
+						"Error Deserializing Job Request Message for Job ID %s : %s. Could not record this Job to Throttle table.",
+						consumerRecord.key(), exception.getMessage());
+				LOGGER.error(error, exception);
+				pzLogger.log(error, Severity.ERROR);
+			}
 		}
 	}
 
@@ -142,11 +150,11 @@ public class JobConsumer {
 	 */
 	private void processThrottle(Job job) {
 		String username = job.getCreatedBy();
-		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.job;
+		model.security.authz.Throttle.Component component = model.security.authz.Throttle.Component.JOB;
 		// Update persistence
 		try {
 			accessor.incrementUserThrottles(username, component);
-		} catch (MongoException exception) {
+		} catch (Exception exception) {
 			String error = String.format(
 					"Error updating Throttle for Component %s for User %s : %s. The users Throttles could not be updated.", component,
 					username, exception.getMessage());

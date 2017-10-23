@@ -58,41 +58,44 @@ public class GxUserProfileClient {
 		userProfile.setDistinguishedName(dn);
 
 		if( gxResponse != null && gxResponse.length > 0 ) {
-			final GxAuthAResponse firstElement = gxResponse[0];
-
-			if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
-				userProfile.setCountry(firstElement.getNationalityextended().get(0));
-			}
-			
-			/*
-			 * If NGA:
-			 *    admincode = serviceoragency
-			 *    dutycode = serviceoragency
-			 *    
-			 * If non-NGA:
-			 * 	  admincode = gxadministrativeorganizationcode
-			 *    dutycode = gxdutydodoccupationcode
-			 */	
-			
-			if( firstElement.getServiceoragency() != null && !firstElement.getServiceoragency().isEmpty()) {
-				final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
-				
-				if( serviceOrAgencyValue.equalsIgnoreCase("NGA") ) {
-					userProfile.setAdminCode(serviceOrAgencyValue);
-					userProfile.setDutyCode(serviceOrAgencyValue);
-				}
-				else {
-					if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
-						userProfile.setAdminCode(firstElement.getGxadministrativeorganizationcode().get(0));
-					}
-					
-					if( firstElement.getGxdutydodoccupationcode() != null && !firstElement.getGxdutydodoccupationcode().isEmpty()) {
-						userProfile.setDutyCode(firstElement.getGxdutydodoccupationcode().get(0));
-					}
-				}
-			}
+			processGxResponse(userProfile, gxResponse[0]);
 		}
 		
 		return userProfile;
+	}
+	
+	private void processGxResponse(final UserProfile userProfile, final GxAuthAResponse firstElement) {
+		
+		if( firstElement.getNationalityextended() != null && !firstElement.getNationalityextended().isEmpty()) { 
+			userProfile.setCountry(firstElement.getNationalityextended().get(0));
+		}
+		
+		/*
+		 * If NGA:
+		 *    admincode = serviceoragency
+		 *    dutycode = serviceoragency
+		 *    
+		 * If non-NGA:
+		 * 	  admincode = gxadministrativeorganizationcode
+		 *    dutycode = gxdutydodoccupationcode
+		 */	
+		
+		if( firstElement.getServiceoragency() != null && !firstElement.getServiceoragency().isEmpty()) {
+			final String serviceOrAgencyValue = firstElement.getServiceoragency().get(0);
+			
+			if( "NGA".equalsIgnoreCase(serviceOrAgencyValue) ) {
+				userProfile.setAdminCode(serviceOrAgencyValue);
+				userProfile.setDutyCode(serviceOrAgencyValue);
+			}
+			else {
+				if( firstElement.getGxadministrativeorganizationcode() != null && !firstElement.getGxadministrativeorganizationcode().isEmpty()) {
+					userProfile.setAdminCode(firstElement.getGxadministrativeorganizationcode().get(0));
+				}
+				
+				if( firstElement.getGxdutydodoccupationcode() != null && !firstElement.getGxdutydodoccupationcode().isEmpty()) {
+					userProfile.setDutyCode(firstElement.getGxdutydodoccupationcode().get(0));
+				}
+			}
+		}
 	}
 }

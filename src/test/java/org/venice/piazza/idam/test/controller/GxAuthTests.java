@@ -32,7 +32,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.authn.GxAuthenticator;
-import org.venice.piazza.idam.data.MongoAccessor;
+import org.venice.piazza.idam.data.DatabaseAccessor;
 import org.venice.piazza.idam.model.GxAuthNCertificateRequest;
 import org.venice.piazza.idam.model.GxAuthNResponse;
 import org.venice.piazza.idam.model.GxAuthNUserPassRequest;
@@ -47,7 +47,7 @@ public class GxAuthTests {
 	@Mock
 	private RestTemplate restTemplate;
 	@Mock
-	private MongoAccessor mongoAccessor;
+	private DatabaseAccessor accessor;
 	@Mock
 	private PiazzaLogger logger;
 
@@ -126,8 +126,8 @@ public class GxAuthTests {
 		principalItem.setValue("testuser");
 		UserProfile mockProfile = new UserProfile();
 		mockProfile.setUsername("testuser");
-		when(mongoAccessor.getUserProfileByApiKey(Mockito.eq("UID"))).thenReturn(mockProfile);
-		when(mongoAccessor.getUserProfileByUsername(Mockito.any())).thenReturn(mockProfile);
+		when(accessor.getUserProfileByApiKey(Mockito.eq("UID"))).thenReturn(mockProfile);
+		when(accessor.getUserProfileByUsername(Mockito.any())).thenReturn(mockProfile);
 
 		principal.setPrincipal(Arrays.asList(principalItem));
 		gxResponse.setPrincipals(principal);
