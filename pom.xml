@@ -69,7 +69,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>RABBIT</version>
+			<version>1-0-4-2-g04915c8</version>
 		</dependency>
 
 		<dependency>
