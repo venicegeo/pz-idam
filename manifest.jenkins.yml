@@ -8,7 +8,7 @@ applications:
     - geoaxis
     - pz-rabbitmq
     - pz-elasticsearch
-    - pz-geoserver-efs
+    - pz-postgres
   path: pz-idam.jar
   env:
     SPRING_PROFILES_ACTIVE: geoaxis

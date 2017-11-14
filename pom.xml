@@ -67,9 +67,21 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-to-slf4j</artifactId>
+			<version>2.7</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.1.7</version>
+		</dependency>
+
+		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>1-0-4-2-g04915c8</version>
+			<version>1-0-4-6-g27d3e91</version>
 		</dependency>
 
 		<dependency>
@@ -107,17 +119,6 @@
 		    <groupId>org.elasticsearch.client</groupId>
 		    <artifactId>transport</artifactId>
 		    <version>5.4.0</version>
-		</dependency>
-
-		<dependency>
-		    <groupId>org.apache.logging.log4j</groupId>
-		    <artifactId>log4j-to-slf4j</artifactId>
-		    <version>2.7</version>
-		</dependency>
-		<dependency>
-		    <groupId>ch.qos.logback</groupId>
-		    <artifactId>logback-classic</artifactId>
-		    <version>1.1.7</version>
 		</dependency>
 		
 	</dependencies>
