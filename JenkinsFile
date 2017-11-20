@@ -129,7 +129,11 @@ node {
 			sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
 			sh "cf start ${appName}"
         } catch (Exception e) {
-          sh "cf logs --recent ${appName}"
+			try {
+				sh "cf logs --recent ${appName}"
+			} catch (Exception ex) {
+				echo "Printing logs failed: ${ex}"
+			}
           sh "cf delete ${appName} -f -r"
           error("Error during application start. Deleting ${appName} and failing the build.")
         }
@@ -210,7 +214,11 @@ node {
 			  sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
               sh "cf start ${appName}"
           } catch (Exception e) {
-            //sh "cf logs --recent ${appName}"
+			try {
+				sh "cf logs --recent ${appName}"
+			} catch (Exception ex) {
+				echo "Printing logs failed: ${ex}"
+			}
             sh "cf delete ${appName} -f -r"
             error("Error during application start. Deleting ${appName} and failing the build.")
           }
