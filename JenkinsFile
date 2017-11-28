@@ -219,7 +219,7 @@ node {
 			} catch (Exception ex) {
 				echo "Printing logs failed: ${ex}"
 			}
-            sh "cf delete ${appName} -f -r"
+            //sh "cf delete ${appName} -f -r"
             error("Error during application start. Deleting ${appName} and failing the build.")
           }
         }
