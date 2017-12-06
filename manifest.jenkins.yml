@@ -12,3 +12,4 @@ applications:
   path: pz-idam.jar
   env:
     SPRING_PROFILES_ACTIVE: geoaxis
+    JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
