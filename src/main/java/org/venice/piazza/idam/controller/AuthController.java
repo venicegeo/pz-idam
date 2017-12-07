@@ -382,12 +382,12 @@ public class AuthController {
 		}
 	}
 
-	@RequestMapping(value = "/oauth", method = RequestMethod.GET)
+	@RequestMapping(value = "/login/geoaxis", method = RequestMethod.GET)
 	public RedirectView oauthRedirect() {
 		return new RedirectView(oAuthClient.getOAuthUrlForGx());
 	}
 
-	@RequestMapping(value = "/oauthResponse", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/login", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
