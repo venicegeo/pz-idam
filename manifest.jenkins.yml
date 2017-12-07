@@ -6,10 +6,10 @@ applications:
   timeout: 80
   services:
     - geoaxis
-    - pz-kafka
+    - pz-rabbitmq
     - pz-elasticsearch
-    - pz-geoserver-efs
+    - pz-postgres
   path: pz-idam.jar
-  buildpack: java_buildpack_offline
   env:
     SPRING_PROFILES_ACTIVE: geoaxis
+    JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
