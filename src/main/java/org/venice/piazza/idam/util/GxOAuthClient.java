@@ -32,6 +32,7 @@ import util.PiazzaLogger;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.Map;
 
@@ -41,14 +42,17 @@ public class GxOAuthClient {
 	@Value("${GEOAXIS}")
 	private String gxBaseUrl;
 
+	@Value("${GEOAXIS_AUTH}")
+	private String gxAuthUrl;
+
+	@Value("${GEOAXIS_LOGOUT}")
+	private String gxLogoutUrl;
+
 	@Value("${GEOAXIS_CLIENT_ID}")
 	private String gxClientId;
 
 	@Value("${GEOAXIS_SECRET}")
 	private String gxClientSec;
-
-	@Value("${GEOAXIS_REDIRECT_URI}")
-	private String redirectUri;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -58,7 +62,7 @@ public class GxOAuthClient {
 
 	private static final String AUTHORIZATION = "Authorization";
 
-	public String getAccessToken(final String code) throws HttpClientErrorException, HttpServerErrorException {
+	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
 		ResponseEntity<String> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
@@ -115,9 +119,26 @@ public class GxOAuthClient {
 		return profile;
 	}
 
-	public String getOAuthUrlForGx()  {
+	public String getOAuthUrlForGx(final String redirectUri)  {
 		return "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
 				+ gxClientId + "&response_type=code&redirect_uri=" + redirectUri;
+	}
+
+	public String getLogoutUrl()  {
+		return "http://" + gxBaseUrl + "/oam/server/logout";
+	}
+
+	public String getRedirectUri(HttpServletRequest request) {
+		return getRequestBaseUrl(request) + "/login";
+	}
+
+	public String getUiUrl(HttpServletRequest request) {
+		return getRequestBaseUrl(request).replace("pz-idam", "beachfront");
+	}
+
+	private String getRequestBaseUrl(HttpServletRequest request) {
+		return request.getScheme() + "://" +
+				request.getServerName() + ":" + request.getServerPort();
 	}
 
 	private String getTokenRequestUrl(

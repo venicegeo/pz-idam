@@ -387,15 +387,17 @@ public class AuthController {
 
 	@RequestMapping(value = "/login/geoaxis", method = RequestMethod.GET)
 	public RedirectView oauthRedirect() {
-		return new RedirectView(oAuthClient.getOAuthUrlForGx());
+	    final String redirectUri = oAuthClient.getRedirectUri(request);
+		return new RedirectView(oAuthClient.getOAuthUrlForGx(redirectUri));
 	}
 
 	@RequestMapping(value = "/login", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
+	public RedirectView oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
 				LOGGER.debug("Requesting access token...");
-				final String accessToken = oAuthClient.getAccessToken(code);
+                final String redirectUri = oAuthClient.getRedirectUri(request);
+				final String accessToken = oAuthClient.getAccessToken(code, redirectUri);
 
 				LOGGER.debug("Requesting user profile...");
 				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
@@ -420,24 +422,41 @@ public class AuthController {
 					accessor.createApiKey(username, apiKey);
 				}
 
-				session.setAttribute("api_key", apiKey);
+				//session.setAttribute("api_key", apiKey);
 				// TODO: We probably don't need both of these. Remove the one we don't need.
 				Cookie cookie = new Cookie("api_key", apiKey);
 				cookie.setHttpOnly(true);
 				cookie.setSecure(true);
+				int dotIndex = request.getServerName().indexOf(".") + 1;
+				String domain = request.getServerName().substring(dotIndex);
+				cookie.setDomain(domain);
 				response.addCookie(cookie);
 
-				return new ResponseEntity<>(user, HttpStatus.OK);
+				return new RedirectView(String.format("https://{}?logged_in=true", oAuthClient.getUiUrl(request)));
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
-				return new ResponseEntity<>(hee.getResponseBodyAsString(), hee.getStatusCode());
+				RedirectView errorView = new RedirectView();
+				errorView.setStatusCode(hee.getStatusCode());
+				return errorView;
 			}
 		} catch (Exception exception) {
 			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
-			return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+			RedirectView errorView = new RedirectView();
+			errorView.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+			return errorView;
 		}
-
 	}
+
+	@RequestMapping(value = "/logout", method = RequestMethod.GET)
+	public RedirectView oauthLogout(HttpSession session)
+	{
+		// Clear the sesseion and forward to gx logout
+        LOGGER.info("Logout user");
+        session.invalidate();
+		return new RedirectView(oAuthClient.getLogoutUrl());
+	}
+
+
 }
