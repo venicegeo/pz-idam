@@ -217,6 +217,9 @@ node {
 			  sh "cf set-env ${appName} JKS_FILE piazza.jks"
 			  sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
 			  sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+              sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
+              sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
+              sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
               sh "cf start ${appName}"
           } catch (Exception e) {
 			try {
