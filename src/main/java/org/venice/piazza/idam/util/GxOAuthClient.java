@@ -15,12 +15,10 @@
  **/
 package org.venice.piazza.idam.util;
 
-import model.logger.Severity;
 import model.security.authz.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JacksonJsonParser;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -61,12 +59,14 @@ public class GxOAuthClient {
 	private PiazzaLogger logger;
 
 	private static final String AUTHORIZATION = "Authorization";
+	private final String profileRequestUrl = "https://" + gxBaseUrl + "/ms_oauth/resources/userprofile/me";
+	private final String tokenRequestUrl = "https://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/tokens?grant_type=authorization_code&redirect_uri=";
 
 	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
 		ResponseEntity<String> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
-				getTokenRequestUrl(redirectUri, code),
+				tokenRequestUrl + redirectUri + "&code=" + code,
 				HttpMethod.POST,
 				new HttpEntity<>("parameters", headers),
 				String.class).getBody(),
@@ -81,7 +81,7 @@ public class GxOAuthClient {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
 		ResponseEntity<GxOAuthResponse> profileResponse = new ResponseEntity<>(restTemplate.exchange(
-				getProfileRequestUrl(),
+				profileRequestUrl,
 				HttpMethod.GET,
 				new HttpEntity<>("parameters", headers),
 				GxOAuthResponse.class).getBody(),
@@ -139,17 +139,6 @@ public class GxOAuthClient {
 	private String getRequestBaseUrl(HttpServletRequest request) {
 		return request.getScheme() + "://" +
 				request.getServerName() + ":" + request.getServerPort();
-	}
-
-	private String getTokenRequestUrl(
-			final String redirectUri,
-			final String code) {
-		return "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/tokens?grant_type=authorization_code&redirect_uri="
-				+ redirectUri + "&code=" + code;
-	}
-
-	private String getProfileRequestUrl() {
-		return "http://" + gxBaseUrl + "/ms_oauth/resources/userprofile/me";
 	}
 
 	private String getGxBasicAuthToken() {
