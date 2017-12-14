@@ -120,12 +120,12 @@ public class GxOAuthClient {
 	}
 
 	public String getOAuthUrlForGx(final String redirectUri)  {
-		return "http://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
+		return "http://" + gxAuthUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
 				+ gxClientId + "&response_type=code&redirect_uri=" + redirectUri;
 	}
 
 	public String getLogoutUrl()  {
-		return "http://" + gxBaseUrl + "/oam/server/logout";
+		return "http://" + gxLogoutUrl + "/oam/server/logout";
 	}
 
 	public String getRedirectUri(HttpServletRequest request) {

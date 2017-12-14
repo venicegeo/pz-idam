@@ -174,23 +174,26 @@ public class GxOAuthResponse {
 
 	@Override
 	public String toString() {
-		return "GxOAuthResponse{" +
-				"administrativeOrganizationCode='" + administrativeOrganizationCode + '\'' +
-				", dn='" + dn + '\'' +
-				", id='" + id + '\'' +
-				", personaUID='" + personaUID + '\'' +
-				", commonname='" + commonname + '\'' +
-				", email='" + email + '\'' +
-				", firstname='" + firstname + '\'' +
-				", lastname='" + lastname + '\'' +
-				", login='" + login + '\'' +
-				", mail='" + mail + '\'' +
-				", memberof='" + memberof + '\'' +
-				", personatypecode='" + personatypecode + '\'' +
-				", serviceOrAgency='" + serviceOrAgency + '\'' +
-				", uid='" + uid + '\'' +
-				", uri='" + uri + '\'' +
-				", username='" + username + '\'' +
-				'}';
+		final StringBuilder stringBuilder = new StringBuilder();
+		stringBuilder.
+				append("GxOAuthResponse{").
+				append("administrativeOrganizationCode='").append( administrativeOrganizationCode ).append('\'').
+				append(", dn='").append( dn ).append('\'').
+				append(", id='").append( id ).append('\'').
+				append(", personaUID='").append( personaUID ).append('\'').
+				append(", commonname='").append( commonname ).append('\'').
+				append(", email='").append( email ).append('\'').
+				append(", firstname='").append( firstname ).append('\'').
+				append(", lastname='").append( lastname ).append('\'').
+				append(", login='").append( login ).append('\'').
+				append(", mail='").append( mail ).append('\'').
+				append(", memberof='").append( memberof ).append('\'').
+				append(", personatypecode='").append( personatypecode ).append('\'').
+				append(", serviceOrAgency='").append( serviceOrAgency ).append('\'').
+				append(", uid='").append( uid ).append('\'').
+				append(", uri='").append( uri ).append('\'').
+				append(", username='").append( username ).append('\'').
+				append('}');
+		return stringBuilder.toString();
 	}
 }

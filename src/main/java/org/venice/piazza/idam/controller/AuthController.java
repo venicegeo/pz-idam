@@ -388,6 +388,7 @@ public class AuthController {
 	@RequestMapping(value = "/login/geoaxis", method = RequestMethod.GET)
 	public RedirectView oauthRedirect() {
 	    final String redirectUri = oAuthClient.getRedirectUri(request);
+	    LOGGER.debug(String.format("login redirectUri = %s", redirectUri));
 		return new RedirectView(oAuthClient.getOAuthUrlForGx(redirectUri));
 	}
 
@@ -406,7 +407,9 @@ public class AuthController {
 				final String dn = profileResponse.getBody().getDn();
 
 				// If there's no profile create one and make sure they have an api key
-				if (!accessor.hasUserProfile(username, dn)) {
+                LOGGER.debug(String.format("Checking user profile for %s with dn=%s", username, dn));
+                if (!accessor.hasUserProfile(username, dn)) {
+                    LOGGER.debug(String.format("Creating user profile for %s", username));
 					UserProfile profile = oAuthClient.getUserProfileFromGxProfile(profileResponse.getBody());
 					accessor.insertUserProfile(profile);
 					accessor.createApiKey(username, uuidFactory.getUUID());
