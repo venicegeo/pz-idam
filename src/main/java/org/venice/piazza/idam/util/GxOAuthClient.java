@@ -37,14 +37,17 @@ import java.util.Map;
 @Component
 public class GxOAuthClient {
 
-	@Value("${GEOAXIS}")
-	private String gxBaseUrl;
-
 	@Value("${GEOAXIS_AUTH}")
-	private String gxAuthUrl;
+	private String gxAuthorizeUrl;
+
+	@Value("${GEOAXIS_PROFILE}")
+	private String gxProfileUrl;
 
 	@Value("${GEOAXIS_LOGOUT}")
 	private String gxLogoutUrl;
+
+	@Value("${GEOAXIS_TOKENS}")
+	private String gxTokensUrl;
 
 	@Value("${GEOAXIS_CLIENT_ID}")
 	private String gxClientId;
@@ -59,14 +62,12 @@ public class GxOAuthClient {
 	private PiazzaLogger logger;
 
 	private static final String AUTHORIZATION = "Authorization";
-	private final String profileRequestUrl = "https://" + gxBaseUrl + "/ms_oauth/resources/userprofile/me";
-	private final String tokenRequestUrl = "https://" + gxBaseUrl + "/ms_oauth/oauth2/endpoints/oauthservice/tokens?grant_type=authorization_code&redirect_uri=";
 
 	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
 		ResponseEntity<String> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
-				tokenRequestUrl + redirectUri + "&code=" + code,
+				gxTokensUrl + "?grant_type=authorization_code&redirect_uri=" + redirectUri + "&code=" + code,
 				HttpMethod.POST,
 				new HttpEntity<>("parameters", headers),
 				String.class).getBody(),
@@ -81,7 +82,7 @@ public class GxOAuthClient {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
 		ResponseEntity<GxOAuthResponse> profileResponse = new ResponseEntity<>(restTemplate.exchange(
-				profileRequestUrl,
+				gxProfileUrl,
 				HttpMethod.GET,
 				new HttpEntity<>("parameters", headers),
 				GxOAuthResponse.class).getBody(),
@@ -120,12 +121,12 @@ public class GxOAuthClient {
 	}
 
 	public String getOAuthUrlForGx(final String redirectUri)  {
-		return "http://" + gxAuthUrl + "/ms_oauth/oauth2/endpoints/oauthservice/authorize?scope=UserProfile.me&client_id="
+		return gxAuthorizeUrl + "?scope=UserProfile.me&client_id="
 				+ gxClientId + "&response_type=code&redirect_uri=" + redirectUri;
 	}
 
 	public String getLogoutUrl()  {
-		return "http://" + gxLogoutUrl + "/oam/server/logout";
+		return gxLogoutUrl;
 	}
 
 	public String getRedirectUri(HttpServletRequest request) {
