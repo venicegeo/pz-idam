@@ -15,6 +15,7 @@
  **/
 package org.venice.piazza.idam.util;
 
+import model.logger.Severity;
 import model.security.authz.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -90,6 +91,7 @@ public class GxOAuthClient {
 	}
 
 	public UserProfile getUserProfileFromGxProfile(GxOAuthResponse oAuthResponse) throws InvalidNameException {
+		logger.log(String.format(" Profile Response = %s", oAuthResponse), Severity.DEBUG);
 		final LdapName ldapName = new LdapName(oAuthResponse.getDn());
 		final Rdn countryRdn = ldapName.getRdns().stream().filter(rdn ->
 				rdn.getType().equalsIgnoreCase("C")
