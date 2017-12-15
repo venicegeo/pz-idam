@@ -80,7 +80,8 @@ public class GxOAuthClient {
 
 	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
-		headers.set(AUTHORIZATION, "Bearer " + accessToken);
+		String encodedToken = Base64.getEncoder().encodeToString(accessToken.getBytes());
+		headers.set(AUTHORIZATION, "Bearer " + encodedToken);
 		ResponseEntity<GxOAuthResponse> profileResponse = new ResponseEntity<>(restTemplate.exchange(
 				gxProfileUrl,
 				HttpMethod.GET,
