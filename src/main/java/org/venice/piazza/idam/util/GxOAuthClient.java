@@ -138,8 +138,7 @@ public class GxOAuthClient {
 	}
 
 	private String getRequestBaseUrl(HttpServletRequest request) {
-		return request.getScheme() + "://" +
-				request.getServerName() + ":" + request.getServerPort();
+		return request.getScheme() + "://" + request.getServerName();
 	}
 
 	private String getGxBasicAuthToken() {

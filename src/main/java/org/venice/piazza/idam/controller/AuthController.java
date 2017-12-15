@@ -443,7 +443,7 @@ public class AuthController {
 				return errorView;
 			}
 		} catch (Exception exception) {
-			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
+			String error = String.format("Error during login: %s", exception.getMessage());
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			RedirectView errorView = new RedirectView();
