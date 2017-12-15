@@ -75,6 +75,7 @@ public class GxOAuthClient {
 				new HttpEntity<>("parameters", headers),
 				GxOAuthTokenResponse.class).getBody(),
 				HttpStatus.OK);
+		logger.log(tokenResponse.toString(), Severity.DEBUG);
 		return tokenResponse.getBody().getAccessToken();
 	}
 

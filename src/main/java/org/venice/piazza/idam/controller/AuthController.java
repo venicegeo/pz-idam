@@ -399,6 +399,7 @@ public class AuthController {
 				pzLogger.log("Requesting access token...", Severity.DEBUG);
                 final String redirectUri = oAuthClient.getRedirectUri(request);
 				final String accessToken = oAuthClient.getAccessToken(code, redirectUri);
+				pzLogger.log(String.format("access token = %s", accessToken), Severity.DEBUG);
 
 				pzLogger.log("Requesting user profile...", Severity.DEBUG);
 				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
