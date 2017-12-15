@@ -58,34 +58,39 @@ node {
     stage ('Deploy') {
       authenticatePcf()
       sh "cf target -o ${env.PCF_ORG} -s ${env.PROMOTE_SPACE}"
-
-      string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE')
-      string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE')
-
-      // Push the app
-      sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
-      try {
-        sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
-        sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
-        sh "cf set-env ${appName} JKS_FILE piazza.jks"
-        sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
-        sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
-        sh "cf set-env ${appName} GEOAXIS_PROFILE ${env.GEOAXIS_PROFILE_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_TOKENS ${env.GEOAXIS_TOKENS_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
-        sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
-        sh "cf start ${appName}"
-      } catch (Exception e) {
-        try {
-          sh "cf logs --recent ${appName}"
-        } catch (Exception ex) {
-          echo "Printing logs failed: ${ex}"
+      
+      withCredentials([
+        [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS'],
+        string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE'),
+        string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE'),
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
+      ]) {
+          // Push the app
+          sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+          try {
+            sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
+            sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
+            sh "cf set-env ${appName} JKS_FILE piazza.jks"
+            sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
+            sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+            sh "cf set-env ${appName} GEOAXIS_PROFILE ${env.GEOAXIS_PROFILE_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_TOKENS ${env.GEOAXIS_TOKENS_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
+            sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
+            sh "cf start ${appName}"
+          } catch (Exception e) {
+            try {
+              sh "cf logs --recent ${appName}"
+            } catch (Exception ex) {
+              echo "Printing logs failed: ${ex}"
+            }
+            sh "cf delete ${appName} -f -r"
+            error("Error during application start. Deleting ${appName}.")
+          }
         }
-        sh "cf delete ${appName} -f -r"
-        error("Error during application start. Deleting ${appName}.")
-      }
       
       // Assign Routes
       def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
