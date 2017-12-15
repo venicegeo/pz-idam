@@ -396,26 +396,26 @@ public class AuthController {
 	public RedirectView oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
-				LOGGER.debug("Requesting access token...");
+				pzLogger.log("Requesting access token...", Severity.DEBUG);
                 final String redirectUri = oAuthClient.getRedirectUri(request);
 				final String accessToken = oAuthClient.getAccessToken(code, redirectUri);
 
-				LOGGER.debug("Requesting user profile...");
+				pzLogger.log("Requesting user profile...", Severity.DEBUG);
 				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
 
 				final String username = profileResponse.getBody().getUsername();
 				final String dn = profileResponse.getBody().getDn();
 
 				// If there's no profile create one and make sure they have an api key
-                LOGGER.debug(String.format("Checking user profile for %s with dn=%s", username, dn));
+                pzLogger.log(String.format("Checking user profile for %s with dn=%s", username, dn), Severity.DEBUG);
                 if (!accessor.hasUserProfile(username, dn)) {
-                    LOGGER.debug(String.format("Creating user profile for %s", username));
+                    pzLogger.log(String.format("Creating user profile for %s", username), Severity.DEBUG);
 					UserProfile profile = oAuthClient.getUserProfileFromGxProfile(profileResponse.getBody());
 					accessor.insertUserProfile(profile);
 					accessor.createApiKey(username, uuidFactory.getUUID());
 				}
 
-				final UserProfile user = accessor.getUserProfileByUsername(username);
+				// final UserProfile user = accessor.getUserProfileByUsername(username);
 				String apiKey = accessor.getApiKey(username);
 
 				// If key is invalid, delete and reissue
