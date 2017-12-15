@@ -25,6 +25,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.piazza.idam.model.GxOAuthResponse;
+import org.venice.piazza.idam.model.GxOAuthTokenResponse;
+
 import util.PiazzaLogger;
 
 import javax.naming.InvalidNameException;
@@ -66,16 +68,13 @@ public class GxOAuthClient {
 	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
-		ResponseEntity<String> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
+		ResponseEntity<GxOAuthTokenResponse> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
 				gxTokensUrl + "?grant_type=authorization_code&redirect_uri=" + redirectUri + "&code=" + code,
 				HttpMethod.POST,
 				new HttpEntity<>("parameters", headers),
-				String.class).getBody(),
+				GxOAuthTokenResponse.class).getBody(),
 				HttpStatus.OK);
-		String accessToken = tokenResponse.getBody();
-		JacksonJsonParser parser = new JacksonJsonParser();
-		Map<String, Object> accessTokenMap = parser.parseMap(accessToken);
-		return accessTokenMap.get("access_token").toString();
+		return tokenResponse.getBody().getAccessToken();
 	}
 
 	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
