@@ -396,7 +396,7 @@ public class AuthController {
 	public RedirectView oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
 			try {
-				pzLogger.log("Requesting access token...", Severity.DEBUG);
+				pzLogger.log(String.format("Requesting access token with code=%s", code), Severity.DEBUG);
                 final String redirectUri = oAuthClient.getRedirectUri(request);
 				final String accessToken = oAuthClient.getAccessToken(code, redirectUri);
 				pzLogger.log(String.format("access token = %s", accessToken), Severity.DEBUG);
