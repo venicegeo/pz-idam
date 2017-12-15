@@ -402,6 +402,7 @@ public class AuthController {
 
 				pzLogger.log("Requesting user profile...", Severity.DEBUG);
 				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
+				pzLogger.log(String.format("  user profile = %s", profileResponse.getBody()), Severity.DEBUG);
 
 				final String username = profileResponse.getBody().getUsername();
 				final String dn = profileResponse.getBody().getDn();
