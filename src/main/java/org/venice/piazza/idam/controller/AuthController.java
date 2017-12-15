@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.PostConstruct;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +36,20 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.view.RedirectView;
 import org.venice.piazza.idam.authn.PiazzaAuthenticator;
 import org.venice.piazza.idam.authz.Authorizer;
 import org.venice.piazza.idam.authz.endpoint.EndpointAuthorizer;
 import org.venice.piazza.idam.authz.throttle.ThrottleAuthorizer;
 import org.venice.piazza.idam.data.DatabaseAccessor;
+import org.venice.piazza.idam.model.GxOAuthResponse;
 import org.venice.piazza.idam.model.authz.AuthorizationException;
+import org.venice.piazza.idam.util.GxOAuthClient;
 
 import model.logger.AuditElement;
 import model.logger.Severity;
@@ -75,6 +84,10 @@ public class AuthController {
 	private ThrottleAuthorizer throttleAuthorizer;
 	@Autowired
 	private EndpointAuthorizer endpointAuthorizer;
+	@Autowired
+	private RestTemplate restTemplate;
+	@Autowired
+	private GxOAuthClient oAuthClient;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 	private static final String IDAM_COMPONENT_NAME = "IDAM";
@@ -371,4 +384,82 @@ public class AuthController {
 			return new ResponseEntity<>(new ErrorResponse(error, IDAM_COMPONENT_NAME), HttpStatus.BAD_REQUEST);
 		}
 	}
+
+	@RequestMapping(value = "/login/geoaxis", method = RequestMethod.GET)
+	public RedirectView oauthRedirect() {
+	    final String redirectUri = oAuthClient.getRedirectUri(request);
+	    LOGGER.debug(String.format("login redirectUri = %s", redirectUri));
+		return new RedirectView(oAuthClient.getOAuthUrlForGx(redirectUri));
+	}
+
+	@RequestMapping(value = "/login", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public RedirectView oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
+		try {
+			try {
+				LOGGER.debug("Requesting access token...");
+                final String redirectUri = oAuthClient.getRedirectUri(request);
+				final String accessToken = oAuthClient.getAccessToken(code, redirectUri);
+
+				LOGGER.debug("Requesting user profile...");
+				final ResponseEntity<GxOAuthResponse> profileResponse = oAuthClient.getGxUserProfile(accessToken);
+
+				final String username = profileResponse.getBody().getUsername();
+				final String dn = profileResponse.getBody().getDn();
+
+				// If there's no profile create one and make sure they have an api key
+                LOGGER.debug(String.format("Checking user profile for %s with dn=%s", username, dn));
+                if (!accessor.hasUserProfile(username, dn)) {
+                    LOGGER.debug(String.format("Creating user profile for %s", username));
+					UserProfile profile = oAuthClient.getUserProfileFromGxProfile(profileResponse.getBody());
+					accessor.insertUserProfile(profile);
+					accessor.createApiKey(username, uuidFactory.getUUID());
+				}
+
+				final UserProfile user = accessor.getUserProfileByUsername(username);
+				String apiKey = accessor.getApiKey(username);
+
+				// If key is invalid, delete and reissue
+				if (!accessor.isApiKeyValid(apiKey)) {
+					accessor.deleteApiKey(apiKey);
+					apiKey = uuidFactory.getUUID();
+					accessor.createApiKey(username, apiKey);
+				}
+
+				//session.setAttribute("api_key", apiKey);
+				// TODO: We probably don't need both of these. Remove the one we don't need.
+				Cookie cookie = new Cookie("api_key", apiKey);
+				cookie.setHttpOnly(true);
+				cookie.setSecure(true);
+				int dotIndex = request.getServerName().indexOf(".") + 1;
+				String domain = request.getServerName().substring(dotIndex);
+				cookie.setDomain(domain);
+				response.addCookie(cookie);
+
+				return new RedirectView(String.format("https://%s?logged_in=true", oAuthClient.getUiUrl(request)));
+			} catch (HttpClientErrorException | HttpServerErrorException hee) {
+				LOGGER.error(hee.getResponseBodyAsString(), hee);
+				RedirectView errorView = new RedirectView();
+				errorView.setStatusCode(hee.getStatusCode());
+				return errorView;
+			}
+		} catch (Exception exception) {
+			String error = String.format("Error retrieving API Key: %s", exception.getMessage());
+			LOGGER.error(error, exception);
+			pzLogger.log(error, Severity.ERROR);
+			RedirectView errorView = new RedirectView();
+			errorView.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+			return errorView;
+		}
+	}
+
+	@RequestMapping(value = "/logout", method = RequestMethod.GET)
+	public RedirectView oauthLogout(HttpSession session)
+	{
+		// Clear the sesseion and forward to gx logout
+        LOGGER.info("Logout user");
+        session.invalidate();
+		return new RedirectView(oAuthClient.getLogoutUrl());
+	}
+
+
 }

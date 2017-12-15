@@ -115,7 +115,9 @@ node {
       withCredentials([
         [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS'],
         string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE'),
-        string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE')
+        string(credentialsId: "${env.PZ_PASSPHRASE}", variable: 'PZ_PASSPHRASE'),
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
       ]) {
         sh "cf api ${env.PCF_API_ENDPOINT}"
         sh "cf auth ${CFUSER} ${CFPASS}"
@@ -127,6 +129,12 @@ node {
 			sh "cf set-env ${appName} JKS_FILE piazza.jks"
 			sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
 			sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+            sh "cf set-env ${appName} GEOAXIS_PROFILE ${env.GEOAXIS_PROFILE_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_TOKENS ${env.GEOAXIS_TOKENS_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
+            sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
+            sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
 			sh "cf start ${appName}"
         } catch (Exception e) {
 			try {
@@ -212,6 +220,12 @@ node {
 			  sh "cf set-env ${appName} JKS_FILE piazza.jks"
 			  sh "cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}"
 			  sh "cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}"
+              sh "cf set-env ${appName} GEOAXIS_PROFILE ${env.GEOAXIS_PROFILE_DOMAIN}"
+              sh "cf set-env ${appName} GEOAXIS_TOKENS ${env.GEOAXIS_TOKENS_DOMAIN}"
+              sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
+              sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
+              sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
+              sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
               sh "cf start ${appName}"
           } catch (Exception e) {
 			try {
