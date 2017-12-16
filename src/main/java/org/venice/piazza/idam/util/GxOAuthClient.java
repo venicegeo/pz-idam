@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -69,10 +71,15 @@ public class GxOAuthClient {
 	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		MultiValueMap<String, String> map= new LinkedMultiValueMap<>();
+		map.add("grant_type", "authorization_code");
+		map.add("redirect_uri", redirectUri);
+		map.add("code", code);
 		ResponseEntity<GxOAuthTokenResponse> responseEntity = restTemplate.exchange(
-				gxTokensUrl + "?grant_type=authorization_code&redirect_uri=" + redirectUri + "&code=" + code,
+				gxTokensUrl,
 				HttpMethod.POST,
-				new HttpEntity<>("parameters", headers),
+				new HttpEntity<>(map, headers),
 				GxOAuthTokenResponse.class);
 		logger.log(String.format("  Token Response Status = %s", responseEntity.getStatusCode().toString()), Severity.DEBUG);
 		logger.log(String.format("  Token Response Body   = %s", responseEntity.getBody().toString()), Severity.DEBUG);
