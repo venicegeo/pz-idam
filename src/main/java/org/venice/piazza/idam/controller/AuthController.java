@@ -437,7 +437,7 @@ public class AuthController {
 				cookie.setDomain(domain);
 				response.addCookie(cookie);
 
-				return new RedirectView(String.format("https://%s?logged_in=true", oAuthClient.getUiUrl(request)));
+				return new RedirectView(String.format("%s?logged_in=true", oAuthClient.getUiUrl(request)));
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
 				RedirectView errorView = new RedirectView();
