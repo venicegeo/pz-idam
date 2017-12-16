@@ -21,16 +21,16 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GxOAuthTokenResponse {
 
-	private String expiresIn;
+	private int expiresIn;
 	private String tokenType;
 	private String accessToken;
 
-	public String getExpiresIn() {
+	public int getExpiresIn() {
 		return expiresIn;
 	}
 
 	@JsonSetter("expires_in")
-	public void setExpiresIn(String expiresIn) {
+	public void setExpiresIn(int expiresIn) {
 		this.expiresIn = expiresIn;
 	}
 
