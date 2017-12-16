@@ -21,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.http.*;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -76,6 +78,8 @@ public class GxOAuthClient {
 		map.add("grant_type", "authorization_code");
 		map.add("redirect_uri", redirectUri);
 		map.add("code", code);
+		restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
+		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 		ResponseEntity<GxOAuthTokenResponse> responseEntity = restTemplate.exchange(
 				gxTokensUrl,
 				HttpMethod.POST,
