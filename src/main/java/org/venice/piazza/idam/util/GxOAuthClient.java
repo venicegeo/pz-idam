@@ -69,13 +69,16 @@ public class GxOAuthClient {
 	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
-		ResponseEntity<GxOAuthTokenResponse> tokenResponse = new ResponseEntity<>(restTemplate.exchange(
+		ResponseEntity<GxOAuthTokenResponse> responseEntity = restTemplate.exchange(
 				gxTokensUrl + "?grant_type=authorization_code&redirect_uri=" + redirectUri + "&code=" + code,
 				HttpMethod.POST,
 				new HttpEntity<>("parameters", headers),
-				GxOAuthTokenResponse.class).getBody(),
-				HttpStatus.OK);
-		logger.log(tokenResponse.toString(), Severity.DEBUG);
+				GxOAuthTokenResponse.class);
+		logger.log(String.format("  Token Response Status = %s", responseEntity.getStatusCode().toString()), Severity.DEBUG);
+		logger.log(String.format("  Token Response Body   = %s", responseEntity.getBody().toString()), Severity.DEBUG);
+		ResponseEntity<GxOAuthTokenResponse> tokenResponse = new ResponseEntity<>(
+				responseEntity.getBody(),
+				responseEntity.getStatusCode());
 		return tokenResponse.getBody().getAccessToken();
 	}
 
