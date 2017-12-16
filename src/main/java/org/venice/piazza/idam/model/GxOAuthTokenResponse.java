@@ -29,6 +29,7 @@ public class GxOAuthTokenResponse {
 		return expiresIn;
 	}
 
+	@JsonSetter("expires_in")
 	public void setExpiresIn(String expiresIn) {
 		this.expiresIn = expiresIn;
 	}
@@ -37,6 +38,7 @@ public class GxOAuthTokenResponse {
 		return tokenType;
 	}
 
+	@JsonSetter("token_type")
 	public void setTokenType(String tokenType) {
 		this.tokenType = tokenType;
 	}
@@ -45,6 +47,7 @@ public class GxOAuthTokenResponse {
 		return accessToken;
 	}
 
+	@JsonSetter("access_token")
 	public void setAccessToken(String accessToken) {
 		this.accessToken = accessToken;
 	}
