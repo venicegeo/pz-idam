@@ -34,6 +34,7 @@ node {
       } else {
         appName = "${appBaseName}-${appvers}"
       }
+      appName = appName.trim()
  
       // Get the Artifact from Nexus
       def getDependencyStatus = sh(script: """mvn -X --settings ~/.m2/settings.xml dependency:get \
