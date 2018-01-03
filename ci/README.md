@@ -1,1 +1,0 @@
-This directory contains files pertinent to Jenkins/Cloud Foundry deployments.
