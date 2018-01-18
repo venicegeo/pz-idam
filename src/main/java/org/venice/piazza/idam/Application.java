@@ -27,10 +27,17 @@ import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHeaderElementIterator;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.beans.factory.annotation.Value;
@@ -149,7 +156,22 @@ public class Application extends SpringBootServletInitializer {
 			SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(getStore(), new TrustSelfSignedStrategy()).useProtocol("TLS").build();
 			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext)
-					.setMaxConnPerRoute(httpMaxRoute).setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
+					.setMaxConnPerRoute(httpMaxRoute).setSSLHostnameVerifier(new NoopHostnameVerifier())
+					.setKeepAliveStrategy(new ConnectionKeepAliveStrategy() {
+						@Override
+						public long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+							HeaderElementIterator it = new BasicHeaderElementIterator(response.headerIterator(HTTP.CONN_KEEP_ALIVE));
+							while (it.hasNext()) {
+								HeaderElement headerElement = it.nextElement();
+								String param = headerElement.getName();
+								String value = headerElement.getValue();
+								if (value != null && param.equalsIgnoreCase("timeout")) {
+									return Long.parseLong(value) * 1000;
+								}
+							}
+							return 5 * 1000;
+						}
+					}).build();
 
 			RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
