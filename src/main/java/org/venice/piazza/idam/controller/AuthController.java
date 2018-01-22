@@ -29,6 +29,7 @@ import javax.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -86,7 +87,7 @@ public class AuthController {
 	private EndpointAuthorizer endpointAuthorizer;
 	@Autowired
 	private RestTemplate restTemplate;
-	@Autowired
+	@Autowired(required = false)
 	private GxOAuthClient oAuthClient;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
@@ -385,6 +386,7 @@ public class AuthController {
 		}
 	}
 
+	@Profile("geoaxis")
 	@RequestMapping(value = "/login/geoaxis", method = RequestMethod.GET)
 	public RedirectView oauthRedirect() {
 	    final String redirectUri = oAuthClient.getRedirectUri(request);
@@ -392,6 +394,7 @@ public class AuthController {
 		return new RedirectView(oAuthClient.getOAuthUrlForGx(redirectUri));
 	}
 
+	@Profile("geoaxis")
 	@RequestMapping(value = "/login", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public RedirectView oauthResponse(@RequestParam String code, HttpSession session, HttpServletResponse response) {
 		try {
@@ -406,7 +409,13 @@ public class AuthController {
 				pzLogger.log(String.format("  user profile = %s", profileResponse.getBody()), Severity.DEBUG);
 
 				final String username = profileResponse.getBody().getUsername();
-				final String dn = profileResponse.getBody().getDn();
+				String dn = profileResponse.getBody().getDn();
+				if (dn == null || dn.isEmpty()) {
+					String uid = profileResponse.getBody().getUid();
+					String firstname = profileResponse.getBody().getFirstname();
+					String lastname = profileResponse.getBody().getLastname();
+					dn = String.format("UID=%s,CN=%s.%s,OU=ID.me,O=Beachfront", uid, lastname, firstname);
+				}
 
 				// If there's no profile create one and make sure they have an api key
                 pzLogger.log(String.format("Checking user profile for %s with dn=%s", username, dn), Severity.DEBUG);
@@ -454,6 +463,7 @@ public class AuthController {
 		}
 	}
 
+	@Profile("geoaxis")
 	@RequestMapping(value = "/logout", method = RequestMethod.GET)
 	public RedirectView oauthLogout(HttpSession session)
 	{
