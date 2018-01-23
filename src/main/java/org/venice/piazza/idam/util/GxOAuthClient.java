@@ -20,6 +20,7 @@ import model.security.authz.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JacksonJsonParser;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -42,6 +43,7 @@ import java.util.Base64;
 import java.util.Map;
 
 @Component
+@Profile("geoaxis")
 public class GxOAuthClient {
 
 	@Value("${GEOAXIS_AUTH}")
