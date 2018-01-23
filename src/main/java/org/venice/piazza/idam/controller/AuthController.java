@@ -414,7 +414,19 @@ public class AuthController {
 					String uid = profileResponse.getBody().getUid();
 					String firstname = profileResponse.getBody().getFirstname();
 					String lastname = profileResponse.getBody().getLastname();
-					dn = String.format("UID=%s,CN=%s.%s,OU=ID.me,O=Beachfront", uid, lastname, firstname);
+					if ((uid != null && !uid.isEmpty()) &&
+						(firstname != null && !firstname.isEmpty()) &&
+						(lastname != null && !lastname.isEmpty())) {
+						dn = String.format("UID=%s,CN=%s.%s,OU=ID.me,O=Beachfront", uid, lastname, firstname);
+					} else {
+						// We don't have any identifying values
+						pzLogger.log(String.format("Geoaxis response missing DN and unable to generate: %s",
+								profileResponse.getBody().toString()),
+								Severity.ERROR);
+						RedirectView errorView = new RedirectView();
+						errorView.setStatusCode(HttpStatus.UNAUTHORIZED);
+						return errorView;
+					}
 				}
 
 				// If there's no profile create one and make sure they have an api key
@@ -449,6 +461,7 @@ public class AuthController {
 				return new RedirectView(String.format("%s?logged_in=true", oAuthClient.getUiUrl(request)));
 			} catch (HttpClientErrorException | HttpServerErrorException hee) {
 				LOGGER.error(hee.getResponseBodyAsString(), hee);
+				pzLogger.log(hee.getResponseBodyAsString(), Severity.ERROR);
 				RedirectView errorView = new RedirectView();
 				errorView.setStatusCode(hee.getStatusCode());
 				return errorView;
