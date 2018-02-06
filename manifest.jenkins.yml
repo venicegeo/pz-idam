@@ -7,7 +7,6 @@ applications:
   services:
     - geoaxis
     - pz-rabbitmq
-    - pz-elasticsearch
     - pz-postgres
   path: pz-idam.jar
   env:
