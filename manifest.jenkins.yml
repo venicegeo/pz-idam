@@ -1,7 +1,7 @@
 applications:
 - name: pz-idam
   host: pz-idam
-  memory: 2048M
+  memory: 1024M
   instances: 1
   timeout: 80
   services:
