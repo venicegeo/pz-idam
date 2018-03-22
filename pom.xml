@@ -76,7 +76,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>UC-VERS-UPGRADE</version>
+			<version>1-0-4-4-gdb8e912</version>
 		</dependency>
 
 		<dependency>
