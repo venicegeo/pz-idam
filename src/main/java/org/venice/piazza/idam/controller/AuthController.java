@@ -186,7 +186,7 @@ public class AuthController {
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
 				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
-				if (response.getIsAuthSuccess().booleanValue() == false) {
+				if (!response.getIsAuthSuccess().booleanValue()) {
 					pzLogger.log("Failed authorization check.", Severity.INFORMATIONAL,
 							new AuditElement(authorizationCheck.getUsername(), "authorizationCheckFailed", authorizationCheck.toString()));
 					throw new AuthorizationException("Failed to Authorize", response);

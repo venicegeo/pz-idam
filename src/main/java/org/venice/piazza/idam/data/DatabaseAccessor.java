@@ -276,11 +276,7 @@ public class DatabaseAccessor {
 	 */
 	public boolean hasUserProfile(final String username, final String dn) {
 		UserProfileEntity userProfileEntity = userProfileDao.getUserProfileByUserNameAndDn(username, dn);
-		if (userProfileEntity != null) {
-			return true;
-		} else {
-			return false;
-		}
+		return (userProfileEntity != null);
 	}
 
 	/**
