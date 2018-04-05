@@ -217,7 +217,7 @@ public class DatabaseAccessor {
 	public List<UserProfile> getUserProfiles() {
 		Iterable<UserProfileEntity> results = userProfileDao.findAll();
 		// Collect the Profiles
-		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
+		List<UserProfile> userProfiles = new ArrayList<>();
 		for (UserProfileEntity userProfileEntity : results) {
 			userProfiles.add(userProfileEntity.getUserProfile());
 		}
@@ -324,7 +324,7 @@ public class DatabaseAccessor {
 	public List<UserThrottles> getAllUserThrottles() {
 		Iterable<UserThrottlesEntity> results = userThrottlesDao.findAll();
 		// Collect the Throttles iteratable collection
-		List<UserThrottles> userThrottles = new ArrayList<UserThrottles>();
+		List<UserThrottles> userThrottles = new ArrayList<>();
 		for (UserThrottlesEntity userThrottlesEntity : results) {
 			userThrottles.add(userThrottlesEntity.getUserThrottles());
 		}
