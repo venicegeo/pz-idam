@@ -70,7 +70,15 @@ public class GxOAuthClient {
 
 	private static final String AUTHORIZATION = "Authorization";
 
-	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
+	/**
+	 *
+	 * @param code
+	 * @param redirectUri
+	 * @return
+	 * @throws HttpClientErrorException
+	 * @throws HttpServerErrorException
+	 */
+	public String getAccessToken(final String code, final String redirectUri) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -93,7 +101,14 @@ public class GxOAuthClient {
 		return tokenResponse.getBody().getAccessToken();
 	}
 
-	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
+	/**
+	 *
+	 * @param accessToken
+	 * @return
+	 * @throws HttpClientErrorException
+	 * @throws HttpServerErrorException
+	 */
+	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
 		return new ResponseEntity<>(restTemplate.exchange(
