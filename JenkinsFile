@@ -25,7 +25,7 @@ node {
   stage('Setup') {
     deleteDir()
     // github is open gitlab requires credentials to clone
-    if(env.USE_GIT_CREDS) {
+    if(env.USE_GIT_CREDS.toBoolean()) {
       git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
     } else {
       git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
@@ -86,7 +86,7 @@ node {
     }
   }
 
-  if(!env.SKIP_SCANS) {
+  if(!env.SKIP_SCANS.toBoolean()) {
 	  stage('Scans') {
       withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
         sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
@@ -151,7 +151,7 @@ node {
         }
       }
     }
-	if(!env.SKIP_SCANS) {
+	if(!env.SKIP_SCANS.toBoolean()) {
 		withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
 		  sh "mkdir -p ${root}/zap-out"
 		  sh """${zapHome}/zap.sh -cmd \
@@ -181,7 +181,7 @@ node {
     }
   }
 
-  if (!env.SKIP_INTEGRATION_TESTS) {
+  if (!env.SKIP_INTEGRATION_TESTS.toBoolean()) {
     stage('Phase One Integration Tests') {
       if(!fileExists("integration-tests")) {
         sh "mkdir -p integration-tests"
@@ -203,7 +203,7 @@ node {
     }
   }
 
-  if(env.DEPLOY_PHASE_TWO) {
+  if(env.DEPLOY_PHASE_TWO.toBoolean()) {
     stage('Stage Deploy') {
       if(!fileExists('.cf')) {
         sh "mkdir -p .cf"
@@ -242,7 +242,7 @@ node {
           }
         }
       }
-	  if(!env.SKIP_SCANS) {
+	  if(!env.SKIP_SCANS.toBoolean()) {
 		  withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
 			sh """${zapHome}/zap.sh -cmd \
 			-quickout ${root}/zap-out/zap.xml \
