@@ -1,6 +1,7 @@
 package org.venice.piazza.idam.test.util;
 
 import model.security.authz.UserProfile;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -46,11 +47,11 @@ public class GxUserProfileClientTest {
                 Mockito.any( Class.class)))
                 .thenReturn(new GxAuthAResponse[]{mockResponse});
 
-        UserProfile profile = this.profileClient.getUserProfileFromGx("my_user_name", "my_distnguished_name");
+        Assert.assertNotNull(this.profileClient.getUserProfileFromGx("my_user_name", "my_distnguished_name"));
+
 
         mockResponse.setServiceoragency(Collections.singletonList("NGA"));
-        UserProfile profileNga = this.profileClient.getUserProfileFromGx("my_user_name", "my_distnguished_name");
-
-        System.out.println("Done");
+        Assert.assertNotNull(this.profileClient.getUserProfileFromGx("my_user_name", "my_distnguished_name"));
+        Assert.assertEquals("NGA", this.profileClient.getUserProfileFromGx("my_user_name", "my_distnguished_name").getAdminCode());
     }
 }
