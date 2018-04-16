@@ -5,29 +5,29 @@ node {
   def mvn = tool 'M3'
   def appBaseName = "pz-idam"
   def appName
-  
+
   stage("Config") {
     // clone the configuration repository and copy the current configuration
     def configDir = "${root}/configuration"
     def configFile = "${root}/config.json"
     dir(configDir) {
       git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
-      sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
+      sh "mv ${configDir}/${env.ENVIRONMENT}-config.json ${configFile}"
       deleteDir()
     }
     // read the current configuration
     def configJson = readJSON file: "${configFile}"
-    for (param in configJson.credparams + configJson.jobparams) { 
+    for (param in configJson.credparams + configJson.jobparams) {
       env."${param.name}" = (param.type == "booleanParam") ? "${param.defaultvalue}".toBoolean() : "${param.defaultvalue}"
     }
   }
-  
+
   def appvers = "${env.PROMOTE_VERSION}"
-  
+
   if(!fileExists('.cf')) {
     sh "mkdir -p .cf"
   }
-  
+
   withEnv(["CF_HOME=.cf"]) {
 
     def authenticatePcf = { ->
@@ -41,18 +41,18 @@ node {
 
     stage('Pull Artifact') {
       authenticatePcf()
-      if (appvers == "") {
+      if (appvers == "latest") {
         // Get the latest version from Phase 2
         echo "No version specified. Fetching the latest version from ${env.PHASE_TWO_PCF_SPACE}"
         sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
-        appName = sh(script: "cf apps | grep '${appBaseName}' | cut -f1 -d ' ' ", returnStdout: true) 
+        appName = sh(script: "cf apps | grep '${appBaseName}' | cut -f1 -d ' ' ", returnStdout: true)
         appvers = appName.trim().replace("${appBaseName}-", "")
         echo "Pulled version ${appvers} from ${env.PHASE_TWO_PCF_SPACE}"
       } else {
         appName = "${appBaseName}-${appvers}"
       }
       appName = appName.trim()
- 
+
       // Get the Artifact from Nexus
       def getDependencyStatus = sh(script: """mvn -X --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
@@ -76,7 +76,7 @@ node {
     stage ('Deploy') {
       authenticatePcf()
       sh "cf target -o ${env.PCF_ORG} -s ${env.PROMOTE_SPACE}"
-      
+
       withCredentials([
         [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS'],
         string(credentialsId: "${env.JKS_PASSPHRASE}", variable: 'JKS_PASSPHRASE'),
@@ -109,11 +109,11 @@ node {
             error("Error during application start. Deleting ${appName}.")
           }
         }
-      
+
       // Assign Routes
       def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
       sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
-      
+
       // Delete old Routes
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
         def legacyAppName = legacyApp.toString().trim()
