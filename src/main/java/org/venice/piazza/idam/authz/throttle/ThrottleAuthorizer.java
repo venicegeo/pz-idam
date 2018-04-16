@@ -99,11 +99,7 @@ public class ThrottleAuthorizer implements Authorizer {
 	private boolean isThrottleInvocationsExceeded(Integer invocations, String username) {
 		// TODO: Tie in some group management, roles, access, rules. Lots of stuff.
 		// This will be handled by GeoAxis.
-		if (invocations > 10000) {
-			return true;
-		} else {
-			return false;
-		}
+		return (invocations > 10000);
 	}
 
 	/**
@@ -115,11 +111,7 @@ public class ThrottleAuthorizer implements Authorizer {
 	 * @return True if the action is subject to throttling, false if not
 	 */
 	private boolean isJobThrottlable(Permission action) {
-		if ((THROTTLED_POST_ENDPOINTS.contains(action.getUri())) && (action.getRequestMethod().equals(HttpMethod.POST.toString()))) {
-			return true;
-		} else {
-			return false;
-		}
+		return ((THROTTLED_POST_ENDPOINTS.contains(action.getUri())) && (action.getRequestMethod().equals(HttpMethod.POST.toString())));
 	}
 
 	/**

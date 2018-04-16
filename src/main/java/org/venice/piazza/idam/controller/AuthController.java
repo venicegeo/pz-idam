@@ -92,7 +92,7 @@ public class AuthController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 	private static final String IDAM_COMPONENT_NAME = "IDAM";
-	private List<Authorizer> authorizers = new ArrayList<Authorizer>();
+	private List<Authorizer> authorizers = new ArrayList<>();
 
 	/**
 	 * Collects all of the Authorizers into a list that can be iterated through for a specific authorization check.
@@ -186,7 +186,7 @@ public class AuthController {
 			// Loop through all Authorizations and check if the action is permitted by each
 			for (Authorizer authorizer : authorizers) {
 				AuthResponse response = authorizer.canUserPerformAction(authorizationCheck);
-				if (response.getIsAuthSuccess().booleanValue() == false) {
+				if (!response.getIsAuthSuccess().booleanValue()) {
 					pzLogger.log("Failed authorization check.", Severity.INFORMATIONAL,
 							new AuditElement(authorizationCheck.getUsername(), "authorizationCheckFailed", authorizationCheck.toString()));
 					throw new AuthorizationException("Failed to Authorize", response);
@@ -196,21 +196,21 @@ public class AuthController {
 			// Return successful response.
 			pzLogger.log("Passed authorization check.", Severity.INFORMATIONAL,
 					new AuditElement(authorizationCheck.getUsername(), "authorizationCheckPassed", authorizationCheck.toString()));
-			return new ResponseEntity<AuthResponse>(
+			return new ResponseEntity<>(
 					new AuthResponse(true, accessor.getUserProfileByUsername(authorizationCheck.getUsername())), HttpStatus.OK);
 		} catch (AuthorizationException authException) {
 			String error = String.format("%s: %s", authException.getMessage(), authException.getResponse().getDetails().toString());
 			LOGGER.error(error, authException);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
-			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
+			return new ResponseEntity<>(new AuthResponse(false, error), HttpStatus.UNAUTHORIZED);
 		} catch (Exception exception) {
 			// Logging
 			String error = String.format("Error checking authorization: %s", authorizationCheck);
 			LOGGER.error(error, exception);
 			pzLogger.log(error, Severity.ERROR);
 			// Return Error
-			return new ResponseEntity<AuthResponse>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new AuthResponse(false, error), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 	

@@ -19,7 +19,6 @@ import model.logger.Severity;
 import model.security.authz.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -40,7 +39,6 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Base64;
-import java.util.Map;
 
 @Component
 @Profile("geoaxis")
@@ -72,7 +70,15 @@ public class GxOAuthClient {
 
 	private static final String AUTHORIZATION = "Authorization";
 
-	public String getAccessToken(final String code, final String redirectUri) throws HttpClientErrorException, HttpServerErrorException {
+	/**
+	 *
+	 * @param code
+	 * @param redirectUri
+	 * @return
+	 * @throws HttpClientErrorException
+	 * @throws HttpServerErrorException
+	 */
+	public String getAccessToken(final String code, final String redirectUri) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Basic " + getGxBasicAuthToken());
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -95,16 +101,22 @@ public class GxOAuthClient {
 		return tokenResponse.getBody().getAccessToken();
 	}
 
-	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) throws HttpClientErrorException, HttpServerErrorException {
+	/**
+	 *
+	 * @param accessToken
+	 * @return
+	 * @throws HttpClientErrorException
+	 * @throws HttpServerErrorException
+	 */
+	public ResponseEntity<GxOAuthResponse> getGxUserProfile(final String accessToken) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set(AUTHORIZATION, "Bearer " + accessToken);
-		ResponseEntity<GxOAuthResponse> profileResponse = new ResponseEntity<>(restTemplate.exchange(
+		return new ResponseEntity<>(restTemplate.exchange(
 				gxProfileUrl,
 				HttpMethod.GET,
 				new HttpEntity<>("parameters", headers),
 				GxOAuthResponse.class).getBody(),
 				HttpStatus.OK);
-		return profileResponse;
 	}
 
 	public UserProfile getUserProfileFromGxProfile(GxOAuthResponse oAuthResponse) throws InvalidNameException {

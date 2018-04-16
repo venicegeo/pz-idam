@@ -18,7 +18,6 @@ package org.venice.piazza.idam.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
-import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GxOAuthResponse {
