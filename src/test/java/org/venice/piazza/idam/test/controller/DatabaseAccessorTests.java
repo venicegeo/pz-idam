@@ -15,17 +15,21 @@
  **/
 package org.venice.piazza.idam.test.controller;
 
-import com.google.common.base.Verify;
-import exception.InvalidInputException;
-import model.security.ApiKey;
-import model.security.authz.Throttle;
-import model.security.authz.UserProfile;
-import model.security.authz.UserThrottles;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
-import org.omg.CORBA.DynAnyPackage.Invalid;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.piazza.common.hibernate.dao.ApiKeyDao;
 import org.venice.piazza.common.hibernate.dao.UserProfileDao;
@@ -34,33 +38,31 @@ import org.venice.piazza.common.hibernate.entity.ApiKeyEntity;
 import org.venice.piazza.common.hibernate.entity.UserProfileEntity;
 import org.venice.piazza.common.hibernate.entity.UserThrottlesEntity;
 import org.venice.piazza.idam.data.DatabaseAccessor;
-import static org.mockito.Mockito.*;
-import static org.mockito.Matchers.*;
 
+import exception.InvalidInputException;
+import model.security.ApiKey;
+import model.security.authz.Throttle;
+import model.security.authz.UserProfile;
+import model.security.authz.UserThrottles;
 import util.PiazzaLogger;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 public class DatabaseAccessorTests {
-
 
 	private ApiKey apiKey = new ApiKey("valid_uuid", "valid_username", 1000, 1000);
 	private UserProfile userProfile = new UserProfile();
 	private UserThrottles userThrottles = new UserThrottles();
 
-    @Spy
-    ApiKeyEntity apiKeyEntity = new ApiKeyEntity();
-    @Spy
+	@Spy
+	ApiKeyEntity apiKeyEntity = new ApiKeyEntity();
+	@Spy
 	UserProfileEntity userProfileEntity = new UserProfileEntity();
-    @Spy
+	@Spy
 	UserThrottlesEntity userThrottlesEntity = new UserThrottlesEntity();
 
 	@Mock
 	private PiazzaLogger logger;
 	@Mock
-    private ApiKeyDao apiKeyDao;
+	private ApiKeyDao apiKeyDao;
 	@Mock
 	private UserProfileDao userProfileDao;
 	@Mock
@@ -75,34 +77,34 @@ public class DatabaseAccessorTests {
 	 */
 	@Before
 	public void setup() {
-	    MockitoAnnotations.initMocks(this);
+		MockitoAnnotations.initMocks(this);
 
-	    //These values are from the application.properties file.
-	    ReflectionTestUtils.setField(this.accessor, "KEY_EXPIRATION_DURATION_MS", 31556952000L);
-	    ReflectionTestUtils.setField(this.accessor, "KEY_INACTIVITY_THESHOLD_MS", 15778476000L);
+		// These values are from the application.properties file.
+		ReflectionTestUtils.setField(this.accessor, "KEY_EXPIRATION_DURATION_MS", 31556952000L);
+		ReflectionTestUtils.setField(this.accessor, "KEY_INACTIVITY_THESHOLD_MS", 15778476000L);
 
-	    this.userProfile.setUsername(apiKey.getUsername());
-	    this.userProfile.setDistinguishedName("my_dn");
+		this.userProfile.setUsername(apiKey.getUsername());
+		this.userProfile.setDistinguishedName("my_dn");
 
-	    this.apiKeyEntity.setApiKey(this.apiKey);
-	    this.userProfileEntity.setUserProfile(this.userProfile);
-	    this.userThrottlesEntity.setUserThrottles(this.userThrottles);
+		this.apiKeyEntity.setApiKey(this.apiKey);
+		this.userProfileEntity.setUserProfile(this.userProfile);
+		this.userThrottlesEntity.setUserThrottles(this.userThrottles);
 
-	    when(this.apiKeyDao.getApiKeyByUserName(apiKey.getUsername())).thenReturn(this.apiKeyEntity);
-	    when(this.apiKeyDao.getApiKeyByUuid(apiKey.getUuid())).thenReturn(this.apiKeyEntity);
+		when(this.apiKeyDao.getApiKeyByUserName(apiKey.getUsername())).thenReturn(this.apiKeyEntity);
+		when(this.apiKeyDao.getApiKeyByUuid(apiKey.getUuid())).thenReturn(this.apiKeyEntity);
 
-	    when(this.userProfileDao.getUserProfileByUserName(this.userProfile.getUsername())).thenReturn(this.userProfileEntity);
-	    when(this.userProfileDao.getUserProfileByUserNameAndDn(this.userProfile.getUsername(), this.userProfile.getDistinguishedName()))
+		when(this.userProfileDao.getUserProfileByUserName(this.userProfile.getUsername())).thenReturn(this.userProfileEntity);
+		when(this.userProfileDao.getUserProfileByUserNameAndDn(this.userProfile.getUsername(), this.userProfile.getDistinguishedName()))
 				.thenReturn(this.userProfileEntity);
 	}
 
 	@Test
 	public void testUpdateApiKey() {
 		accessor.updateApiKey("not_a_valid_username", "my_uuid");
-        Mockito.verify(this.apiKeyDao, times(0)).save(any(ApiKeyEntity.class));
+		Mockito.verify(this.apiKeyDao, times(0)).save(any(ApiKeyEntity.class));
 
-        accessor.updateApiKey("valid_username", "my_uuid");
-        Mockito.verify(this.apiKeyDao, times(1)).save(any(ApiKeyEntity.class));
+		accessor.updateApiKey("valid_username", "my_uuid");
+		Mockito.verify(this.apiKeyDao, times(1)).save(any(ApiKeyEntity.class));
 	}
 
 	@Test
@@ -115,45 +117,45 @@ public class DatabaseAccessorTests {
 	public void testIsApiKeyValid() {
 		Assert.assertFalse(this.accessor.isApiKeyValid("invalid_uuid"));
 
-		//Check expired key
+		// Check expired key
 		apiKey.setExpiresOn(System.currentTimeMillis() - (1000 * 60));
 		Assert.assertFalse(this.accessor.isApiKeyValid("valid_uuid"));
 
-		//Check inactive key.
+		// Check inactive key.
 		apiKey.setLastUsedOn(1000);
 		apiKey.setExpiresOn(System.currentTimeMillis() + (1000 * 60));
 		Assert.assertFalse(this.accessor.isApiKeyValid("valid_uuid"));
 
-		//Check valid key.
+		// Check valid key.
 		apiKey.setLastUsedOn(System.currentTimeMillis() - 1000);
 		apiKey.setExpiresOn(System.currentTimeMillis() + (1000 * 60));
 		Assert.assertTrue(this.accessor.isApiKeyValid("valid_uuid"));
 
-		//Check unitialized/legacy key
+		// Check unitialized/legacy key
 		apiKey.setExpiresOn(0);
 		apiKey.setLastUsedOn(0);
 		Assert.assertTrue(this.accessor.isApiKeyValid("valid_uuid"));
 
-		//Check exception.
+		// Check exception.
 		when(this.apiKeyDao.save(this.apiKeyEntity)).thenThrow(new RuntimeException("Dummy save exception."));
 		Assert.assertTrue(this.accessor.isApiKeyValid("valid_uuid"));
 	}
 
 	@Test
 	public void testGetUsername() {
-		//Test a valid entity
+		// Test a valid entity
 		Assert.assertEquals(this.apiKey.getUsername(), this.accessor.getUsername(this.apiKey.getUuid()));
 
-		//Test an invalid entity
+		// Test an invalid entity
 		Assert.assertNull(this.accessor.getUsername("invalid_key"));
 	}
 
 	@Test
 	public void testGetApiKey() {
-		//Test a valid entity.
+		// Test a valid entity.
 		Assert.assertEquals(this.apiKey.getUuid(), this.accessor.getApiKey(this.apiKey.getUsername()));
 
-		//Test an invalid entity.
+		// Test an invalid entity.
 		Assert.assertNull(this.accessor.getApiKey("invalid_username"));
 	}
 
@@ -162,7 +164,7 @@ public class DatabaseAccessorTests {
 		this.accessor.deleteApiKey(this.apiKey.getUuid());
 		Mockito.verify(this.apiKeyDao, times(1)).delete(this.apiKeyEntity);
 
-		//Test a missing uuid.
+		// Test a missing uuid.
 		this.accessor.deleteApiKey("some_invalid_key");
 		Mockito.verify(this.apiKeyDao, times(1)).delete(this.apiKeyEntity);
 	}
@@ -174,10 +176,10 @@ public class DatabaseAccessorTests {
 
 	@Test
 	public void testGetUserProfileByUsername() {
-		//Test valid entity.
+		// Test valid entity.
 		Assert.assertEquals(this.userProfile, this.accessor.getUserProfileByUsername(this.userProfile.getUsername()));
 
-		//Test a missing username.
+		// Test a missing username.
 		Assert.assertEquals("a_new_username", this.accessor.getUserProfileByUsername("a_new_username").getUsername());
 	}
 
@@ -186,12 +188,12 @@ public class DatabaseAccessorTests {
 		Mockito.when(this.userProfileDao.findAll()).thenReturn(Collections.singleton(this.userProfileEntity));
 
 		List<UserProfile> results = this.accessor.getUserProfiles();
-		Assert.assertArrayEquals(new UserProfile[]{this.userProfile}, results.toArray());
+		Assert.assertArrayEquals(new UserProfile[] { this.userProfile }, results.toArray());
 	}
 
 	@Test
 	public void testGetUserProfilebyApiKey() {
-		//Test missing key
+		// Test missing key
 		Assert.assertNull(this.accessor.getUserProfileByApiKey("an_invalid_key"));
 
 		Assert.assertEquals(this.userProfile, this.accessor.getUserProfileByApiKey(this.apiKey.getUuid()));
@@ -206,10 +208,8 @@ public class DatabaseAccessorTests {
 		newProfile.setDistinguishedName(newDistinguishedName);
 
 		Assert.assertNotEquals(newProfile, this.userProfileEntity.getUserProfile());
-		this.accessor.updateUserProfile(
-				this.userProfileEntity.getUserProfile().getUsername(),
-				this.userProfileEntity.getUserProfile().getDistinguishedName(),
-				newProfile);
+		this.accessor.updateUserProfile(this.userProfileEntity.getUserProfile().getUsername(),
+				this.userProfileEntity.getUserProfile().getDistinguishedName(), newProfile);
 
 		Assert.assertEquals(newProfile, this.userProfileEntity.getUserProfile());
 		Mockito.verify(this.userProfileDao, times(1)).save(this.userProfileEntity);
@@ -245,7 +245,7 @@ public class DatabaseAccessorTests {
 	public void testGetAllUserThrottles() {
 		when(this.userThrottlesDao.findAll()).thenReturn(Collections.singleton(this.userThrottlesEntity));
 
-		Assert.assertArrayEquals(new UserThrottles[]{this.userThrottles}, this.accessor.getAllUserThrottles().toArray());
+		Assert.assertArrayEquals(new UserThrottles[] { this.userThrottles }, this.accessor.getAllUserThrottles().toArray());
 	}
 
 	@Test
@@ -253,7 +253,8 @@ public class DatabaseAccessorTests {
 		String userName = this.userProfile.getUsername();
 		Mockito.when(this.userThrottlesDao.getUserThrottlesByUserName(this.userProfile.getUsername())).thenReturn(this.userThrottlesEntity);
 
-		Assert.assertEquals(this.userThrottlesEntity.getUserThrottles(), this.accessor.getCurrentThrottlesForUser(this.userProfileEntity.getUserProfile().getUsername(), false));
+		Assert.assertEquals(this.userThrottlesEntity.getUserThrottles(),
+				this.accessor.getCurrentThrottlesForUser(this.userProfileEntity.getUserProfile().getUsername(), false));
 
 		Assert.assertNull(this.accessor.getCurrentThrottlesForUser("invalid_user_name", false));
 
@@ -273,8 +274,7 @@ public class DatabaseAccessorTests {
 	public void testIncrementUserThrottles() {
 		Mockito.when(this.userThrottlesDao.getUserThrottlesByUserName(this.userProfile.getUsername())).thenReturn(this.userThrottlesEntity);
 		int startValue = this.accessor.getInvocationsForUserThrottle(this.userProfile.getUsername(), Throttle.Component.QUERY);
-		this.accessor.incrementUserThrottles(this.userProfileEntity.getUserProfile().getUsername(),
-				Throttle.Component.QUERY);
+		this.accessor.incrementUserThrottles(this.userProfileEntity.getUserProfile().getUsername(), Throttle.Component.QUERY);
 		int endValue = this.accessor.getInvocationsForUserThrottle(this.userProfile.getUsername(), Throttle.Component.QUERY);
 		Assert.assertEquals(startValue + 1, endValue);
 	}
@@ -284,7 +284,5 @@ public class DatabaseAccessorTests {
 		this.accessor.clearThrottles();
 		Mockito.verify(this.userThrottlesDao, times(1)).deleteAll();
 	}
-
-
 
 }
