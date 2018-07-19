@@ -116,8 +116,12 @@ node {
       sh "cf map-route ${appName} apps.internal --hostname pz-idam-${env.PROMOTE_SPACE}"
       
       // Assign Policies
-      def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}'", returnStdout: true).trim()
-      sh "cf add-network-policy ${gateway} --destination-app ${appName} --protocol tcp --port 8080"
+      try {
+        def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}'", returnStdout: true).trim()
+        sh "cf add-network-policy ${gateway} --destination-app ${appName} --protocol tcp --port 8080"
+      } catch (Exception ex) {
+        echo "Could not establish network policies. The network policy tool should be run post-build to ensure functionality."
+      }
 
       // Delete old Routes
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
