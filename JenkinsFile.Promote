@@ -85,7 +85,7 @@ node {
         [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
       ]) {
           // Push the app
-          sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+          sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start --no-route"
           try {
             sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
             sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
@@ -112,7 +112,6 @@ node {
 
       // Assign Routes
       def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
-      sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
       sh "cf map-route ${appName} apps.internal --hostname pz-idam-${env.PROMOTE_SPACE}"
       
       // Assign Policies
@@ -127,7 +126,6 @@ node {
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
         def legacyAppName = legacyApp.toString().trim()
         if (legacyAppName != appName) {
-          sh "cf unmap-route ${legacyAppName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
           sh "cf unmap-route ${legacyAppName} apps.internal --hostname pz-idam-${env.PROMOTE_SPACE}"
           sh "cf delete -f ${legacyAppName} -r"
         }
