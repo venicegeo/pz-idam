@@ -177,7 +177,7 @@ node {
         
         // Define Policies
         try {
-          def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}'", returnStdout: true).trim()
+          def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}' | head -n1", returnStdout: true).trim()
           sh "cf add-network-policy ${gateway} --destination-app ${appName} --protocol tcp --port 8080"        
         } catch (Exception ex) {
           echo "Could not establish network policies. The network policy tool should be run post-build to ensure functionality."
@@ -278,7 +278,7 @@ node {
         
         // Define Policies
         try {
-          def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}'", returnStdout: true).trim()
+          def gateway = sh(script: "cf routes | grep \"pz-gateway \" | awk '{print \$4}' | head -n1", returnStdout: true).trim()
           sh "cf add-network-policy ${gateway} --destination-app ${appName} --protocol tcp --port 8080"     
         } catch (Exception ex) {
           echo "Could not establish network policies. The network policy tool should be run post-build to ensure functionality."
